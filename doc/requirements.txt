@@ -1,0 +1,5 @@
+# Documentation Dependencies
+
+sphinx
+sphinx-autobuild
+sphinx-book-theme

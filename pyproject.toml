@@ -1,0 +1,14 @@
+[project]
+name = "deltacycle"
+version = "0.0.0"
+description = "Delta Cycle"
+readme = "README.md"
+
+requires-python = ">=3.12"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/cjdrake/deltacycle.git"
+
+[tool.black]
+line-length = 100

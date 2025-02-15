@@ -1,0 +1,18 @@
+# Development Dependencies
+
+# Python Package Index
+build
+twine
+
+# Documentation
+-r doc/requirements.txt
+
+# Code Quality
+black
+flake8
+pylint
+pytest-cov
+pytest-profiling
+
+# Notebooks
+ipykernel
