@@ -1,28 +1,47 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
+Configuration file for the Sphinx documentation builder.
+
+For the full list of built-in configuration values, see the documentation:
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
+
+import sys
+from pathlib import Path
+
+import tomllib
+
+WORKSPACE = Path(__file__).parents[2]
+PYPROJECT_TOML = WORKSPACE / "pyproject.toml"
+SRC_DIR = WORKSPACE / "src"
+
+# Enable import from deltacycle package
+sys.path.insert(0, str(SRC_DIR))
+
+with open(PYPROJECT_TOML, mode="rb") as f:
+    proj_toml = tomllib.load(f)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Delta Cycle'
-copyright = '2025, Chris Drake'
-author = 'Chris Drake'
-release = '0.1.0'
+project = "Delta Cycle"
+copyright = "2025, Chris Drake"  # pylint: disable=redefined-builtin
+author = "Chris Drake"
+release = proj_toml["project"]["version"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
-
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
-html_static_path = ['_static']
+html_theme = "alabaster"
+html_static_path = ["_static"]
