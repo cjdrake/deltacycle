@@ -1,78 +1,63 @@
 """Delta Cycle"""
 
-from ._sim import (
-    ALL_COMPLETED,
-    FIRST_COMPLETED,
-    FIRST_EXCEPTION,
-    Aggregate,
-    BoundedSemaphore,
-    CancelledError,
-    Event,
-    EventLoop,
-    FinishError,
-    InvalidStateError,
-    Lock,
-    Semaphore,
-    Singular,
-    State,
-    Task,
-    TaskGroup,
-    TaskState,
-    Value,
-    changed,
+import logging
+from logging import Filter, LogRecord
+
+from ._error import FinishError, InvalidStateError
+from ._loop import (
+    Loop,
     create_task,
-    del_event_loop,
     finish,
-    get_event_loop,
+    get_loop,
     get_running_loop,
     irun,
-    new_event_loop,
+    model_wait,
     now,
-    resume,
     run,
-    set_event_loop,
+    set_loop,
     sleep,
-    wait,
 )
+from ._task import Task, TaskState
+from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
+
+# Customize logging
+logger = logging.getLogger(__name__)
+
+
+class DeltaCycleFilter(Filter):
+    def filter(self, record: LogRecord) -> bool:
+        loop = get_running_loop()
+        record.time = loop.time()
+        return True
+
+
+logger.addFilter(DeltaCycleFilter())
+
 
 __all__ = [
     # error
-    "CancelledError",
     "FinishError",
     "InvalidStateError",
-    # state
-    "State",
+    # variable
+    "Variable",
     "Value",
     "Singular",
     "Aggregate",
+    "AggrValue",
+    "AggrItem",
     # task
     "Task",
     "TaskState",
-    "TaskGroup",
     "create_task",
-    # event
-    "Event",
-    # semaphore
-    "Semaphore",
-    "BoundedSemaphore",
-    "Lock",
     # event_loop
-    "EventLoop",
+    "Loop",
     "get_running_loop",
-    "get_event_loop",
-    "set_event_loop",
-    "new_event_loop",
-    "del_event_loop",
+    "get_loop",
+    "set_loop",
     "now",
     "run",
     "irun",
     "finish",
     "sleep",
-    "changed",
-    "resume",
-    # wait
-    "FIRST_COMPLETED",
-    "FIRST_EXCEPTION",
-    "ALL_COMPLETED",
-    "wait",
+    "model_wait",
 ]
