@@ -2,6 +2,7 @@
 *.pyc
 
 # build outputs
+build/
 dist/
 *.egg-info/
 
