@@ -103,6 +103,7 @@ class Singular(State, Value):
         self._value = self._next_value
         self._changed = False
 
+    # Other
     def dirty(self) -> bool:
         return self._next_value != self._value
 
