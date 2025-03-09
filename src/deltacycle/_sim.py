@@ -326,7 +326,7 @@ class Task(Awaitable):
         loop.call_soon(self)
 
 
-def create_task(coro: Coroutine, region: int = 0) -> Task:
+def create_task(coro: Coroutine[Any, Any, Any], region: int = 0) -> Task:
     loop = get_running_loop()
     return loop.task_create(coro, region)
 
@@ -337,7 +337,7 @@ class TaskGroup:
     def __init__(self):
         self._tasks = deque()
 
-    def create_task(self, coro: Coroutine, region: int = 0) -> Task:
+    def create_task(self, coro: Coroutine[Any, Any, Any], region: int = 0) -> Task:
         loop = get_running_loop()
         task = loop.task_create(coro, region)
         self._tasks.append(task)
@@ -559,7 +559,7 @@ class EventLoop:
         self._wait_fifos[aw].remove(task)
 
     # Task await / done callbacks
-    def task_create(self, coro: Coroutine, region: int = 0) -> Task:
+    def task_create(self, coro: Coroutine[Any, Any, Any], region: int = 0) -> Task:
         # Cannot call task_create before the simulation starts
         assert self._time >= 0
         task = Task(coro, region)
@@ -772,7 +772,7 @@ def now() -> int:
 
 
 def run(
-    coro: Coroutine | None = None,
+    coro: Coroutine[Any, Any, Any] | None = None,
     region: int = 0,
     loop: EventLoop | None = None,
     ticks: int | None = None,
@@ -792,7 +792,7 @@ def run(
 
 
 def irun(
-    coro: Coroutine | None = None,
+    coro: Coroutine[Any, Any, Any] | None = None,
     region: int = 0,
     loop: EventLoop | None = None,
     ticks: int | None = None,

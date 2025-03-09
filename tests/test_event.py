@@ -1,51 +1,52 @@
 """Test seqlogic.sim.Event class."""
 
-from deltacycle import Event, create_task, now, run, sleep
+import logging
 
+from deltacycle import Event, create_task, run, sleep
 
-def log(s: str):
-    print(f"{now():04} {s}")
+logger = logging.getLogger("deltacycle")
 
 
 async def primary(event: Event, name: str):
-    log(f"{name} enter")
+    logger.info("%s enter", name)
     await sleep(10)
-    log(f"{name} set")
+    logger.info("%s set", name)
     event.set()
     assert event.is_set()
     await sleep(10)
-    log(f"{name} exit")
+    logger.info("%s exit", name)
 
 
 async def secondary(event: Event, name: str):
-    log(f"{name} enter")
-    log(f"{name} waiting")
+    logger.info("%s enter", name)
+    logger.info("%s waiting", name)
     await event.wait()
-    log(f"{name} running")
+    logger.info("%s running", name)
     await sleep(10)
-    log(f"{name} exit")
+    logger.info("%s exit", name)
 
 
-EXP1 = """\
-0000 P1 enter
-0000 S1 enter
-0000 S1 waiting
-0000 S2 enter
-0000 S2 waiting
-0000 S3 enter
-0000 S3 waiting
-0010 P1 set
-0010 S1 running
-0010 S2 running
-0010 S3 running
-0020 P1 exit
-0020 S1 exit
-0020 S2 exit
-0020 S3 exit
-"""
+EXP1 = {
+    (0, "P1 enter"),
+    (0, "S1 enter"),
+    (0, "S1 waiting"),
+    (0, "S2 enter"),
+    (0, "S2 waiting"),
+    (0, "S3 enter"),
+    (0, "S3 waiting"),
+    (10, "P1 set"),
+    (10, "S1 running"),
+    (10, "S2 running"),
+    (10, "S3 running"),
+    (20, "P1 exit"),
+    (20, "S1 exit"),
+    (20, "S2 exit"),
+    (20, "S3 exit"),
+}
 
 
-def test_acquire_release(capsys):
+def test_acquire_release(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         event = Event()
@@ -56,4 +57,5 @@ def test_acquire_release(capsys):
 
     run(main())
 
-    assert capsys.readouterr().out == EXP1
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP1
