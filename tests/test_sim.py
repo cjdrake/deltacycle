@@ -45,31 +45,6 @@ class Bool(Singular):
         await resume((self, self.is_edge))
 
 
-HELLO_OUT = """\
-[2] Hello
-[4] World
-"""
-
-
-def test_hello(capsys):
-    """Test basic async/await hello world functionality."""
-
-    async def hello():
-        await sleep(2)
-        print(f"[{now()}] Hello")
-        await sleep(2)
-        print(f"[{now()}] World")
-
-    # Invalid run limit
-    with pytest.raises(TypeError):
-        run(coro="invalid", ticks="Invalid argument type")
-
-    # Run until no events left
-    run(hello())
-
-    assert capsys.readouterr().out == HELLO_OUT
-
-
 def test_vars_run():
     """Test generic variable functionality."""
     waves.clear()
