@@ -221,14 +221,14 @@ class TaskState(IntEnum):
 class Task(Awaitable):
     """Coroutine wrapper."""
 
-    def __init__(self, coro: Coroutine, region: int = 0):
+    def __init__(self, coro: Coroutine[Any, Any, Any], region: int = 0):
         self._coro = coro
         self._region = region
 
         self._state = TaskState.CREATED
         self._parent: Task | Event | Semaphore | Variable | None = None
 
-        self._result = None
+        self._result: Any = None
 
         # Set flag to throw exception
         self._exc_flag = False
@@ -241,18 +241,23 @@ class Task(Awaitable):
             loop.fifo_wait(self)
             # Suspend
             yield
+
         # Resume
         return
 
     @property
-    def region(self):
+    def coro(self) -> Coroutine[Any, Any, Any]:
+        return self._coro
+
+    @property
+    def region(self) -> int:
         return self._region
 
     def set_state(self, state: TaskState, parent=None):
         self._state = state
         self._parent = parent
 
-    def run(self, value=None):
+    def run(self, value: Any = None):
         self._state = TaskState.RUNNING
         if self._exc_flag:
             self._exc_flag = False
@@ -274,7 +279,7 @@ class Task(Awaitable):
     def set_result(self, result):
         self._result = result
 
-    def result(self):
+    def result(self) -> Any:
         if self._state == TaskState.CANCELLED:
             assert self._exception is not None and isinstance(self._exception, CancelledError)
             raise self._exception
@@ -301,9 +306,6 @@ class Task(Awaitable):
             assert self._exception is None
             return self._exception
         raise InvalidStateError("Task is not done")
-
-    def get_coro(self) -> Coroutine:
-        return self._coro
 
     def cancel(self, msg: str | None = None):
         loop = get_running_loop()
