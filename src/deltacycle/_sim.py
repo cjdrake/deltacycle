@@ -18,24 +18,13 @@ from collections.abc import Awaitable, Callable, Coroutine, Generator, Hashable
 from enum import IntEnum, auto
 from typing import Any, override
 
+from ._error import CancelledError, FinishError, InvalidStateError
 from ._suspend_resume import SuspendResume
 
 INIT_TIME = -1
 START_TIME = 0
 
 type Predicate = Callable[[], bool]
-
-
-class CancelledError(Exception):
-    """Task has been cancelled."""
-
-
-class FinishError(Exception):
-    """Force the simulation to stop."""
-
-
-class InvalidStateError(Exception):
-    """Task has an invalid state."""
 
 
 class State(Awaitable):

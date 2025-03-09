@@ -3,17 +3,15 @@
 import logging
 from logging import Filter, LogRecord
 
+from ._error import CancelledError, InvalidStateError
 from ._sim import (
     ALL_COMPLETED,
     FIRST_COMPLETED,
     FIRST_EXCEPTION,
     Aggregate,
     BoundedSemaphore,
-    CancelledError,
     Event,
     EventLoop,
-    FinishError,
-    InvalidStateError,
     Lock,
     Semaphore,
     Singular,
@@ -55,7 +53,6 @@ logger.addFilter(DeltaCycleFilter())
 __all__ = [
     # error
     "CancelledError",
-    "FinishError",
     "InvalidStateError",
     # state
     "State",
