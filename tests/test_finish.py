@@ -1,114 +1,115 @@
 """Test seqlogic.sim finish."""
 
-from deltacycle import create_task, finish, now, run, sleep
+import logging
 
+from deltacycle import create_task, finish, run, sleep
 
-def log(s: str):
-    print(f"{now():04} {s}")
+logger = logging.getLogger("deltacycle")
 
 
 async def ctl():
-    log("CTL enter")
+    logger.info("CTL enter")
     await sleep(100)
 
     # Force all PING threads to stop immediately
-    log("CTL finish")
+    logger.info("CTL finish")
     finish()
 
 
 async def ping(name: str, period: int):
-    log(f"{name} enter")
+    logger.info("%s enter", name)
     while True:
         await sleep(period)
-        log(f"{name} PING")
+        logger.info("%s PING", name)
 
 
-EXP1 = """\
-0000 CTL enter
-0000 FOO enter
-0000 BAR enter
-0000 FIZ enter
-0000 BUZ enter
-0003 FOO PING
-0005 BAR PING
-0006 FOO PING
-0007 FIZ PING
-0009 FOO PING
-0010 BAR PING
-0011 BUZ PING
-0012 FOO PING
-0014 FIZ PING
-0015 BAR PING
-0015 FOO PING
-0018 FOO PING
-0020 BAR PING
-0021 FIZ PING
-0021 FOO PING
-0022 BUZ PING
-0024 FOO PING
-0025 BAR PING
-0027 FOO PING
-0028 FIZ PING
-0030 BAR PING
-0030 FOO PING
-0033 BUZ PING
-0033 FOO PING
-0035 FIZ PING
-0035 BAR PING
-0036 FOO PING
-0039 FOO PING
-0040 BAR PING
-0042 FIZ PING
-0042 FOO PING
-0044 BUZ PING
-0045 BAR PING
-0045 FOO PING
-0048 FOO PING
-0049 FIZ PING
-0050 BAR PING
-0051 FOO PING
-0054 FOO PING
-0055 BUZ PING
-0055 BAR PING
-0056 FIZ PING
-0057 FOO PING
-0060 BAR PING
-0060 FOO PING
-0063 FIZ PING
-0063 FOO PING
-0065 BAR PING
-0066 BUZ PING
-0066 FOO PING
-0069 FOO PING
-0070 FIZ PING
-0070 BAR PING
-0072 FOO PING
-0075 BAR PING
-0075 FOO PING
-0077 BUZ PING
-0077 FIZ PING
-0078 FOO PING
-0080 BAR PING
-0081 FOO PING
-0084 FIZ PING
-0084 FOO PING
-0085 BAR PING
-0087 FOO PING
-0088 BUZ PING
-0090 BAR PING
-0090 FOO PING
-0091 FIZ PING
-0093 FOO PING
-0095 BAR PING
-0096 FOO PING
-0098 FIZ PING
-0099 BUZ PING
-0099 FOO PING
-0100 CTL finish
-"""
+EXP1 = {
+    (0, "CTL enter"),
+    (0, "FOO enter"),
+    (0, "BAR enter"),
+    (0, "FIZ enter"),
+    (0, "BUZ enter"),
+    (3, "FOO PING"),
+    (5, "BAR PING"),
+    (6, "FOO PING"),
+    (7, "FIZ PING"),
+    (9, "FOO PING"),
+    (10, "BAR PING"),
+    (11, "BUZ PING"),
+    (12, "FOO PING"),
+    (14, "FIZ PING"),
+    (15, "BAR PING"),
+    (15, "FOO PING"),
+    (18, "FOO PING"),
+    (20, "BAR PING"),
+    (21, "FIZ PING"),
+    (21, "FOO PING"),
+    (22, "BUZ PING"),
+    (24, "FOO PING"),
+    (25, "BAR PING"),
+    (27, "FOO PING"),
+    (28, "FIZ PING"),
+    (30, "BAR PING"),
+    (30, "FOO PING"),
+    (33, "BUZ PING"),
+    (33, "FOO PING"),
+    (35, "FIZ PING"),
+    (35, "BAR PING"),
+    (36, "FOO PING"),
+    (39, "FOO PING"),
+    (40, "BAR PING"),
+    (42, "FIZ PING"),
+    (42, "FOO PING"),
+    (44, "BUZ PING"),
+    (45, "BAR PING"),
+    (45, "FOO PING"),
+    (48, "FOO PING"),
+    (49, "FIZ PING"),
+    (50, "BAR PING"),
+    (51, "FOO PING"),
+    (54, "FOO PING"),
+    (55, "BUZ PING"),
+    (55, "BAR PING"),
+    (56, "FIZ PING"),
+    (57, "FOO PING"),
+    (60, "BAR PING"),
+    (60, "FOO PING"),
+    (63, "FIZ PING"),
+    (63, "FOO PING"),
+    (65, "BAR PING"),
+    (66, "BUZ PING"),
+    (66, "FOO PING"),
+    (69, "FOO PING"),
+    (70, "FIZ PING"),
+    (70, "BAR PING"),
+    (72, "FOO PING"),
+    (75, "BAR PING"),
+    (75, "FOO PING"),
+    (77, "BUZ PING"),
+    (77, "FIZ PING"),
+    (78, "FOO PING"),
+    (80, "BAR PING"),
+    (81, "FOO PING"),
+    (84, "FIZ PING"),
+    (84, "FOO PING"),
+    (85, "BAR PING"),
+    (87, "FOO PING"),
+    (88, "BUZ PING"),
+    (90, "BAR PING"),
+    (90, "FOO PING"),
+    (91, "FIZ PING"),
+    (93, "FOO PING"),
+    (95, "BAR PING"),
+    (96, "FOO PING"),
+    (98, "FIZ PING"),
+    (99, "BUZ PING"),
+    (99, "FOO PING"),
+    (100, "CTL finish"),
+}
 
 
-def test_finish(capsys):
+def test_finish(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         create_task(ctl())
@@ -120,4 +121,5 @@ def test_finish(capsys):
     # Subsequent calls to run() have no effect
     run(main())
 
-    assert capsys.readouterr().out == EXP1
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP1
