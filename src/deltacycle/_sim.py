@@ -763,17 +763,6 @@ def set_event_loop(loop: EventLoop):
     _loop = loop
 
 
-def new_event_loop() -> EventLoop:
-    """Create and return a new event loop."""
-    return EventLoop()
-
-
-def del_event_loop():
-    """Delete the current event loop."""
-    global _loop
-    _loop = None
-
-
 def now() -> int:
     if _loop is None:
         raise RuntimeError("No running loop")
