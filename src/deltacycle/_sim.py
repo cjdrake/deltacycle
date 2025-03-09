@@ -777,19 +777,16 @@ def run(
     until: int | None = None,
 ):
     """Run a simulation."""
-    global _loop
-
-    task = None
-    if loop is not None:
-        _loop = loop
-    else:
-        _loop = EventLoop()
+    if loop is None:
+        set_event_loop(loop := EventLoop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
         task = Task(coro, region)
-        _loop.call_at(START_TIME, task)
+        loop.call_at(START_TIME, task)
+    else:
+        set_event_loop(loop)
 
-    _loop.run(ticks, until)
+    loop.run(ticks, until)
 
 
 def irun(
@@ -800,19 +797,16 @@ def irun(
     until: int | None = None,
 ) -> Generator[int, None, None]:
     """Iterate a simulation."""
-    global _loop
-
-    task = None
-    if loop is not None:
-        _loop = loop
-    else:
-        _loop = EventLoop()
+    if loop is None:
+        set_event_loop(loop := EventLoop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
         task = Task(coro, region)
-        _loop.call_at(START_TIME, task)
+        loop.call_at(START_TIME, task)
+    else:
+        set_event_loop(loop)
 
-    yield from _loop.irun(ticks, until)
+    yield from loop.irun(ticks, until)
 
 
 async def sleep(delay: int):
