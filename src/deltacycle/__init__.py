@@ -15,11 +15,11 @@ from ._sim import (
     Lock,
     Semaphore,
     Singular,
-    State,
     Task,
     TaskGroup,
     TaskState,
     Value,
+    Variable,
     changed,
     create_task,
     del_event_loop,
@@ -54,8 +54,8 @@ __all__ = [
     # error
     "CancelledError",
     "InvalidStateError",
-    # state
-    "State",
+    # variable
+    "Variable",
     "Value",
     "Singular",
     "Aggregate",

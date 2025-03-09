@@ -4,7 +4,17 @@ from collections import defaultdict
 
 import pytest
 
-from deltacycle import Singular, State, create_task, get_running_loop, irun, now, resume, run, sleep
+from deltacycle import (
+    Singular,
+    Variable,
+    create_task,
+    get_running_loop,
+    irun,
+    now,
+    resume,
+    run,
+    sleep,
+)
 from deltacycle._sim import INIT_TIME
 
 waves = defaultdict(dict)
@@ -35,13 +45,13 @@ class Bool(Singular):
     def is_edge(self) -> bool:
         return self.is_posedge() or self.is_negedge()
 
-    async def posedge(self) -> State:
+    async def posedge(self) -> Variable:
         await resume((self, self.is_posedge))
 
-    async def negedge(self) -> State:
+    async def negedge(self) -> Variable:
         await resume((self, self.is_negedge))
 
-    async def edge(self) -> State:
+    async def edge(self) -> Variable:
         await resume((self, self.is_edge))
 
 

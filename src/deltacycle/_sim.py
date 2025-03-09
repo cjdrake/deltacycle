@@ -27,19 +27,19 @@ START_TIME = 0
 type Predicate = Callable[[], bool]
 
 
-class State(Awaitable):
+class Variable(Awaitable):
     """Model component."""
 
-    def __await__(self) -> Generator[None, State, State]:
+    def __await__(self) -> Generator[None, Variable, Variable]:
         loop = get_running_loop()
         loop.state_wait(self, self.changed)
 
         # Suspend
-        state = yield
-        assert state is self
+        x = yield
+        assert x is self
 
         # Resume
-        return state
+        return x
 
     present = property(fget=lambda self: NotImplemented)
 
@@ -51,7 +51,7 @@ class State(Awaitable):
 
 
 class Value(ABC):
-    """State value."""
+    """Variable value."""
 
     def _get_value(self):
         raise NotImplementedError()  # pragma: no cover
@@ -64,11 +64,11 @@ class Value(ABC):
     next = property(fset=_set_next)
 
 
-class Singular(State, Value):
+class Singular(Variable, Value):
     """Model state organized as a single unit."""
 
     def __init__(self, value):
-        State.__init__(self)
+        Variable.__init__(self)
         self._value = value
         self._next_value = value
         self._changed = False
@@ -90,7 +90,7 @@ class Singular(State, Value):
 
     next = property(fset=_set_next)
 
-    # State
+    # Variable
     def _get_present(self):
         return self._next_value
 
@@ -108,11 +108,11 @@ class Singular(State, Value):
         return self._next_value != self._value
 
 
-class Aggregate(State):
+class Aggregate(Variable):
     """Model state organized as multiple units."""
 
     def __init__(self, value):
-        super().__init__()
+        Variable.__init__(self)
         self._values = defaultdict(lambda: value)
         self._next_values = dict()
 
@@ -138,7 +138,7 @@ class Aggregate(State):
         # Notify the event loop
         loop.state_touch(self)
 
-    # State
+    # Variable
     def _get_present(self) -> AggrPresent:
         return AggrPresent(self)
 
@@ -201,7 +201,7 @@ class TaskState(IntEnum):
     # Awaiting task/event/semaphore in FIFO order
     WAIT_FIFO = auto()
 
-    # Awaiting state touch
+    # Awaiting model touch
     WAIT_STATE = auto()
 
     # In the event queue
@@ -226,7 +226,7 @@ class Task(Awaitable):
         self._region = region
 
         self._state = TaskState.CREATED
-        self._parent: Task | State | Event | Semaphore | None = None
+        self._parent: Task | Event | Semaphore | Variable | None = None
 
         self._result = None
 
@@ -505,10 +505,10 @@ class EventLoop:
         # Awaitable FIFOs
         self._wait_fifos: dict[Task | Event | Semaphore, deque[Task]] = defaultdict(deque)
 
-        # State waiting set
-        self._waiting: dict[State, set[Task]] = defaultdict(set)
-        self._predicates: dict[State, dict[Task, Predicate]] = defaultdict(dict)
-        self._touched: set[State] = set()
+        # Variable waiting set
+        self._waiting: dict[Variable, set[Task]] = defaultdict(set)
+        self._predicates: dict[Variable, dict[Task, Predicate]] = defaultdict(dict)
+        self._touched: set[Variable] = set()
 
     def clear(self):
         """Clear all task collections."""
@@ -606,33 +606,31 @@ class EventLoop:
         # Increment semaphore counter
         return True
 
-    # State suspend / resume callbacks
-    def state_wait(self, state: State, predicate: Predicate):
-        """Schedule current coroutine after a state update trigger."""
+    # Model suspend / resume callbacks
+    def state_wait(self, x: Variable, p: Predicate):
         task = self.task()
-        task.set_state(TaskState.WAIT_STATE, state)
-        self._waiting[state].add(task)
-        self._predicates[state][task] = predicate
+        task.set_state(TaskState.WAIT_STATE, x)
+        self._waiting[x].add(task)
+        self._predicates[x][task] = p
 
-    def state_drop(self, state: State, task: Task):
-        self._waiting[state].remove(task)
-        del self._predicates[state][task]
+    def state_drop(self, x: Variable, task: Task):
+        self._waiting[x].remove(task)
+        del self._predicates[x][task]
 
-    def state_touch(self, state: State):
-        """Schedule coroutines triggered by touching model state."""
-        waiting = self._waiting[state]
-        predicates = self._predicates[state]
+    def state_touch(self, x: Variable):
+        waiting = self._waiting[x]
+        predicates = self._predicates[x]
         pending = [task for task in waiting if predicates[task]()]
         for task in pending:
-            self.state_drop(state, task)
-            self.call_soon(task, value=state)
-        # Add state to update set
-        self._touched.add(state)
+            self.state_drop(x, task)
+            self.call_soon(task, value=x)
+        # Add variable to update set
+        self._touched.add(x)
 
     def _state_update(self):
         while self._touched:
-            state = self._touched.pop()
-            state.update()
+            x = self._touched.pop()
+            x.update()
 
     def _limit(self, ticks: int | None, until: int | None) -> int | None:
         """Determine the run limit."""
@@ -836,22 +834,22 @@ async def sleep(delay: int):
     await SuspendResume()
 
 
-async def changed(*states: State) -> State:
+async def changed(*xs: Variable) -> Variable:
     """Resume execution upon state change."""
     loop = get_running_loop()
-    for state in states:
-        loop.state_wait(state, state.changed)
-    state = await SuspendResume()
-    return state
+    for x in xs:
+        loop.state_wait(x, x.changed)
+    x = await SuspendResume()
+    return x
 
 
-async def resume(*triggers: tuple[State, Predicate]) -> State:
+async def resume(*triggers: tuple[Variable, Predicate]) -> Variable:
     """Resume execution upon event."""
     loop = get_running_loop()
-    for state, predicate in triggers:
-        loop.state_wait(state, predicate)
-    state = await SuspendResume()
-    return state
+    for x, p in triggers:
+        loop.state_wait(x, p)
+    x = await SuspendResume()
+    return x
 
 
 FIRST_COMPLETED = "FIRST_COMPLETED"
