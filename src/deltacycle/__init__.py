@@ -1,5 +1,8 @@
 """Delta Cycle"""
 
+import logging
+from logging import Filter, LogRecord
+
 from ._sim import (
     ALL_COMPLETED,
     FIRST_COMPLETED,
@@ -34,6 +37,20 @@ from ._sim import (
     sleep,
     wait,
 )
+
+# Customize logging
+logger = logging.getLogger(__name__)
+
+
+class DeltaCycleFilter(Filter):
+    def filter(self, record: LogRecord) -> bool:
+        loop = get_running_loop()
+        record.time = loop.time()
+        return True
+
+
+logger.addFilter(DeltaCycleFilter())
+
 
 __all__ = [
     # error
