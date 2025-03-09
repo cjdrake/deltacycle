@@ -1,71 +1,72 @@
 """Test seqlogic.sim.Lock class."""
 
-from deltacycle import Lock, create_task, now, run, sleep
+import logging
 
+from deltacycle import Lock, create_task, run, sleep
 
-def log(s: str):
-    print(f"{now():04} {s}")
+logger = logging.getLogger("deltacycle")
 
 
 async def use_acquire_release(lock: Lock, name: str, t1: int, t2: int):
-    log(f"{name} enter")
+    logger.info("%s enter", name)
 
     await sleep(t1)
 
-    log(f"{name} attempt acquire")
+    logger.info("%s attempt acquire", name)
     await lock.acquire()
-    log(f"{name} acquired")
+    logger.info("%s acquired", name)
 
     try:
         await sleep(t2)
     finally:
-        log(f"{name} release")
+        logger.info("%s release", name)
         lock.release()
 
     await sleep(10)
-    log(f"{name} exit")
+    logger.info("%s exit", name)
 
 
 async def use_with(lock: Lock, name: str, t1: int, t2: int):
-    log(f"{name} enter")
+    logger.info("%s enter", name)
 
     await sleep(t1)
 
-    log(f"{name} attempt acquire")
+    logger.info("%s attempt acquire", name)
     async with lock:
-        log(f"{name} acquired")
+        logger.info("%s acquired", name)
         await sleep(t2)
-    log(f"{name} release")
+    logger.info("%s release", name)
 
     await sleep(10)
-    log(f"{name} exit")
+    logger.info("%s exit", name)
 
 
-EXP = """\
-0000 0 enter
-0000 1 enter
-0000 2 enter
-0000 3 enter
-0010 0 attempt acquire
-0010 0 acquired
-0011 1 attempt acquire
-0012 2 attempt acquire
-0013 3 attempt acquire
-0020 0 release
-0020 1 acquired
-0030 0 exit
-0030 1 release
-0030 2 acquired
-0040 1 exit
-0040 2 release
-0040 3 acquired
-0050 2 exit
-0050 3 release
-0060 3 exit
-"""
+EXP = {
+    (0, "0 enter"),
+    (0, "1 enter"),
+    (0, "2 enter"),
+    (0, "3 enter"),
+    (10, "0 attempt acquire"),
+    (10, "0 acquired"),
+    (11, "1 attempt acquire"),
+    (12, "2 attempt acquire"),
+    (13, "3 attempt acquire"),
+    (20, "0 release"),
+    (20, "1 acquired"),
+    (30, "0 exit"),
+    (30, "1 release"),
+    (30, "2 acquired"),
+    (40, "1 exit"),
+    (40, "2 release"),
+    (40, "3 acquired"),
+    (50, "2 exit"),
+    (50, "3 release"),
+    (60, "3 exit"),
+}
 
 
-def test_acquire_release(capsys):
+def test_acquire_release(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         lock = Lock()
@@ -74,10 +75,12 @@ def test_acquire_release(capsys):
 
     run(main())
 
-    assert capsys.readouterr().out == EXP
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP
 
 
-def test_async_with(capsys):
+def test_async_with(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         lock = Lock()
@@ -86,4 +89,5 @@ def test_async_with(capsys):
 
     run(main())
 
-    assert capsys.readouterr().out == EXP
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP
