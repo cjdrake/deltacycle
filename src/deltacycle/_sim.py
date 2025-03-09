@@ -309,8 +309,10 @@ class Task(Awaitable):
 
         match self._state:
             case TaskState.WAIT_FIFO:
+                assert isinstance(self._parent, (Task, Event, Semaphore))
                 loop.fifo_drop(self._parent, self)
             case TaskState.WAIT_STATE:
+                assert isinstance(self._parent, Variable)
                 loop.state_drop(self._parent, self)
             case TaskState.PENDING:
                 loop.drop(self)
