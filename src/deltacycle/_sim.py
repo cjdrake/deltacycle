@@ -489,7 +489,7 @@ class _TaskQueue:
         self._items.pop(index)
 
 
-class EventLoop:
+class Loop:
     """Simulation event loop."""
 
     init_time = -1
@@ -747,21 +747,21 @@ class EventLoop:
             self.clear()
 
 
-_loop: EventLoop | None = None
+_loop: Loop | None = None
 
 
-def get_running_loop() -> EventLoop:
+def get_running_loop() -> Loop:
     if _loop is None:
         raise RuntimeError("No running loop")
     return _loop
 
 
-def get_event_loop() -> EventLoop | None:
+def get_loop() -> Loop | None:
     """Get the current event loop."""
     return _loop
 
 
-def set_event_loop(loop: EventLoop):
+def set_loop(loop: Loop):
     """Set the current event loop."""
     global _loop
     _loop = loop
@@ -776,19 +776,19 @@ def now() -> int:
 def run(
     coro: Coroutine[Any, Any, Any] | None = None,
     region: int = 0,
-    loop: EventLoop | None = None,
+    loop: Loop | None = None,
     ticks: int | None = None,
     until: int | None = None,
 ):
     """Run a simulation."""
     if loop is None:
-        set_event_loop(loop := EventLoop())
+        set_loop(loop := Loop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
         task = Task(coro, region)
-        loop.call_at(EventLoop.start_time, task)
+        loop.call_at(Loop.start_time, task)
     else:
-        set_event_loop(loop)
+        set_loop(loop)
 
     loop.run(ticks, until)
 
@@ -796,19 +796,19 @@ def run(
 def irun(
     coro: Coroutine[Any, Any, Any] | None = None,
     region: int = 0,
-    loop: EventLoop | None = None,
+    loop: Loop | None = None,
     ticks: int | None = None,
     until: int | None = None,
 ) -> Generator[int, None, None]:
     """Iterate a simulation."""
     if loop is None:
-        set_event_loop(loop := EventLoop())
+        set_loop(loop := Loop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
         task = Task(coro, region)
-        loop.call_at(EventLoop.start_time, task)
+        loop.call_at(Loop.start_time, task)
     else:
-        set_event_loop(loop)
+        set_loop(loop)
 
     yield from loop.irun(ticks, until)
 

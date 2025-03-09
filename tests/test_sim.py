@@ -2,17 +2,7 @@
 
 from collections import defaultdict
 
-from deltacycle import (
-    EventLoop,
-    Singular,
-    create_task,
-    get_running_loop,
-    irun,
-    now,
-    resume,
-    run,
-    sleep,
-)
+from deltacycle import Loop, Singular, create_task, get_running_loop, irun, now, resume, run, sleep
 
 waves = defaultdict(dict)
 
@@ -26,7 +16,7 @@ class Bool(Singular):
 
     def __init__(self):
         super().__init__(value=False)
-        _waves_add(EventLoop.init_time, self, self._value)
+        _waves_add(Loop.init_time, self, self._value)
 
     def update(self):
         if self.dirty():
