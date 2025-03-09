@@ -183,17 +183,17 @@ class TaskState(IntEnum):
 
     Transitions::
 
-                   +--------------------------+
-                   |                          |
-                   v                          |
-        CREATED -> PENDING -> RUNNING -> WAIT_*
-                                      -> CANCELLED
-                                      -> EXCEPTED
-                                      -> RETURNED
+                   +-----------------------+
+                   |                       |
+                   v                       |
+        INIT -> PENDING -> RUNNING -> WAIT_*
+                                   -> CANCELLED
+                                   -> EXCEPTED
+                                   -> RETURNED
     """
 
     # Default value after instantiation
-    CREATED = auto()
+    INIT = auto()
 
     # Awaiting task/event/semaphore in FIFO order
     WAIT_FIFO = auto()
@@ -222,7 +222,7 @@ class Task(Awaitable):
         self._coro = coro
         self._region = region
 
-        self._state = TaskState.CREATED
+        self._state = TaskState.INIT
         self._parent: Task | Event | Semaphore | Variable | None = None
 
         self._result: Any = None
