@@ -368,7 +368,7 @@ class Event:
         if not self._flag:
             loop = get_running_loop()
             loop.fifo_wait(self)
-            await _Awaitable()
+            await SuspendResume()
 
     def set(self):
         loop = get_running_loop()
@@ -403,7 +403,7 @@ class Semaphore:
         if self._cnt == 0:
             loop = get_running_loop()
             loop.fifo_wait(self)
-            await _Awaitable()
+            await SuspendResume()
         else:
             self._cnt -= 1
 
@@ -496,10 +496,20 @@ class _TaskQueue:
         self._items.pop(index)
 
 
-class _Awaitable(Awaitable):
-    """Suspend execution of the current task."""
+class SuspendResume(Awaitable):
+    """Suspend/Resume current task.
 
-    def __await__(self):
+    Use case:
+    1. Current task A suspends itself: RUNNING => WAITING
+    2. Event loop chooses PENDING tasks ..., T
+    3. ... Task T wakes up task A w/ value X: WAITING => PENDING
+    4. Event loop chooses PENDING tasks ..., A: PENDING => RUNNING
+    5. Task A resumes with value X
+
+    The value X can be used to pass information to the task.
+    """
+
+    def __await__(self) -> Generator[None, Any, Any]:
         # Suspend
         value = yield
         # Resume
@@ -851,7 +861,7 @@ async def sleep(delay: int):
     loop = get_running_loop()
     task = loop.task()
     loop.call_later(delay, task)
-    await _Awaitable()
+    await SuspendResume()
 
 
 async def changed(*states: State) -> State:
@@ -859,7 +869,7 @@ async def changed(*states: State) -> State:
     loop = get_running_loop()
     for state in states:
         loop.state_wait(state, state.changed)
-    state = await _Awaitable()
+    state = await SuspendResume()
     return state
 
 
@@ -868,7 +878,7 @@ async def resume(*triggers: tuple[State, Predicate]) -> State:
     loop = get_running_loop()
     for state, predicate in triggers:
         loop.state_wait(state, predicate)
-    state = await _Awaitable()
+    state = await SuspendResume()
     return state
 
 
@@ -896,7 +906,7 @@ async def wait(aws, return_when=ALL_COMPLETED) -> tuple[set[Task], set[Task]]:
         loop.fifo_wait(aw)
 
     while True:
-        aw = await _Awaitable()
+        aw = await SuspendResume()
 
         done.add(aw)
         pend.remove(aw)
