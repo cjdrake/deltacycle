@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import heapq
 from abc import ABC
-from collections import defaultdict, deque, namedtuple
+from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable, Coroutine, Generator, Hashable
 from enum import IntEnum, auto
-from typing import override
+from typing import Any, override
 
 INIT_TIME = -1
 START_TIME = 0
@@ -445,7 +445,7 @@ class Lock(BoundedSemaphore):
         super().__init__(value=1)
 
 
-_TaskQueueItem = namedtuple("_TaskQueueItem", ["time", "region", "index", "task", "value"])
+type _TaskQueueItem = tuple[int, Task, Any]
 
 
 class _TaskQueue:
@@ -453,9 +453,10 @@ class _TaskQueue:
 
     def __init__(self):
         # time, region, index, task, value
-        self._items: list[_TaskQueueItem] = []
+        self._items: list[tuple[int, int, int, Task, Any]] = []
 
-        # Monotonically increasing integer to break ties in the heapq
+        # Monotonically increasing integer
+        # Breaks (time, region, ...) ties in the heapq
         self._index: int = 0
 
     def __bool__(self) -> bool:
@@ -465,33 +466,29 @@ class _TaskQueue:
         self._items.clear()
         self._index = 0
 
-    def push(self, time: int, task: Task, value: State | None = None):
-        item = _TaskQueueItem(time, task.region, self._index, task, value)
+    def push(self, time: int, task: Task, value: Any = None):
+        item = (time, task.region, self._index, task, value)
         heapq.heappush(self._items, item)
         self._index += 1
 
-    def peek(self) -> tuple[int, Task, State | None]:
+    def peek(self) -> _TaskQueueItem:
         time, _, _, task, value = self._items[0]
         return (time, task, value)
 
-    def pop(self) -> tuple[int, Task, State | None]:
+    def pop(self) -> _TaskQueueItem:
         time, _, _, task, value = heapq.heappop(self._items)
         return (time, task, value)
 
-    def pop_time(self) -> Generator[tuple[int, Task, State | None], None, None]:
+    def pop_time(self) -> Generator[_TaskQueueItem, None, None]:
         time, _, _, task, value = heapq.heappop(self._items)
         yield (time, task, value)
-        while self._items:
-            t, _, _, task, value = self._items[0]
-            if t == time:
-                heapq.heappop(self._items)
-                yield (time, task, value)
-            else:
-                break
+        while self._items and self._items[0][0] == time:
+            _, _, _, task, value = heapq.heappop(self._items)
+            yield (time, task, value)
 
     def drop(self, task: Task):
-        for i, item in enumerate(self._items):
-            if item.task is task:
+        for i, (_, _, _, t, _) in enumerate(self._items):
+            if t is task:
                 index = i
                 break
         else:
