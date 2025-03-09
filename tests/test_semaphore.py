@@ -1,93 +1,94 @@
 """Test seqlogic.sim.Semaphore class."""
 
+import logging
+
 import pytest
 
-from deltacycle import BoundedSemaphore, Semaphore, create_task, now, run, sleep
+from deltacycle import BoundedSemaphore, Semaphore, create_task, run, sleep
 
-
-def log(s: str):
-    print(f"{now():04} {s}")
+logger = logging.getLogger("deltacycle")
 
 
 async def use_acquire_release(sem: Semaphore, name: str, t1: int, t2: int):
-    log(f"{name} enter")
+    logger.info("%s enter", name)
 
     await sleep(t1)
 
-    log(f"{name} attempt acquire")
+    logger.info("%s attempt acquire", name)
     await sem.acquire()
-    log(f"{name} acquired")
+    logger.info("%s acquired", name)
 
     try:
         await sleep(t2)
     finally:
-        log(f"{name} release")
+        logger.info("%s release", name)
         sem.release()
 
     await sleep(10)
-    log(f"{name} exit")
+    logger.info("%s exit", name)
 
 
 async def use_with(sem: Semaphore, name: str, t1: int, t2: int):
-    log(f"{name} enter")
+    logger.info("%s enter", name)
 
     await sleep(t1)
 
-    log(f"{name} attempt acquire")
+    logger.info("%s attempt acquire", name)
     async with sem:
-        log(f"{name} acquired")
+        logger.info("%s acquired", name)
         await sleep(t2)
-    log(f"{name} release")
+    logger.info("%s release", name)
 
     await sleep(10)
-    log(f"{name} exit")
+    logger.info("%s exit", name)
 
 
-EXP = """\
-0000 0 enter
-0000 1 enter
-0000 2 enter
-0000 3 enter
-0000 4 enter
-0000 5 enter
-0000 6 enter
-0000 7 enter
-0010 0 attempt acquire
-0010 0 acquired
-0011 1 attempt acquire
-0011 1 acquired
-0012 2 attempt acquire
-0012 2 acquired
-0013 3 attempt acquire
-0013 3 acquired
-0014 4 attempt acquire
-0015 5 attempt acquire
-0016 6 attempt acquire
-0017 7 attempt acquire
-0020 0 release
-0020 4 acquired
-0021 1 release
-0021 5 acquired
-0022 2 release
-0022 6 acquired
-0023 3 release
-0023 7 acquired
-0030 0 exit
-0030 4 release
-0031 1 exit
-0031 5 release
-0032 2 exit
-0032 6 release
-0033 3 exit
-0033 7 release
-0040 4 exit
-0041 5 exit
-0042 6 exit
-0043 7 exit
-"""
+EXP = {
+    (0, "0 enter"),
+    (0, "1 enter"),
+    (0, "2 enter"),
+    (0, "3 enter"),
+    (0, "4 enter"),
+    (0, "5 enter"),
+    (0, "6 enter"),
+    (0, "7 enter"),
+    (10, "0 attempt acquire"),
+    (10, "0 acquired"),
+    (11, "1 attempt acquire"),
+    (11, "1 acquired"),
+    (12, "2 attempt acquire"),
+    (12, "2 acquired"),
+    (13, "3 attempt acquire"),
+    (13, "3 acquired"),
+    (14, "4 attempt acquire"),
+    (15, "5 attempt acquire"),
+    (16, "6 attempt acquire"),
+    (17, "7 attempt acquire"),
+    (20, "0 release"),
+    (20, "4 acquired"),
+    (21, "1 release"),
+    (21, "5 acquired"),
+    (22, "2 release"),
+    (22, "6 acquired"),
+    (23, "3 release"),
+    (23, "7 acquired"),
+    (30, "0 exit"),
+    (30, "4 release"),
+    (31, "1 exit"),
+    (31, "5 release"),
+    (32, "2 exit"),
+    (32, "6 release"),
+    (33, "3 exit"),
+    (33, "7 release"),
+    (40, "4 exit"),
+    (41, "5 exit"),
+    (42, "6 exit"),
+    (43, "7 exit"),
+}
 
 
-def test_acquire_release(capsys):
+def test_acquire_release(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         sem = Semaphore(4)
@@ -96,10 +97,12 @@ def test_acquire_release(capsys):
 
     run(main())
 
-    assert capsys.readouterr().out == EXP
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP
 
 
-def test_async_with(capsys):
+def test_async_with(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         sem = Semaphore(4)
@@ -108,7 +111,8 @@ def test_async_with(capsys):
 
     run(main())
 
-    assert capsys.readouterr().out == EXP
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP
 
 
 def test_bounds():
