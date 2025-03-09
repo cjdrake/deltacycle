@@ -4,17 +4,7 @@ from collections import defaultdict
 
 import pytest
 
-from deltacycle import (
-    Singular,
-    State,
-    create_task,
-    get_running_loop,
-    irun,
-    now,
-    resume,
-    run,
-    sleep,
-)
+from deltacycle import Singular, State, create_task, get_running_loop, irun, now, resume, run, sleep
 from deltacycle._sim import INIT_TIME
 
 waves = defaultdict(dict)
@@ -72,7 +62,7 @@ def test_hello(capsys):
 
     # Invalid run limit
     with pytest.raises(TypeError):
-        run(ticks="Invalid argument type")
+        run(coro="invalid", ticks="Invalid argument type")
 
     # Run until no events left
     run(hello())

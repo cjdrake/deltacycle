@@ -40,7 +40,8 @@ class State(Awaitable):
     """Model component."""
 
     def __await__(self) -> Generator[None, State, State]:
-        _loop.state_wait(self, self.changed)
+        loop = get_running_loop()
+        loop.state_wait(self, self.changed)
 
         # Suspend
         state = yield
@@ -49,7 +50,7 @@ class State(Awaitable):
         # Resume
         return state
 
-    present = property(fget=NotImplemented)
+    present = property(fget=lambda self: NotImplemented)
 
     def changed(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
@@ -88,11 +89,13 @@ class Singular(State, Value):
     value = property(fget=_get_value)
 
     def _set_next(self, value):
+        loop = get_running_loop()
+
         self._changed = value != self._next_value
         self._next_value = value
 
         # Notify the event loop
-        _loop.state_touch(self)
+        loop.state_touch(self)
 
     next = property(fset=_set_next)
 
@@ -135,11 +138,13 @@ class Aggregate(State):
             return self._values[key]
 
     def _set_next(self, key: Hashable, value):
+        loop = get_running_loop()
+
         if value != self._get_next_value(key):
             self._next_values[key] = value
 
         # Notify the event loop
-        _loop.state_touch(self)
+        loop.state_touch(self)
 
     # State
     def _get_present(self) -> AggrPresent:
@@ -238,8 +243,10 @@ class Task(Awaitable):
         self._exception = None
 
     def __await__(self) -> Generator[None, None, None]:
+        loop = get_running_loop()
+
         if not self.done():
-            _loop.fifo_wait(self)
+            loop.fifo_wait(self)
             # Suspend
             yield
         # Resume
@@ -257,6 +264,7 @@ class Task(Awaitable):
         self._state = TaskState.RUNNING
         if self._exc_flag:
             self._exc_flag = False
+            assert self._exception is not None
             self._coro.throw(self._exception)
         else:
             self._coro.send(value)
@@ -306,24 +314,27 @@ class Task(Awaitable):
         return self._coro
 
     def cancel(self, msg: str | None = None):
+        loop = get_running_loop()
+
         match self._state:
             case TaskState.WAIT_FIFO:
-                _loop.fifo_drop(self._parent, self)
+                loop.fifo_drop(self._parent, self)
             case TaskState.WAIT_STATE:
-                _loop.state_drop(self._parent, self)
+                loop.state_drop(self._parent, self)
             case TaskState.PENDING:
-                _loop.drop(self)
+                loop.drop(self)
             case _:
                 raise ValueError("Task is not WAITING or PENDING")
 
         args = () if msg is None else (msg,)
         exc = CancelledError(*args)
         self.set_exception(exc)
-        _loop.call_soon(self)
+        loop.call_soon(self)
 
 
 def create_task(coro: Coroutine, region: int = 0) -> Task:
-    return _loop.task_create(coro, region)
+    loop = get_running_loop()
+    return loop.task_create(coro, region)
 
 
 class TaskGroup:
@@ -333,7 +344,8 @@ class TaskGroup:
         self._tasks = deque()
 
     def create_task(self, coro: Coroutine, region: int = 0) -> Task:
-        task = _loop.task_create(coro, region)
+        loop = get_running_loop()
+        task = loop.task_create(coro, region)
         self._tasks.append(task)
         return task
 
@@ -354,11 +366,13 @@ class Event:
 
     async def wait(self):
         if not self._flag:
-            _loop.fifo_wait(self)
+            loop = get_running_loop()
+            loop.fifo_wait(self)
             await _Awaitable()
 
     def set(self):
-        _loop.event_set(self)
+        loop = get_running_loop()
+        loop.event_set(self)
         self._flag = True
 
     def clear(self):
@@ -387,7 +401,8 @@ class Semaphore:
     async def acquire(self):
         assert self._cnt >= 0
         if self._cnt == 0:
-            _loop.fifo_wait(self)
+            loop = get_running_loop()
+            loop.fifo_wait(self)
             await _Awaitable()
         else:
             self._cnt -= 1
@@ -401,7 +416,8 @@ class Semaphore:
 
     def release(self):
         assert self._cnt >= 0
-        increment = _loop.sem_release(self)
+        loop = get_running_loop()
+        increment = loop.sem_release(self)
         if increment:
             self._cnt += 1
 
@@ -414,7 +430,8 @@ class BoundedSemaphore(Semaphore):
     @override
     def release(self):
         assert self._cnt >= 0
-        increment = _loop.sem_release(self)
+        loop = get_running_loop()
+        increment = loop.sem_release(self)
         if increment:
             if self._cnt == self._value:
                 raise ValueError("Cannot release")
@@ -531,7 +548,8 @@ class EventLoop:
     def time(self) -> int:
         return self._time
 
-    def task(self) -> Task | None:
+    def task(self) -> Task:
+        assert self._task is not None
         return self._task
 
     # Scheduling methods
@@ -552,7 +570,7 @@ class EventLoop:
         self._queue.drop(task)
 
     def fifo_wait(self, aw: Task | Event | Semaphore):
-        task = self._task
+        task = self.task()
         task.set_state(TaskState.WAIT_FIFO, aw)
         self._wait_fifos[aw].append(task)
 
@@ -612,7 +630,7 @@ class EventLoop:
     # State suspend / resume callbacks
     def state_wait(self, state: State, predicate: Predicate):
         """Schedule current coroutine after a state update trigger."""
-        task = self._task
+        task = self.task()
         task.set_state(TaskState.WAIT_STATE, state)
         self._waiting[state].add(task)
         self._predicates[state][task] = predicate
@@ -800,6 +818,8 @@ def run(
         _loop = loop
     else:
         _loop = EventLoop()
+        # TODO(cjdrake): Raise an exception for this
+        assert coro is not None
         task = Task(coro, region)
         _loop.call_at(START_TIME, task)
 
@@ -821,6 +841,8 @@ def irun(
         _loop = loop
     else:
         _loop = EventLoop()
+        # TODO(cjdrake): Raise an exception for this
+        assert coro is not None
         task = Task(coro, region)
         _loop.call_at(START_TIME, task)
 
@@ -829,22 +851,26 @@ def irun(
 
 async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
-    _loop.call_later(delay, _loop.task())
+    loop = get_running_loop()
+    task = loop.task()
+    loop.call_later(delay, task)
     await _Awaitable()
 
 
 async def changed(*states: State) -> State:
     """Resume execution upon state change."""
+    loop = get_running_loop()
     for state in states:
-        _loop.state_wait(state, state.changed)
+        loop.state_wait(state, state.changed)
     state = await _Awaitable()
     return state
 
 
 async def resume(*triggers: tuple[State, Predicate]) -> State:
     """Resume execution upon event."""
+    loop = get_running_loop()
     for state, predicate in triggers:
-        _loop.state_wait(state, predicate)
+        loop.state_wait(state, predicate)
     state = await _Awaitable()
     return state
 
@@ -855,6 +881,8 @@ ALL_COMPLETED = "ALL_COMPLETED"
 
 
 async def wait(aws, return_when=ALL_COMPLETED) -> tuple[set[Task], set[Task]]:
+    loop = get_running_loop()
+
     # TODO(cjdrake): Catch exceptions
     if return_when == FIRST_EXCEPTION:
         raise NotImplementedError("FIRST_EXCEPTION not implemented yet")
@@ -868,7 +896,7 @@ async def wait(aws, return_when=ALL_COMPLETED) -> tuple[set[Task], set[Task]]:
     pend = set(aws)
 
     for aw in aws:
-        _loop.fifo_wait(aw)
+        loop.fifo_wait(aw)
 
     while True:
         aw = await _Awaitable()
@@ -878,7 +906,7 @@ async def wait(aws, return_when=ALL_COMPLETED) -> tuple[set[Task], set[Task]]:
 
         if return_when == FIRST_COMPLETED and len(done) == 1:
             for aw in pend:
-                _loop.fifo_drop(aw, _loop.task())
+                loop.fifo_drop(aw, loop.task())
             break
 
         if return_when == ALL_COMPLETED and not pend:
