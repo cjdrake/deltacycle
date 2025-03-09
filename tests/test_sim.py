@@ -2,10 +2,17 @@
 
 from collections import defaultdict
 
-import pytest
-
-from deltacycle import Singular, create_task, get_running_loop, irun, now, resume, run, sleep
-from deltacycle._sim import INIT_TIME
+from deltacycle import (
+    EventLoop,
+    Singular,
+    create_task,
+    get_running_loop,
+    irun,
+    now,
+    resume,
+    run,
+    sleep,
+)
 
 waves = defaultdict(dict)
 
@@ -19,7 +26,7 @@ class Bool(Singular):
 
     def __init__(self):
         super().__init__(value=False)
-        _waves_add(INIT_TIME, self, self._value)
+        _waves_add(EventLoop.init_time, self, self._value)
 
     def update(self):
         if self.dirty():

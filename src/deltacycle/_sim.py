@@ -21,9 +21,6 @@ from typing import Any, override
 from ._error import CancelledError, FinishError, InvalidStateError
 from ._suspend_resume import SuspendResume
 
-INIT_TIME = -1
-START_TIME = 0
-
 type Predicate = Callable[[], bool]
 
 
@@ -493,10 +490,13 @@ class _TaskQueue:
 class EventLoop:
     """Simulation event loop."""
 
+    init_time = -1
+    start_time = 0
+
     def __init__(self):
         """Initialize simulation."""
         # Simulation time
-        self._time: int = INIT_TIME
+        self._time: int = self.init_time
 
         # Task queue
         self._queue = _TaskQueue()
@@ -522,7 +522,7 @@ class EventLoop:
 
     def restart(self):
         """Restart current simulation."""
-        self._time = INIT_TIME
+        self._time = self.init_time
         self._task = None
         self.clear()
 
@@ -645,7 +645,7 @@ class EventLoop:
                 return until
             # Run until a number of ticks in the future
             case int(), None:
-                return max(START_TIME, self._time) + ticks
+                return max(self.start_time, self._time) + ticks
             case _:
                 s = "Expected either ticks or until to be int | None"
                 raise TypeError(s)
@@ -784,7 +784,7 @@ def run(
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
         task = Task(coro, region)
-        loop.call_at(START_TIME, task)
+        loop.call_at(EventLoop.start_time, task)
     else:
         set_event_loop(loop)
 
@@ -804,7 +804,7 @@ def irun(
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
         task = Task(coro, region)
-        loop.call_at(START_TIME, task)
+        loop.call_at(EventLoop.start_time, task)
     else:
         set_event_loop(loop)
 
