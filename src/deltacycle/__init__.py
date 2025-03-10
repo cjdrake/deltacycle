@@ -29,7 +29,7 @@ from ._sim import (
     sleep,
     wait,
 )
-from ._variable import Aggregate, Singular, Value, Variable
+from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)
@@ -54,6 +54,8 @@ __all__ = [
     "Value",
     "Singular",
     "Aggregate",
+    "AggrItem",
+    "AggrValue",
     # task
     "Task",
     "TaskState",

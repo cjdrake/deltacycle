@@ -16,18 +16,18 @@ class Bool(Singular):
 
     def __init__(self):
         super().__init__(value=False)
-        _waves_add(Loop.init_time, self, self._value)
+        _waves_add(Loop.init_time, self, self._prev)
 
     def update(self):
         if self.dirty():
-            _waves_add(now(), self, self._next_value)
+            _waves_add(now(), self, self._next)
         super().update()
 
     def is_posedge(self) -> bool:
-        return not self._value and self._next_value
+        return not self._prev and self._next
 
     def is_negedge(self) -> bool:
-        return self._value and not self._next_value
+        return self._prev and not self._next
 
     def is_edge(self) -> bool:
         return self.is_posedge() or self.is_negedge()
@@ -53,16 +53,16 @@ def test_vars_run():
     async def p_clk():
         while True:
             await sleep(5)
-            clk.next = not clk.value
+            clk.next = not clk.prev
 
     async def p_a():
         i = 0
         while True:
             await clk.edge()
             if i % 2 == 0:
-                a.next = not a.value
+                a.next = not a.prev
             else:
-                a.next = a.value
+                a.next = a.prev
             i += 1
 
     async def p_b():
@@ -70,7 +70,7 @@ def test_vars_run():
         while True:
             await clk.edge()
             if i % 3 == 0:
-                b.next = not b.value
+                b.next = not b.prev
             i += 1
 
     async def main():
@@ -112,16 +112,16 @@ def test_vars_iter():
     async def p_clk():
         while True:
             await sleep(5)
-            clk.next = not clk.value
+            clk.next = not clk.prev
 
     async def p_a():
         i = 0
         while True:
             await clk.edge()
             if i % 2 == 0:
-                a.next = not a.value
+                a.next = not a.prev
             else:
-                a.next = a.value
+                a.next = a.prev
             i += 1
 
     async def p_b():
@@ -129,7 +129,7 @@ def test_vars_iter():
         while True:
             await clk.edge()
             if i % 3 == 0:
-                b.next = not b.value
+                b.next = not b.prev
             i += 1
 
     async def main():

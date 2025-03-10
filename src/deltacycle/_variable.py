@@ -7,6 +7,7 @@ from __future__ import annotations
 from abc import ABC
 from collections import defaultdict
 from collections.abc import Awaitable, Generator, Hashable
+from typing import Any
 
 
 def _loop():
@@ -17,6 +18,9 @@ def _loop():
 
 class Variable(Awaitable):
     """Model component."""
+
+    def __init__(self):
+        pass
 
     def __await__(self) -> Generator[None, Variable, Variable]:
         loop = _loop()
@@ -29,7 +33,7 @@ class Variable(Awaitable):
         # Resume
         return x
 
-    present = property(fget=lambda self: NotImplemented)
+    value = property(fget=lambda self: NotImplemented)
 
     def changed(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
@@ -41,12 +45,12 @@ class Variable(Awaitable):
 class Value(ABC):
     """Variable value."""
 
-    def _get_value(self):
+    def _get_prev(self) -> Any:
         raise NotImplementedError()  # pragma: no cover
 
-    value = property(fget=_get_value)
+    prev = property(fget=_get_prev)
 
-    def _set_next(self, value):
+    def _set_next(self, value: Any):
         raise NotImplementedError()  # pragma: no cover
 
     next = property(fset=_set_next)
@@ -55,21 +59,21 @@ class Value(ABC):
 class Singular(Variable, Value):
     """Model state organized as a single unit."""
 
-    def __init__(self, value):
+    def __init__(self, value: Any):
         Variable.__init__(self)
-        self._value = value
-        self._next_value = value
-        self._changed = False
+        self._prev = value
+        self._next = value
+        self._changed: bool = False
 
     # Value
-    def _get_value(self):
-        return self._value
+    def _get_prev(self) -> Any:
+        return self._prev
 
-    value = property(fget=_get_value)
+    prev = property(fget=_get_prev)
 
-    def _set_next(self, value):
-        self._changed = value != self._next_value
-        self._next_value = value
+    def _set_next(self, value: Any):
+        self._changed = value != self._next
+        self._next = value
 
         # Notify the event loop
         loop = _loop()
@@ -78,90 +82,90 @@ class Singular(Variable, Value):
     next = property(fset=_set_next)
 
     # Variable
-    def _get_present(self):
-        return self._next_value
+    def _get_value(self):
+        return self._next
 
-    present = property(fget=_get_present)
+    value = property(fget=_get_value)
 
     def changed(self) -> bool:
         return self._changed
 
     def update(self):
-        self._value = self._next_value
+        self._prev = self._next
         self._changed = False
 
     # Other
     def dirty(self) -> bool:
-        return self._next_value != self._value
+        return self._next != self._prev
 
 
 class Aggregate(Variable):
     """Model state organized as multiple units."""
 
-    def __init__(self, value):
+    def __init__(self, value: Any):
         Variable.__init__(self)
-        self._values = defaultdict(lambda: value)
-        self._next_values = dict()
+        self._prevs: dict[Hashable, Any] = defaultdict(lambda: value)
+        self._nexts: dict[Hashable, Any] = dict()
 
     # [key] => Value
-    def __getitem__(self, key: Hashable) -> AggrValue:
-        return AggrValue(self, key)
+    def __getitem__(self, key: Hashable) -> AggrItem:
+        return AggrItem(self, key)
 
-    def _get_value(self, key: Hashable):
-        return self._values[key]
+    def _get_prev(self, key: Hashable) -> Any:
+        return self._prevs[key]
 
-    def _get_next_value(self, key: Hashable):
+    def _get_next(self, key: Hashable) -> Any:
         try:
-            return self._next_values[key]
+            return self._nexts[key]
         except KeyError:
-            return self._values[key]
+            return self._prevs[key]
 
     def _set_next(self, key: Hashable, value):
-        if value != self._get_next_value(key):
-            self._next_values[key] = value
+        if value != self._get_next(key):
+            self._nexts[key] = value
 
         # Notify the event loop
         loop = _loop()
         loop.state_touch(self)
 
     # Variable
-    def _get_present(self) -> AggrPresent:
-        return AggrPresent(self)
+    def _get_value(self) -> AggrValue:
+        return AggrValue(self)
 
-    present = property(fget=_get_present)
+    value = property(fget=_get_value)
 
     def changed(self) -> bool:
-        return bool(self._next_values)
+        return bool(self._nexts)
 
     def update(self):
-        while self._next_values:
-            key, value = self._next_values.popitem()
-            self._values[key] = value
+        while self._nexts:
+            key, value = self._nexts.popitem()
+            self._prevs[key] = value
 
 
-class AggrPresent:
-    """Wrap Aggregate present value."""
-
-    def __init__(self, aggr: Aggregate):
-        self._aggr = aggr
-
-    def __getitem__(self, key: Hashable):
-        return self._aggr._get_next_value(key)
-
-
-class AggrValue(Value):
-    """Wrap Aggregate value getter/setter."""
+class AggrItem(Value):
+    """Wrap Aggregate __getitem__."""
 
     def __init__(self, aggr: Aggregate, key: Hashable):
         self._aggr = aggr
         self._key = key
 
-    def _get_value(self):
-        return self._aggr._get_value(self._key)
+    def _get_prev(self) -> Any:
+        return self._aggr._get_prev(self._key)
 
-    value = property(fget=_get_value)
+    prev = property(fget=_get_prev)
 
-    def _set_next(self, value):
+    def _set_next(self, value: Any):
         self._aggr._set_next(self._key, value)
 
     next = property(fset=_set_next)
+
+
+class AggrValue:
+    """Wrap Aggregate value."""
+
+    def __init__(self, aggr: Aggregate):
+        self._aggr = aggr
+
+    def __getitem__(self, key: Hashable) -> Any:
+        return self._aggr._get_next(key)
