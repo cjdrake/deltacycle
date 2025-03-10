@@ -159,7 +159,7 @@ class Task(Awaitable):
                 loop.fifo_drop(self._parent, self)
             case TaskState.WAIT_STATE:
                 assert isinstance(self._parent, Variable)
-                loop.state_drop(self._parent, self)
+                loop.model_drop(self._parent, self)
             case TaskState.PENDING:
                 loop.drop(self)
             case _:
@@ -404,27 +404,27 @@ class Loop:
         return True
 
     # Model suspend / resume callbacks
-    def state_wait(self, x: Variable, p: Predicate):
+    def model_wait(self, x: Variable, p: Predicate):
         task = self.task()
         task.set_state(TaskState.WAIT_STATE, x)
         self._waiting[x].add(task)
         self._predicates[x][task] = p
 
-    def state_drop(self, x: Variable, task: Task):
+    def model_drop(self, x: Variable, task: Task):
         self._waiting[x].remove(task)
         del self._predicates[x][task]
 
-    def state_touch(self, x: Variable):
+    def model_touch(self, x: Variable):
         waiting = self._waiting[x]
         predicates = self._predicates[x]
         pending = [task for task in waiting if predicates[task]()]
         for task in pending:
-            self.state_drop(x, task)
+            self.model_drop(x, task)
             self.call_soon(task, value=x)
         # Add variable to update set
         self._touched.add(x)
 
-    def _state_update(self):
+    def _model_update(self):
         while self._touched:
             x = self._touched.pop()
             x.update()
@@ -481,7 +481,7 @@ class Loop:
                     raise
 
             # Update simulation state
-            self._state_update()
+            self._model_update()
         else:
             self._state = LoopState.COMPLETED
 
@@ -535,7 +535,7 @@ class Loop:
                     raise
 
             # Update simulation state
-            self._state_update()
+            self._model_update()
         else:
             self._state = LoopState.COMPLETED
 
@@ -628,7 +628,7 @@ async def changed(*xs: Variable) -> Variable:
     """Resume execution upon state change."""
     loop = get_running_loop()
     for x in xs:
-        loop.state_wait(x, x.changed)
+        loop.model_wait(x, x.changed)
     x = await SuspendResume()
     return x
 
@@ -637,7 +637,7 @@ async def resume(*triggers: tuple[Variable, Predicate]) -> Variable:
     """Resume execution upon event."""
     loop = get_running_loop()
     for x, p in triggers:
-        loop.state_wait(x, p)
+        loop.model_wait(x, p)
     x = await SuspendResume()
     return x
 

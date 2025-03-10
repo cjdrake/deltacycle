@@ -24,7 +24,7 @@ class Variable(Awaitable):
 
     def __await__(self) -> Generator[None, Variable, Variable]:
         loop = _loop()
-        loop.state_wait(self, self.changed)
+        loop.model_wait(self, self.changed)
 
         # Suspend
         x = yield
@@ -77,7 +77,7 @@ class Singular(Variable, Value):
 
         # Notify the event loop
         loop = _loop()
-        loop.state_touch(self)
+        loop.model_touch(self)
 
     next = property(fset=_set_next)
 
@@ -126,7 +126,7 @@ class Aggregate(Variable):
 
         # Notify the event loop
         loop = _loop()
-        loop.state_touch(self)
+        loop.model_touch(self)
 
     # Variable
     def _get_value(self) -> AggrValue:
