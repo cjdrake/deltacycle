@@ -1,4 +1,4 @@
-"""TODO(cjdrake): Write docstring."""
+"""Event synchronization primitive"""
 
 from ._suspend_resume import SuspendResume
 

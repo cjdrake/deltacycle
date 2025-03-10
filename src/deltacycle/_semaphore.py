@@ -1,4 +1,4 @@
-"""TODO(cjdrake): Write docstring."""
+"""Semaphore synchronization primitive"""
 
 from typing import override
 
