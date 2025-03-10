@@ -8,18 +8,14 @@ from ._sim import (
     ALL_COMPLETED,
     FIRST_COMPLETED,
     FIRST_EXCEPTION,
-    Aggregate,
     BoundedSemaphore,
     Event,
     Lock,
     Loop,
     Semaphore,
-    Singular,
     Task,
     TaskGroup,
     TaskState,
-    Value,
-    Variable,
     changed,
     create_task,
     finish,
@@ -33,6 +29,7 @@ from ._sim import (
     sleep,
     wait,
 )
+from ._variable import Aggregate, Singular, Value, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)
