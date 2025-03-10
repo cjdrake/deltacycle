@@ -446,11 +446,11 @@ class Loop:
                 raise TypeError(s)
 
     def _run_kernel(self, limit: int | None):
-        if self._state not in {LoopState.INIT, LoopState.HALTED}:
+        if self._state in {LoopState.INIT, LoopState.HALTED}:
+            self._state = LoopState.RUNNING
+        else:
             s = f"Expected state in {{INIT, HALTED}}, got {self._state.name}"
             raise InvalidStateError(s)
-
-        self._state = LoopState.RUNNING
 
         while self._queue:
             # Peek when next event is scheduled
@@ -502,6 +502,12 @@ class Loop:
             self.clear()
 
     def _iter_kernel(self) -> Generator[int, None, None]:
+        if self._state in {LoopState.INIT, LoopState.HALTED}:
+            self._state = LoopState.RUNNING
+        elif self._state is not LoopState.RUNNING:
+            s = f"Expected state in {{INIT, HALTED, RUNNING}}, got {self._state.name}"
+            raise InvalidStateError(s)
+
         while self._queue:
             # Peek when next event is scheduled
             time, _, _ = self._queue.peek()
@@ -509,9 +515,10 @@ class Loop:
             # Protect against time traveling tasks
             assert time > self._time
 
+            # Yield before entering new timeslot
             yield time
 
-            # Otherwise, advance to new timeslot
+            # Advance to new timeslot
             self._time = time
 
             # Execute time slot
@@ -529,6 +536,8 @@ class Loop:
 
             # Update simulation state
             self._state_update()
+        else:
+            self._state = LoopState.COMPLETED
 
     def irun(self) -> Generator[int, None, None]:
         """Iterate the simulation.
@@ -540,6 +549,7 @@ class Loop:
         try:
             yield from self._iter_kernel()
         except FinishError:
+            self._state = LoopState.FINISHED
             self.clear()
 
 
