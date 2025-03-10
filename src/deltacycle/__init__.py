@@ -5,14 +5,12 @@ from logging import Filter, LogRecord
 
 from ._error import CancelledError, InvalidStateError
 from ._event import Event
+from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._sim import (
     ALL_COMPLETED,
     FIRST_COMPLETED,
     FIRST_EXCEPTION,
-    BoundedSemaphore,
-    Lock,
     Loop,
-    Semaphore,
     Task,
     TaskGroup,
     TaskState,

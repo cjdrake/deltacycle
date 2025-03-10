@@ -13,10 +13,11 @@ import heapq
 from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
-from typing import Any, override
+from typing import Any
 
 from ._error import CancelledError, FinishError, InvalidStateError
 from ._event import Event
+from ._semaphore import Semaphore
 from ._suspend_resume import SuspendResume
 from ._variable import Variable
 
@@ -194,69 +195,6 @@ class TaskGroup:
         while self._tasks:
             task = self._tasks.popleft()
             await task
-
-
-class Semaphore:
-    """Semaphore to synchronize tasks."""
-
-    def __init__(self, value: int = 1):
-        if value < 1:
-            raise ValueError(f"Expected value >= 1, got {value}")
-        self._value = value
-        self._cnt = value
-
-    async def __aenter__(self):
-        await self.acquire()
-        return self
-
-    async def __aexit__(self, exc_type, exc_value, exc_tb):
-        self.release()
-
-    async def acquire(self):
-        assert self._cnt >= 0
-        if self._cnt == 0:
-            loop = get_running_loop()
-            loop.fifo_wait(self)
-            await SuspendResume()
-        else:
-            self._cnt -= 1
-
-    def try_acquire(self) -> bool:
-        assert self._cnt >= 0
-        if self._cnt == 0:
-            return False
-        self._cnt -= 1
-        return True
-
-    def release(self):
-        assert self._cnt >= 0
-        loop = get_running_loop()
-        increment = loop.sem_release(self)
-        if increment:
-            self._cnt += 1
-
-    def locked(self) -> bool:
-        return self._cnt == 0
-
-
-class BoundedSemaphore(Semaphore):
-
-    @override
-    def release(self):
-        assert self._cnt >= 0
-        loop = get_running_loop()
-        increment = loop.sem_release(self)
-        if increment:
-            if self._cnt == self._value:
-                raise ValueError("Cannot release")
-            self._cnt += 1
-
-
-class Lock(BoundedSemaphore):
-    """Mutex lock to synchronize tasks."""
-
-    def __init__(self):
-        super().__init__(value=1)
 
 
 type _TaskQueueItem = tuple[int, Task, Any]
