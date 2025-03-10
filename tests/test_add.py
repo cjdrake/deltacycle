@@ -61,7 +61,7 @@ def test_add(caplog):
             co.next = g | p & ci.value
 
     async def drv_sn():
-        sn.next = True
+        sn.next = not s.value
         while True:
             await s
             sn.next = not s.value
