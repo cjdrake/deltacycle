@@ -501,7 +501,7 @@ class Loop:
             self._state = LoopState.FINISHED
             self.clear()
 
-    def _iter_kernel(self, limit: int | None) -> Generator[int, None, None]:
+    def _iter_kernel(self) -> Generator[int, None, None]:
         while self._queue:
             # Peek when next event is scheduled
             time, _, _ = self._queue.peek()
@@ -509,9 +509,7 @@ class Loop:
             # Protect against time traveling tasks
             assert time > self._time
 
-            # Exit if we hit the run limit
-            if limit is not None and time >= limit:
-                return
+            yield time
 
             # Otherwise, advance to new timeslot
             self._time = time
@@ -531,21 +529,16 @@ class Loop:
 
             # Update simulation state
             self._state_update()
-            yield self._time
 
-    def irun(
-        self, ticks: int | None = None, until: int | None = None
-    ) -> Generator[int, None, None]:
+    def irun(self) -> Generator[int, None, None]:
         """Iterate the simulation.
 
         Until:
         1. We hit the runlimit, OR
         2. There are no tasks left in the queue
         """
-        limit = self._limit(ticks, until)
-
         try:
-            yield from self._iter_kernel(limit)
+            yield from self._iter_kernel()
         except FinishError:
             self.clear()
 
@@ -599,8 +592,6 @@ def irun(
     coro: Coroutine[Any, Any, Any] | None = None,
     region: int = 0,
     loop: Loop | None = None,
-    ticks: int | None = None,
-    until: int | None = None,
 ) -> Generator[int, None, None]:
     """Iterate a simulation."""
     if loop is None:
@@ -612,7 +603,7 @@ def irun(
     else:
         set_loop(loop)
 
-    yield from loop.irun(ticks, until)
+    yield from loop.irun()
 
 
 async def sleep(delay: int):

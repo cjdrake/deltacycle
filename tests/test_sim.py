@@ -102,11 +102,13 @@ def test_vars_iter(caplog):
         create_task(drv_c(c, clk), region=2)
         create_task(mon(a, b, c, clk), region=3)
 
-    for _ in irun(main(), until=25):
-        pass
+    for t in irun(main()):
+        if t >= 25:
+            break
 
-    for _ in irun(loop=get_running_loop(), until=50):
-        pass
+    for t in irun(loop=get_running_loop()):
+        if t >= 50:
+            break
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP
