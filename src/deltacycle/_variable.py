@@ -24,7 +24,7 @@ class Variable(Awaitable):
 
     def __await__(self) -> Generator[None, Variable, Variable]:
         loop = _loop()
-        loop.model_wait(self, self.changed)
+        loop.model_wait(self)
 
         # Suspend
         x = yield

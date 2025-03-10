@@ -404,11 +404,14 @@ class Loop:
         return True
 
     # Model suspend / resume callbacks
-    def model_wait(self, x: Variable, p: Predicate):
+    def model_wait(self, x: Variable, p: Predicate | None = None):
         task = self.task()
         task.set_state(TaskState.WAIT_STATE, x)
         self._waiting[x].add(task)
-        self._predicates[x][task] = p
+        if p is None:
+            self._predicates[x][task] = x.changed
+        else:
+            self._predicates[x][task] = p
 
     def model_drop(self, x: Variable, task: Task):
         self._waiting[x].remove(task)
@@ -628,7 +631,7 @@ async def changed(*xs: Variable) -> Variable:
     """Resume execution upon state change."""
     loop = get_running_loop()
     for x in xs:
-        loop.model_wait(x, x.changed)
+        loop.model_wait(x)
     x = await SuspendResume()
     return x
 
