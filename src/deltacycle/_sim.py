@@ -527,9 +527,8 @@ def set_loop(loop: Loop):
 
 
 def now() -> int:
-    if _loop is None:
-        raise RuntimeError("No running loop")
-    return _loop.time()
+    loop = get_running_loop()
+    return loop.time()
 
 
 def run(
