@@ -1,37 +1,38 @@
 """Test seqlogic.sim.wait function."""
 
+import logging
+
 import pytest
 
-from deltacycle import create_task, now, run, sleep, wait
+from deltacycle import create_task, run, sleep, wait
 
-
-def log(s: str):
-    print(f"{now():04} {s}")
+logger = logging.getLogger("deltacycle")
 
 
 async def c(i: int, t: int):
-    log(f"C{i} enter")
+    logger.info("C%d enter", i)
     await sleep(t)
-    log(f"C{i} exit")
+    logger.info("C%d exit", i)
 
 
-EXP1 = """\
-0000 MAIN enter
-0000 C1 enter
-0000 C2 enter
-0000 C3 enter
-0005 C1 exit
-0005 MAIN wait done
-0010 C2 exit
-0015 C3 exit
-0015 MAIN exit
-"""
+EXP1 = {
+    (0, "MAIN enter"),
+    (0, "C1 enter"),
+    (0, "C2 enter"),
+    (0, "C3 enter"),
+    (5, "C1 exit"),
+    (5, "MAIN wait done"),
+    (10, "C2 exit"),
+    (15, "C3 exit"),
+    (15, "MAIN exit"),
+}
 
 
-def test_first(capsys):
+def test_first(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
-        log("MAIN enter")
+        logger.info("MAIN enter")
 
         t1 = create_task(c(1, 5))
         t2 = create_task(c(2, 10))
@@ -41,33 +42,35 @@ def test_first(capsys):
         assert done == {t1}
         assert pend == {t2, t3}
 
-        log("MAIN wait done")
+        logger.info("MAIN wait done")
 
         await t2
         await t3
 
-        log("MAIN exit")
+        logger.info("MAIN exit")
 
     run(main())
-    assert capsys.readouterr().out == EXP1
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP1
 
 
-EXP3 = """\
-0000 MAIN enter
-0000 C1 enter
-0000 C2 enter
-0000 C3 enter
-0005 C1 exit
-0010 C2 exit
-0015 C3 exit
-0015 MAIN exit
-"""
+EXP2 = {
+    (0, "MAIN enter"),
+    (0, "C1 enter"),
+    (0, "C2 enter"),
+    (0, "C3 enter"),
+    (5, "C1 exit"),
+    (10, "C2 exit"),
+    (15, "C3 exit"),
+    (15, "MAIN exit"),
+}
 
 
-def test_all(capsys):
+def test_all(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
-        log("MAIN enter")
+        logger.info("MAIN enter")
 
         t1 = create_task(c(1, 5))
         t2 = create_task(c(2, 10))
@@ -77,10 +80,11 @@ def test_all(capsys):
         assert done == {t1, t2, t3}
         assert not pend
 
-        log("MAIN exit")
+        logger.info("MAIN exit")
 
     run(main())
-    assert capsys.readouterr().out == EXP3
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP2
 
 
 def test_error1():
