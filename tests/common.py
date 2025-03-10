@@ -7,7 +7,7 @@ class Bool(Singular):
     """Variable that supports dumping to memory."""
 
     def __init__(self):
-        super().__init__(value=False)
+        super().__init__(value=bool())
 
     def is_posedge(self) -> bool:
         return not self._prev and self._next
