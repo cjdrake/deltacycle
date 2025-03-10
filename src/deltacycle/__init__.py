@@ -4,12 +4,12 @@ import logging
 from logging import Filter, LogRecord
 
 from ._error import CancelledError, InvalidStateError
+from ._event import Event
 from ._sim import (
     ALL_COMPLETED,
     FIRST_COMPLETED,
     FIRST_EXCEPTION,
     BoundedSemaphore,
-    Event,
     Lock,
     Loop,
     Semaphore,
