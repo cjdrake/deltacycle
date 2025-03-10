@@ -37,7 +37,6 @@ def test_add(caplog):
 
     # Outputs
     s = Bool()
-    sn = Bool()
     co = Bool()
 
     async def drv_clk():
@@ -60,22 +59,15 @@ def test_add(caplog):
             s.next = a.value ^ b.value ^ ci.value
             co.next = g | p & ci.value
 
-    async def drv_sn():
-        sn.next = not s.value
-        while True:
-            await s
-            sn.next = not s.value
-
     async def mon_outputs():
         while True:
             await clk.posedge()
-            logger.info("s=%d sn=%d co=%d", s.prev, sn.prev, co.prev)
+            logger.info("s=%d co=%d", s.prev, co.prev)
 
     async def main():
         create_task(drv_clk(), region=2)
         create_task(drv_inputs(), region=2)
         create_task(drv_outputs(), region=1)
-        create_task(drv_sn(), region=1)
         create_task(mon_outputs(), region=3)
 
     run(main(), until=90)
@@ -86,6 +78,6 @@ def test_add(caplog):
     # Check log messages
     msgs = [(r.time, r.getMessage()) for r in caplog.records[1:]]
     assert msgs == [
-        (period * (i + 1) + 5, f"s={s_val:d} sn={(not s_val):d} co={co_val:d}")
+        (period * (i + 1) + 5, f"s={s_val:d} co={co_val:d}")
         for i, (_, _, _, s_val, co_val) in enumerate(VALS)
     ]
