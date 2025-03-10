@@ -26,3 +26,13 @@ class Bool(Singular):
 
     async def edge(self):
         await resume((self, self.is_edge))
+
+
+class Int(Singular):
+    def __init__(self):
+        super().__init__(value=int())
+
+
+class Float(Singular):
+    def __init__(self):
+        super().__init__(value=float())
