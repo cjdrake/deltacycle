@@ -1,96 +1,80 @@
 """Test seqlogic.sim module."""
 
-from collections import defaultdict
+import logging
 
-from deltacycle import Loop, Singular, create_task, get_running_loop, irun, now, resume, run, sleep
+from deltacycle import create_task, get_running_loop, irun, run, sleep
 
-waves = defaultdict(dict)
+from .common import Bool
 
-
-def _waves_add(time, var, val):
-    waves[time][var] = val
+logger = logging.getLogger("deltacycle")
 
 
-class Bool(Singular):
-    """Variable that supports dumping to memory."""
-
-    def __init__(self):
-        super().__init__(value=False)
-        _waves_add(Loop.init_time, self, self._prev)
-
-    def update(self):
-        if self.dirty():
-            _waves_add(now(), self, self._next)
-        super().update()
-
-    def is_posedge(self) -> bool:
-        return not self._prev and self._next
-
-    def is_negedge(self) -> bool:
-        return self._prev and not self._next
-
-    def is_edge(self) -> bool:
-        return self.is_posedge() or self.is_negedge()
-
-    async def posedge(self):
-        await resume((self, self.is_posedge))
-
-    async def negedge(self):
-        await resume((self, self.is_negedge))
-
-    async def edge(self):
-        await resume((self, self.is_edge))
+async def drv_clk(clk: Bool):
+    while True:
+        await sleep(5)
+        clk.next = not clk.prev
 
 
-def test_vars_run():
+async def drv_a(a: Bool, clk: Bool):
+    while True:
+        await clk.edge()
+        a.next = not a.prev
+
+
+async def drv_b(b: Bool, clk: Bool):
+    i = 0
+    while True:
+        await clk.edge()
+        if i % 2 == 0:
+            b.next = not b.prev
+        else:
+            b.next = b.prev
+        i += 1
+
+
+async def drv_c(c: Bool, clk: Bool):
+    i = 0
+    while True:
+        await clk.edge()
+        if i % 3 == 0:
+            c.next = not c.prev
+        i += 1
+
+
+async def mon(a: Bool, b: Bool, c: Bool, clk: Bool):
+    while True:
+        await clk.edge()
+        logger.info("a=%d b=%d c=%d", a.prev, b.prev, c.prev)
+
+
+EXP = {
+    (5, "a=0 b=0 c=0"),
+    (10, "a=1 b=1 c=1"),
+    (15, "a=0 b=1 c=1"),
+    (20, "a=1 b=0 c=1"),
+    (25, "a=0 b=0 c=0"),
+    (30, "a=1 b=1 c=0"),
+    (35, "a=0 b=1 c=0"),
+    (40, "a=1 b=0 c=1"),
+    (45, "a=0 b=0 c=1"),
+}
+
+
+def test_vars_run(caplog):
     """Test generic variable functionality."""
-    waves.clear()
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     clk = Bool()
     a = Bool()
     b = Bool()
-
-    async def p_clk():
-        while True:
-            await sleep(5)
-            clk.next = not clk.prev
-
-    async def p_a():
-        i = 0
-        while True:
-            await clk.edge()
-            if i % 2 == 0:
-                a.next = not a.prev
-            else:
-                a.next = a.prev
-            i += 1
-
-    async def p_b():
-        i = 0
-        while True:
-            await clk.edge()
-            if i % 3 == 0:
-                b.next = not b.prev
-            i += 1
+    c = Bool()
 
     async def main():
-        create_task(p_clk())
-        create_task(p_a())
-        create_task(p_b())
-
-    # Expected sim output
-    exp = {
-        -1: {clk: False, a: False, b: False},
-        5: {clk: True, a: True, b: True},
-        10: {clk: False},
-        15: {clk: True, a: False},
-        20: {clk: False, b: False},
-        25: {clk: True, a: True},
-        30: {clk: False},
-        35: {clk: True, a: False, b: True},
-        40: {clk: False},
-        45: {clk: True, a: True},
-    }
+        create_task(drv_clk(clk), region=2)
+        create_task(drv_a(a, clk), region=2)
+        create_task(drv_b(b, clk), region=2)
+        create_task(drv_c(c, clk), region=2)
+        create_task(mon(a, b, c, clk), region=3)
 
     # Relative run limit
     run(main(), ticks=25)
@@ -98,58 +82,25 @@ def test_vars_run():
     # Absolute run limit
     run(loop=get_running_loop(), until=50)
 
-    assert waves == exp
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP
 
 
-def test_vars_iter():
+def test_vars_iter(caplog):
     """Test generic variable functionality."""
-    waves.clear()
+    caplog.set_level(logging.INFO, logger="deltacycle")
 
     clk = Bool()
     a = Bool()
     b = Bool()
-
-    async def p_clk():
-        while True:
-            await sleep(5)
-            clk.next = not clk.prev
-
-    async def p_a():
-        i = 0
-        while True:
-            await clk.edge()
-            if i % 2 == 0:
-                a.next = not a.prev
-            else:
-                a.next = a.prev
-            i += 1
-
-    async def p_b():
-        i = 0
-        while True:
-            await clk.edge()
-            if i % 3 == 0:
-                b.next = not b.prev
-            i += 1
+    c = Bool()
 
     async def main():
-        create_task(p_clk())
-        create_task(p_a())
-        create_task(p_b())
-
-    # Expected sim output
-    exp = {
-        -1: {clk: False, a: False, b: False},
-        5: {clk: True, a: True, b: True},
-        10: {clk: False},
-        15: {clk: True, a: False},
-        20: {clk: False, b: False},
-        25: {clk: True, a: True},
-        30: {clk: False},
-        35: {clk: True, a: False, b: True},
-        40: {clk: False},
-        45: {clk: True, a: True},
-    }
+        create_task(drv_clk(clk), region=2)
+        create_task(drv_a(a, clk), region=2)
+        create_task(drv_b(b, clk), region=2)
+        create_task(drv_c(c, clk), region=2)
+        create_task(mon(a, b, c, clk), region=3)
 
     for _ in irun(main(), until=25):
         pass
@@ -157,4 +108,5 @@ def test_vars_iter():
     for _ in irun(loop=get_running_loop(), until=50):
         pass
 
-    assert waves == exp
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP
