@@ -2,7 +2,7 @@
 
 import logging
 
-from deltacycle import changed, create_task, run, sleep
+from deltacycle import LoopState, changed, create_task, get_running_loop, run, sleep
 
 from .common import Bool
 
@@ -79,6 +79,9 @@ def test_add(caplog):
         create_task(mon_outputs(), region=3)
 
     run(main(), until=90)
+
+    loop = get_running_loop()
+    assert loop.state() is LoopState.HALTED
 
     # Check log messages
     msgs = [(r.time, r.getMessage()) for r in caplog.records[1:]]

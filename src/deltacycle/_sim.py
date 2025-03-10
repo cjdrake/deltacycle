@@ -25,7 +25,7 @@ type Predicate = Callable[[], bool]
 
 
 class TaskState(IntEnum):
-    """Task State.
+    """Task State
 
     Transitions::
 
@@ -38,7 +38,7 @@ class TaskState(IntEnum):
                                    -> RETURNED
     """
 
-    # Default value after instantiation
+    # Initialized
     INIT = auto()
 
     # Awaiting task/event/semaphore in FIFO order
@@ -248,6 +248,35 @@ class _TaskQueue:
         self._items.pop(index)
 
 
+class LoopState(IntEnum):
+    """Loop State
+
+    Transitions::
+
+                   +---------+
+                   |         |
+                   v         |
+        INIT -> RUNNING -> HALTED
+                        -> COMPLETED
+                        -> FINISHED
+    """
+
+    # Initialized
+    INIT = auto()
+
+    # Currently running
+    RUNNING = auto()
+
+    # Halted by run limit
+    HALTED = auto()
+
+    # All tasks completed
+    COMPLETED = auto()
+
+    # finish() called
+    FINISHED = auto()
+
+
 class Loop:
     """Simulation event loop."""
 
@@ -256,14 +285,16 @@ class Loop:
 
     def __init__(self):
         """Initialize simulation."""
+        self._state = LoopState.INIT
+
         # Simulation time
         self._time: int = self.init_time
 
-        # Task queue
-        self._queue = _TaskQueue()
-
         # Currently executing task
         self._task: Task | None = None
+
+        # Task queue
+        self._queue = _TaskQueue()
 
         # Awaitable FIFOs
         self._wait_fifos: dict[Task | Event | Semaphore, deque[Task]] = defaultdict(deque)
@@ -286,6 +317,9 @@ class Loop:
         self._time = self.init_time
         self._task = None
         self.clear()
+
+    def state(self) -> LoopState:
+        return self._state
 
     def time(self) -> int:
         return self._time
@@ -412,6 +446,12 @@ class Loop:
                 raise TypeError(s)
 
     def _run_kernel(self, limit: int | None):
+        if self._state not in {LoopState.INIT, LoopState.HALTED}:
+            s = f"Expected state in {{INIT, HALTED}}, got {self._state.name}"
+            raise InvalidStateError(s)
+
+        self._state = LoopState.RUNNING
+
         while self._queue:
             # Peek when next event is scheduled
             time, _, _ = self._queue.peek()
@@ -421,6 +461,7 @@ class Loop:
 
             # Exit if we hit the run limit
             if limit is not None and time >= limit:
+                self._state = LoopState.HALTED
                 break
 
             # Otherwise, advance to new timeslot
@@ -441,6 +482,8 @@ class Loop:
 
             # Update simulation state
             self._state_update()
+        else:
+            self._state = LoopState.COMPLETED
 
     def run(self, ticks: int | None = None, until: int | None = None):
         """Run the simulation.
@@ -455,6 +498,7 @@ class Loop:
         try:
             self._run_kernel(limit)
         except FinishError:
+            self._state = LoopState.FINISHED
             self.clear()
 
     def _iter_kernel(self, limit: int | None) -> Generator[int, None, None]:

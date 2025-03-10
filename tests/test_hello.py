@@ -2,7 +2,9 @@
 
 import logging
 
-from deltacycle import run, sleep
+import pytest
+
+from deltacycle import InvalidStateError, LoopState, get_running_loop, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -24,6 +26,12 @@ def test_hello(caplog):
         logger.info("World")
 
     run(hello())
+
+    loop = get_running_loop()
+    assert loop.state() is LoopState.COMPLETED
+
+    with pytest.raises(InvalidStateError):
+        run(loop=loop)
 
     msgs = [(r.time, r.getMessage()) for r in caplog.records]
     assert msgs == EXP

@@ -2,7 +2,7 @@
 
 import logging
 
-from deltacycle import create_task, finish, run, sleep
+from deltacycle import LoopState, create_task, finish, get_running_loop, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -120,6 +120,9 @@ def test_finish(caplog):
 
     # Subsequent calls to run() have no effect
     run(main())
+
+    loop = get_running_loop()
+    assert loop.state() is LoopState.FINISHED
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1

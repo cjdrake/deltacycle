@@ -11,6 +11,7 @@ from ._sim import (
     FIRST_COMPLETED,
     FIRST_EXCEPTION,
     Loop,
+    LoopState,
     Task,
     TaskGroup,
     TaskState,
@@ -67,6 +68,7 @@ __all__ = [
     "Lock",
     # loop
     "Loop",
+    "LoopState",
     "get_running_loop",
     "get_loop",
     "set_loop",
