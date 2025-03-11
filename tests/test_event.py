@@ -7,7 +7,7 @@ from deltacycle import Event, create_task, run, sleep
 logger = logging.getLogger("deltacycle")
 
 
-async def primary(event: Event, name: str):
+async def primary(name: str, event: Event):
     logger.info("%s enter", name)
 
     await sleep(10)
@@ -34,7 +34,7 @@ async def primary(event: Event, name: str):
     logger.info("%s exit", name)
 
 
-async def secondary(event: Event, name: str):
+async def secondary(name: str, event: Event):
     logger.info("%s enter", name)
 
     # Event clear
@@ -60,12 +60,12 @@ async def secondary(event: Event, name: str):
 
 
 EXP1 = {
-    # P1
-    (0, "P1 enter"),
-    (10, "P1 set"),
-    (20, "P1 clear"),
-    (30, "P1 set"),
-    (30, "P1 exit"),
+    # P
+    (0, "P enter"),
+    (10, "P set"),
+    (20, "P clear"),
+    (30, "P set"),
+    (30, "P exit"),
     # S1
     (0, "S1 enter"),
     (0, "S1 waiting"),
@@ -95,10 +95,10 @@ def test_acquire_release(caplog):
 
     async def main():
         event = Event()
-        create_task(primary(event, "P1"))
-        create_task(secondary(event, "S1"))
-        create_task(secondary(event, "S2"))
-        create_task(secondary(event, "S3"))
+        create_task(primary("P", event))
+        create_task(secondary("S1", event))
+        create_task(secondary("S2", event))
+        create_task(secondary("S3", event))
 
     run(main())
 
