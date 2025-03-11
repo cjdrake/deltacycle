@@ -5,12 +5,6 @@ from typing import override
 from ._suspend_resume import SuspendResume
 
 
-def _loop():
-    from ._sim import get_running_loop  # pylint: disable=import-outside-toplevel
-
-    return get_running_loop()
-
-
 class Semaphore:
     """Semaphore to synchronize tasks."""
 
@@ -19,6 +13,12 @@ class Semaphore:
             raise ValueError(f"Expected value >= 1, got {value}")
         self._value = value
         self._cnt = value
+
+    @property
+    def _loop(self):
+        from ._sim import get_running_loop  # pylint: disable=import-outside-toplevel
+
+        return get_running_loop()
 
     async def __aenter__(self):
         await self.acquire()
@@ -30,8 +30,7 @@ class Semaphore:
     async def acquire(self):
         assert self._cnt >= 0
         if self._cnt == 0:
-            loop = _loop()
-            loop.fifo_wait(self)
+            self._loop.fifo_wait(self)
             await SuspendResume()
         else:
             self._cnt -= 1
@@ -45,8 +44,7 @@ class Semaphore:
 
     def release(self):
         assert self._cnt >= 0
-        loop = _loop()
-        increment = loop.sem_release(self)
+        increment = self._loop.sem_release(self)
         if increment:
             self._cnt += 1
 
@@ -59,8 +57,7 @@ class BoundedSemaphore(Semaphore):
     @override
     def release(self):
         assert self._cnt >= 0
-        loop = _loop()
-        increment = loop.sem_release(self)
+        increment = self._loop.sem_release(self)
         if increment:
             if self._cnt == self._value:
                 raise ValueError("Cannot release")
