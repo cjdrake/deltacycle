@@ -304,14 +304,6 @@ class Loop:
         self._predicates: dict[Variable, dict[Task, Predicate]] = defaultdict(dict)
         self._touched: set[Variable] = set()
 
-    def clear(self):
-        """Clear all task collections."""
-        self._queue.clear()
-        self._wait_fifos.clear()
-        self._waiting.clear()
-        self._predicates.clear()
-        self._touched.clear()
-
     def state(self) -> LoopState:
         return self._state
 
@@ -496,7 +488,6 @@ class Loop:
             self._run_kernel(limit)
         except FinishError:
             self._state = LoopState.FINISHED
-            self.clear()
 
     def _iter_kernel(self) -> Generator[int, None, None]:
         if self._state in {LoopState.INIT, LoopState.HALTED}:
@@ -547,7 +538,6 @@ class Loop:
             yield from self._iter_kernel()
         except FinishError:
             self._state = LoopState.FINISHED
-            self.clear()
 
 
 _loop: Loop | None = None
