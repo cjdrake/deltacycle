@@ -1,6 +1,10 @@
-"""TODO(cjdrake): Write docstring."""
+"""Common simulation data types"""
 
-from deltacycle import Singular, resume
+import logging
+
+from deltacycle import Aggregate, Singular, resume
+
+logger = logging.getLogger("deltacycle")
 
 
 class Bool(Singular):
@@ -33,6 +37,6 @@ class Int(Singular):
         super().__init__(value=int())
 
 
-class Float(Singular):
+class IntMem(Aggregate):
     def __init__(self):
-        super().__init__(value=float())
+        super().__init__(value=int())

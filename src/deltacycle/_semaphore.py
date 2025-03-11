@@ -2,23 +2,25 @@
 
 from typing import override
 
+from ._loop_if import LoopIf
 from ._suspend_resume import SuspendResume
+from ._task import TaskState, WaitFifoIf
 
 
-class Semaphore:
-    """Semaphore to synchronize tasks."""
+class Semaphore(LoopIf, WaitFifoIf):
+    """Semaphore to synchronize tasks.
+
+    Permits number of release() > resource count.
+    """
 
     def __init__(self, value: int = 1):
         if value < 1:
             raise ValueError(f"Expected value >= 1, got {value}")
+
+        WaitFifoIf.__init__(self)
+
         self._value = value
         self._cnt = value
-
-    @property
-    def _loop(self):
-        from ._sim import get_running_loop  # pylint: disable=import-outside-toplevel
-
-        return get_running_loop()
 
     async def __aenter__(self):
         await self.acquire()
@@ -29,23 +31,27 @@ class Semaphore:
 
     async def acquire(self):
         assert self._cnt >= 0
-        if self._cnt == 0:
-            self._loop.fifo_wait(self)
+        if self.locked():
+            task = self._loop.task()
+            self.push_task(task)
+            task.set_state(TaskState.WAITING)
             await SuspendResume()
         else:
             self._cnt -= 1
 
     def try_acquire(self) -> bool:
         assert self._cnt >= 0
-        if self._cnt == 0:
+        if self.locked():
             return False
         self._cnt -= 1
         return True
 
     def release(self):
         assert self._cnt >= 0
-        increment = self._loop.sem_release(self)
-        if increment:
+        if self.has_task():
+            task = self.pop_task()
+            self._loop.call_soon(task, value=self)
+        else:
             self._cnt += 1
 
     def locked(self) -> bool:
@@ -53,12 +59,19 @@ class Semaphore:
 
 
 class BoundedSemaphore(Semaphore):
+    """Bounded Semaphore to synchronize tasks.
+
+    Like Semaphore, but raises ValueError when
+    number of release() > resource count.
+    """
 
     @override
     def release(self):
         assert self._cnt >= 0
-        increment = self._loop.sem_release(self)
-        if increment:
+        if self.has_task():
+            task = self.pop_task()
+            self._loop.call_soon(task, value=self)
+        else:
             if self._cnt == self._value:
                 raise ValueError("Cannot release")
             self._cnt += 1

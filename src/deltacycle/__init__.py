@@ -1,20 +1,17 @@
-"""Delta Cycle"""
+"""Delta Cycle
+
+Credit to David Beazley's "Build Your Own Async" tutorial for inspiration:
+https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
+"""
 
 import logging
 from logging import Filter, LogRecord
 
-from ._error import CancelledError, InvalidStateError
+from ._error import CancelledError, FinishError, InvalidStateError
 from ._event import Event
-from ._semaphore import BoundedSemaphore, Lock, Semaphore
-from ._sim import (
-    ALL_COMPLETED,
-    FIRST_COMPLETED,
-    FIRST_EXCEPTION,
+from ._loop import (
     Loop,
     LoopState,
-    Task,
-    TaskGroup,
-    TaskState,
     changed,
     create_task,
     finish,
@@ -26,8 +23,10 @@ from ._sim import (
     run,
     set_loop,
     sleep,
-    wait,
 )
+from ._semaphore import BoundedSemaphore, Lock, Semaphore
+from ._task import Task, TaskState
+from ._task_group import TaskGroup
 from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
 # Customize logging
@@ -46,6 +45,7 @@ logger.addFilter(DeltaCycleFilter())
 __all__ = [
     # error
     "CancelledError",
+    "FinishError",
     "InvalidStateError",
     # variable
     "Variable",
@@ -78,9 +78,4 @@ __all__ = [
     "sleep",
     "changed",
     "resume",
-    # wait
-    "FIRST_COMPLETED",
-    "FIRST_EXCEPTION",
-    "ALL_COMPLETED",
-    "wait",
 ]

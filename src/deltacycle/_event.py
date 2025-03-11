@@ -1,27 +1,28 @@
 """Event synchronization primitive"""
 
+from ._loop_if import LoopIf
 from ._suspend_resume import SuspendResume
+from ._task import TaskState, WaitFifoIf
 
 
-class Event:
+class Event(LoopIf, WaitFifoIf):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
+        WaitFifoIf.__init__(self)
         self._flag = False
-
-    @property
-    def _loop(self):
-        from ._sim import get_running_loop  # pylint: disable=import-outside-toplevel
-
-        return get_running_loop()
 
     async def wait(self):
         if not self._flag:
-            self._loop.fifo_wait(self)
+            task = self._loop.task()
+            self.push_task(task)
+            task.set_state(TaskState.WAITING)
             await SuspendResume()
 
     def set(self):
-        self._loop.event_set(self)
+        while self.has_task():
+            task = self.pop_task()
+            self._loop.call_soon(task, value=self)
         self._flag = True
 
     def clear(self):

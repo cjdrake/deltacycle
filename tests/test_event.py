@@ -1,4 +1,4 @@
-"""Test seqlogic.sim.Event class."""
+"""Test deltacycle.Event"""
 
 import logging
 

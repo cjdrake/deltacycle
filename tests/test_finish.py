@@ -1,4 +1,4 @@
-"""Test seqlogic.sim finish."""
+"""Test deltacycle._loop.finish"""
 
 import logging
 

@@ -1,4 +1,4 @@
-"""Model variables"""
+"""TODO(cjdrake): Write docstring."""
 
 # pylint: disable=protected-access
 
@@ -6,32 +6,38 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import defaultdict
-from collections.abc import Awaitable, Generator, Hashable
+from collections.abc import Hashable
 from typing import Any
 
-
-def _loop():
-    from ._sim import get_running_loop  # pylint: disable=import-outside-toplevel
-
-    return get_running_loop()
+from ._loop_if import LoopIf
+from ._task import Predicate, Task, TaskState, WaitTouchIf
 
 
-class Variable(Awaitable):
+class Variable(LoopIf, WaitTouchIf):
     """Model component."""
 
     def __init__(self):
-        pass
+        WaitTouchIf.__init__(self)
 
-    def __await__(self) -> Generator[None, Variable, Variable]:
-        loop = _loop()
-        loop.model_wait(self)
+    def wait(self, task: Task, p: Predicate | None = None):
+        if p is None:
+            self.add_task(task, self.changed)
+        else:
+            self.add_task(task, p)
 
-        # Suspend
-        x = yield
-        assert x is self
+    def _touch(self):
+        for task in self.pend_tasks():
+            self.remove_task(task)
+            match task.state():
+                case TaskState.PENDING:
+                    pass
+                case TaskState.WAITING:
+                    self._loop.call_soon(task, value=self)
+                case _:  # pragma: no cover
+                    assert False
 
-        # Resume
-        return x
+        # Add variable to update set
+        self._loop.touch(self)
 
     value = property(fget=lambda self: NotImplemented)
 
@@ -76,8 +82,7 @@ class Singular(Variable, Value):
         self._next = value
 
         # Notify the event loop
-        loop = _loop()
-        loop.model_touch(self)
+        self._touch()
 
     next = property(fset=_set_next)
 
@@ -93,10 +98,6 @@ class Singular(Variable, Value):
     def update(self):
         self._prev = self._next
         self._changed = False
-
-    # Other
-    def dirty(self) -> bool:
-        return self._next != self._prev
 
 
 class Aggregate(Variable):
@@ -125,8 +126,7 @@ class Aggregate(Variable):
             self._nexts[key] = value
 
         # Notify the event loop
-        loop = _loop()
-        loop.model_touch(self)
+        self._touch()
 
     # Variable
     def _get_value(self) -> AggrValue:

@@ -1,6 +1,7 @@
 {
     "python.analysis.typeCheckingMode": "basic",
     "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["--cov=src/deltacycle", "--cov-branch"],
     "python.testing.unittestEnabled": false,
     "[python]": {
         "editor.codeActionsOnSave": {

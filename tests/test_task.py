@@ -1,173 +1,229 @@
-"""Test seqlogic.sim.Lock class."""
+"""Test deltacycle.Task"""
 
 import logging
+from random import randint
 
 import pytest
 
-from deltacycle import CancelledError, Task, TaskGroup, create_task, run, sleep
+from deltacycle import CancelledError, Event, InvalidStateError, Task, create_task, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
 
-async def basic_c1():
-    logger.info("C1 enter")
+def test_results():
+    async def cf1(x0: int, x1: int) -> int:
+        await sleep(randint(1, 5))
+        return x0 * x1
 
-    await sleep(10)
-    logger.info("C1")
-    await sleep(10)
-    logger.info("C1")
-    await sleep(10)
-    logger.info("C1")
-    await sleep(10)
+    async def cf2(t0: Task, t1: Task) -> int:
+        await t0
+        await t1
+        await sleep(randint(1, 5))
+        return t0.result() * t1.result()
 
-    logger.info("C1 exit")
+    async def main():
+        t1 = create_task(cf1(2, 3))
+        t2 = create_task(cf1(5, 7))
+        t5 = create_task(cf2(t1, t2))
+
+        t3 = create_task(cf1(11, 13))
+        t4 = create_task(cf1(17, 19))
+        t6 = create_task(cf2(t3, t4))
+
+        t7 = create_task(c7 := cf2(t5, t6))
+
+        assert t7.coro is c7
+
+        r = await t7
+        assert r == 2 * 3 * 5 * 7 * 11 * 13 * 17 * 19
+
+    run(main())
 
 
-async def basic_c2(t: Task):
-    logger.info("C2 enter")
+def test_one_result():
+    async def cf() -> int:
+        await sleep(10)
+        return 42
 
-    logger.info("C2 suspend")
-    await t
-    logger.info("C2 resume")
+    async def main():
+        t1 = create_task(cf())
 
-    await t
-    await sleep(10)
-    await t
+        # Result/Exception not ready yet
+        with pytest.raises(InvalidStateError):
+            t1.result()
+        with pytest.raises(InvalidStateError):
+            t1.exception()
 
-    logger.info("C2 exit")
+        r = await t1
+
+        # Check Result/Exception
+        assert r == 42
+        assert t1.result() == 42
+        assert t1.exception() is None
+
+        # Cannot set a result after task is done
+        with pytest.raises(InvalidStateError):
+            t1.set_result(42)
+
+    run(main())
+
+
+def test_one_exception():
+    async def cf():
+        await sleep(10)
+        raise ArithmeticError(42)
+
+    async def main():
+        t1 = create_task(cf())
+
+        # Result/Exception not ready yet
+        with pytest.raises(InvalidStateError):
+            t1.result()
+        with pytest.raises(InvalidStateError):
+            t1.exception()
+
+        try:
+            _ = await t1
+        except ArithmeticError as e:
+            # Check Result/Exception
+            assert e.args[0] == 42
+            try:
+                _ = t1.result()
+            except ArithmeticError as ee:
+                assert ee is e
+            assert t1.exception() is e
+        else:
+            assert False
+
+        # Cannot set an exception after task is done
+        with pytest.raises(InvalidStateError):
+            t1.set_exception(ValueError())
+
+    run(main())
 
 
 EXP1 = {
+    # main
+    (0, "main enter"),
+    (5, "main cancels C1"),
+    (5, "main except"),
+    (5, "main finally"),
+    # C1
     (0, "C1 enter"),
+    (5, "C1 except"),
+    (5, "C1 finally"),
+    # C2
     (0, "C2 enter"),
-    (0, "C2 suspend"),
-    (10, "C1"),
-    (20, "C1"),
-    (30, "C1"),
-    (40, "C1 exit"),
-    (40, "C2 resume"),
-    (50, "C2 exit"),
+    (10, "C2 finally"),
+    # C3
+    (0, "C3 enter"),
+    (10, "C3 finally"),
 }
 
 
-def test_basic(caplog):
+def test_cancel_pending(caplog):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
+    async def cf(name: str, n: int):
+        logger.info("%s enter", name)
+        try:
+            await sleep(n)
+        except CancelledError:
+            logger.info("%s except", name)
+            raise
+        finally:
+            logger.info("%s finally", name)
+
     async def main():
-        t1 = create_task(basic_c1())
-        create_task(basic_c2(t1))
+        logger.info("main enter")
+
+        t1 = create_task(cf("C1", 1000))
+        t2 = create_task(cf("C2", 10))
+        t3 = create_task(cf("C3", 10))
+
+        await sleep(5)
+
+        logger.info("main cancels C1")
+        t1.cancel()
+
+        try:
+            await t1
+        except CancelledError:
+            logger.info("main except")
+        finally:
+            logger.info("main finally")
+
+        await t2
+        await t3
+
+        assert t1.done()
+        assert t1.cancelled()
+
+        # Result should re-raise CancelledError
+        with pytest.raises(CancelledError):
+            t1.result()
+        # So should exception
+        with pytest.raises(CancelledError):
+            t1.exception()
+
+        # Cannot cancel done task
+        with pytest.raises(ValueError):
+            t1.cancel()
 
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 
 
-async def cancel_c1():
-    logger.info("C1 enter")
-
-    try:
-        await sleep(1000)
-    except CancelledError:
-        logger.info("C1 except")
-        raise
-    finally:
-        logger.info("C1 finally")
-
-
-async def cancel_c2():
-    logger.info("C2 enter")
-
-    task = create_task(cancel_c1())
-
-    await sleep(1)
-
-    logger.info("C2 cancels C1")
-    task.cancel()
-
-    try:
-        await task
-    except CancelledError:
-        logger.info("C2 except")
-    finally:
-        logger.info("C2 finally")
-
-    assert task.done()
-    assert task.cancelled()
-
-    # Result should re-raise CancelledError
-    with pytest.raises(CancelledError):
-        task.result()
-    # So should exception
-    with pytest.raises(CancelledError):
-        task.exception()
-
-
 EXP2 = {
-    (0, "C2 enter"),
+    # main
+    (0, "main enter"),
+    (20, "main exit"),
+    # C1
     (0, "C1 enter"),
-    (1, "C2 cancels C1"),
-    (1, "C1 except"),
-    (1, "C1 finally"),
-    (1, "C2 except"),
-    (1, "C2 finally"),
-}
-
-
-def test_cancel(caplog):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
-    run(cancel_c2())
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP2
-
-
-async def group_c1():
-    logger.info("C1 enter")
-    await sleep(5)
-    logger.info("C1 exit")
-    return 1
-
-
-async def group_c2():
-    logger.info("C2 enter")
-    await sleep(10)
-    logger.info("C2 exit")
-    return 2
-
-
-async def group_c3():
-    logger.info("C3 enter")
-    await sleep(15)
-    logger.info("C3 exit")
-    return 3
-
-
-EXP3 = {
-    (0, "C1 enter"),
+    (10, "C1 cancelled"),
+    (10, "C1 finally"),
+    # C2
     (0, "C2 enter"),
+    (20, "C2 finally"),
+    # C3
     (0, "C3 enter"),
-    (5, "C1 exit"),
-    (10, "C2 exit"),
-    (15, "C3 exit"),
-    (15, "MAIN"),
+    (20, "C3 finally"),
 }
 
 
-def test_group(caplog):
+def test_cancel_waiting(caplog):
     caplog.set_level(logging.INFO, logger="deltacycle")
+
+    async def cf(name: str, event: Event):
+        logger.info("%s enter", name)
+        try:
+            await event.wait()
+        except CancelledError:
+            logger.info("%s cancelled", name)
+        finally:
+            logger.info("%s finally", name)
 
     async def main():
-        async with TaskGroup() as tg:
-            t1 = tg.create_task(group_c1())
-            t2 = tg.create_task(group_c2())
-            t3 = tg.create_task(group_c3())
+        logger.info("main enter")
+        event = Event()
+        t1 = create_task(cf("C1", event))
+        t2 = create_task(cf("C2", event))
+        t3 = create_task(cf("C3", event))
 
-        logger.info("MAIN")
+        await sleep(10)
 
-        assert t1.result() == 1
-        assert t2.result() == 2
-        assert t3.result() == 3
+        t1.cancel()
+
+        await sleep(10)
+
+        event.set()
+
+        await t2
+        await t3
+
+        logger.info("main exit")
 
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP3
+    assert msgs == EXP2
