@@ -312,12 +312,6 @@ class Loop:
         self._predicates.clear()
         self._touched.clear()
 
-    def restart(self):
-        """Restart current simulation."""
-        self._time = self.init_time
-        self._task = None
-        self.clear()
-
     def state(self) -> LoopState:
         return self._state
 
