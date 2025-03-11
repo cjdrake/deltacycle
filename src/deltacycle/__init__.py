@@ -36,8 +36,7 @@ logger = logging.getLogger(__name__)
 
 class DeltaCycleFilter(Filter):
     def filter(self, record: LogRecord) -> bool:
-        loop = get_running_loop()
-        record.time = loop.time()
+        record.time = now()
         return True
 
 
