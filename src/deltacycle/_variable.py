@@ -1,4 +1,4 @@
-"""TODO(cjdrake): Write docstring."""
+"""Model variables"""
 
 # pylint: disable=protected-access
 
