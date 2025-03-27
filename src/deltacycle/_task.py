@@ -98,18 +98,18 @@ class WaitTouchIf(Parent):
         self._tasks.remove(task)
         del self._preds[task]
 
-    def add_task(self, task: Task, pred: Predicate):
+    def link_task(self, task: Task, pred: Predicate):
         task.add_parent(self)
         self._tasks.add(task)
         self._preds[task] = pred
 
-    def remove_task(self, task: Task):
-        self._tasks.remove(task)
-        del self._preds[task]
-        task.remove_parent(self)
+    def unlink_task(self, task: Task):
+        while task.has_parent():
+            parent = task.pop_parent()
+            parent.drop_task(task)
 
-    def pend_tasks(self) -> list[Task]:
-        return [t for t in self._tasks if self._preds[t]()]
+    def pend_tasks(self) -> set[Task]:
+        return {t for t in self._tasks if self._preds[t]()}
 
 
 class Task(Awaitable, LoopIf, WaitFifoIf):
@@ -154,6 +154,12 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
 
     def remove_parent(self, parent: Parent):
         self._parents.remove(parent)
+
+    def has_parent(self) -> bool:
+        return bool(self._parents)
+
+    def pop_parent(self) -> Parent:
+        return self._parents.pop()
 
     def set_state(self, state: TaskState):
         match self._state:
