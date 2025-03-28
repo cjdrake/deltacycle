@@ -56,74 +56,77 @@ class TaskState(IntEnum):
     EXCEPTED = auto()
 
 
-class Parent(ABC):
-    def has_task(self) -> bool:
+class WaitIf(ABC):
+    def __bool__(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
-    def drop_task(self, task: Task):
+    def drop(self, task: Task):
         raise NotImplementedError()  # pragma: no cover
 
 
-class WaitFifoIf(Parent):
-    """Parent type that forces child tasks to wait in FIFO order."""
+class WaitFifo(WaitIf):
+    """Initiator type; tasks wait in FIFO order."""
 
     def __init__(self):
         self._tasks: deque[Task] = deque()
 
-    def has_task(self) -> bool:
+    def __bool__(self) -> bool:
         return bool(self._tasks)
 
-    def drop_task(self, task: Task):
+    def drop(self, task: Task):
         self._tasks.remove(task)
 
-    def push_task(self, task: Task):
-        task._parents.add(self)
+    def push(self, task: Task):
+        task._waitqs.add(self)
         self._tasks.append(task)
 
-    def pop_task(self) -> Task:
+    def pop(self) -> Task:
         task = self._tasks.popleft()
-        task._parents.remove(self)
+        task._waitqs.remove(self)
         return task
 
+    def pop_all(self) -> Generator[Task, None, None]:
+        while self._tasks:
+            yield self.pop()
 
-class WaitTouchIf(Parent):
-    """Parent type w/ children that wait for variable touch."""
+
+class WaitTouch(WaitIf):
+    """Initiator type; tasks wait for variable touch."""
 
     def __init__(self):
         self._tasks: set[Task] = set()
         self._preds: dict[Task, Predicate] = dict()
 
-    def has_task(self) -> bool:
+    def __bool__(self) -> bool:
         return bool(self._tasks)
 
-    def drop_task(self, task: Task):
+    def drop(self, task: Task):
         self._tasks.remove(task)
         del self._preds[task]
 
-    def link_task(self, task: Task, pred: Predicate):
-        task._parents.add(self)
+    def push(self, task: Task, pred: Predicate):
+        task._waitqs.add(self)
         self._tasks.add(task)
         self._preds[task] = pred
 
-    def unlink_task(self, task: Task):
-        while task._parents:
-            parent = task._parents.pop()
-            parent.drop_task(task)
+    def pop_predicated(self) -> Generator[Task, None, None]:
+        tasks = {task for task in self._tasks if self._preds[task]()}
+        while tasks:
+            task = tasks.pop()
+            task._renege()
+            yield task
 
-    def pend_tasks(self) -> set[Task]:
-        return {t for t in self._tasks if self._preds[t]()}
 
-
-class Task(Awaitable, LoopIf, WaitFifoIf):
+class Task(Awaitable, LoopIf):
     """Coroutine wrapper."""
 
     def __init__(self, coro: Coroutine[Any, Any, Any], region: int = 0):
-        WaitFifoIf.__init__(self)
-
         self._coro = coro
         self._region = region
         self._state = TaskState.INIT
-        self._parents: set[Parent] = set()
+
+        self._waitqs: set[WaitIf] = set()
+        self._task_fifo = WaitFifo()
 
         # Completion
         self._result: Any = None
@@ -134,7 +137,7 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
     def __await__(self) -> Generator[None, None, Any]:
         if not self.done():
             task = self._loop.task()
-            self.push_task(task)
+            self._task_fifo.push(task)
             task.set_state(TaskState.WAITING)
             # Suspend
             yield
@@ -175,6 +178,11 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
     def state(self) -> TaskState:
         return self._state
 
+    def _renege(self):
+        while self._waitqs:
+            waitq = self._waitqs.pop()
+            waitq.drop(self)
+
     def do_run(self, value: Any = None):
         self.set_state(TaskState.RUNNING)
         if self._exception is None:
@@ -183,22 +191,19 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
             self._coro.throw(self._exception)
 
     def do_complete(self, e: StopIteration):
-        while self.has_task():
-            task = self.pop_task()
+        for task in self._task_fifo.pop_all():
             self._loop.call_soon(task, value=self)
         self.set_result(e.value)
         self.set_state(TaskState.COMPLETE)
 
     def do_cancel(self, e: CancelledError):
-        while self.has_task():
-            task = self.pop_task()
+        for task in self._task_fifo.pop_all():
             self._loop.call_soon(task, value=self)
         self.set_exception(e)
         self.set_state(TaskState.CANCELLED)
 
     def do_except(self, e: Exception):
-        while self.has_task():
-            task = self.pop_task()
+        for task in self._task_fifo.pop_all():
             self._loop.call_soon(task, value=self)
         self.set_exception(e)
         self.set_state(TaskState.EXCEPTED)
@@ -251,9 +256,7 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
         match self._state:
             case TaskState.WAITING:
                 self.set_state(TaskState.CANCELLING)
-                # Drop task from parent queues
-                for parent in self._parents:
-                    parent.drop_task(self)
+                self._renege()
             case TaskState.PENDING:
                 self.set_state(TaskState.CANCELLING)
                 # Drop task from loop queue

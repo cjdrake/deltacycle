@@ -4,10 +4,10 @@ from typing import override
 
 from ._loop_if import LoopIf
 from ._suspend_resume import SuspendResume
-from ._task import TaskState, WaitFifoIf
+from ._task import TaskState, WaitFifo
 
 
-class Semaphore(LoopIf, WaitFifoIf):
+class Semaphore(LoopIf):
     """Semaphore to synchronize tasks.
 
     Permits number of release() > resource count.
@@ -16,11 +16,9 @@ class Semaphore(LoopIf, WaitFifoIf):
     def __init__(self, value: int = 1):
         if value < 1:
             raise ValueError(f"Expected value >= 1, got {value}")
-
-        WaitFifoIf.__init__(self)
-
         self._value = value
         self._cnt = value
+        self._task_fifo = WaitFifo()
 
     async def __aenter__(self):
         await self.acquire()
@@ -33,7 +31,7 @@ class Semaphore(LoopIf, WaitFifoIf):
         assert self._cnt >= 0
         if self.locked():
             task = self._loop.task()
-            self.push_task(task)
+            self._task_fifo.push(task)
             task.set_state(TaskState.WAITING)
             await SuspendResume()
         else:
@@ -48,8 +46,8 @@ class Semaphore(LoopIf, WaitFifoIf):
 
     def release(self):
         assert self._cnt >= 0
-        if self.has_task():
-            task = self.pop_task()
+        if self._task_fifo:
+            task = self._task_fifo.pop()
             self._loop.call_soon(task, value=self)
         else:
             self._cnt += 1
@@ -68,8 +66,8 @@ class BoundedSemaphore(Semaphore):
     @override
     def release(self):
         assert self._cnt >= 0
-        if self.has_task():
-            task = self.pop_task()
+        if self._task_fifo:
+            task = self._task_fifo.pop()
             self._loop.call_soon(task, value=self)
         else:
             if self._cnt == self._value:

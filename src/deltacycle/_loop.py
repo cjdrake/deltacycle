@@ -119,13 +119,13 @@ class Loop:
     def drop_task(self, task: Task):
         self._queue.drop(task)
 
-    def touch(self, x: Variable):
-        self._touched.add(x)
+    def touch(self, v: Variable):
+        self._touched.add(v)
 
     def _update(self):
         while self._touched:
-            x = self._touched.pop()
-            x.update()
+            v = self._touched.pop()
+            v.update()
 
     def _finish(self):
         self._set_state(LoopState.FINISHED)
@@ -310,26 +310,26 @@ async def sleep(delay: int):
     await SuspendResume()
 
 
-async def changed(*xs: Variable) -> Variable:
+async def changed(*vs: Variable) -> Variable:
     """Resume execution upon variable change."""
     loop = get_running_loop()
     task = loop.task()
-    for x in xs:
-        x.wait(task)
+    for v in vs:
+        v.wait_touch(task)
     task.set_state(TaskState.WAITING)
-    x = await SuspendResume()
-    return x
+    v = await SuspendResume()
+    return v
 
 
-async def resume(*triggers: tuple[Variable, Predicate]) -> Variable:
+async def resume(*vps: tuple[Variable, Predicate]) -> Variable:
     """Resume execution upon variable predicate."""
     loop = get_running_loop()
     task = loop.task()
-    for x, p in triggers:
-        x.wait(task, p)
+    for v, p in vps:
+        v.wait_touch(task, p)
     task.set_state(TaskState.WAITING)
-    x = await SuspendResume()
-    return x
+    v = await SuspendResume()
+    return v
 
 
 def finish():
