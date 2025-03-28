@@ -21,13 +21,11 @@ class Variable(LoopIf, WaitTouchIf):
 
     def wait(self, task: Task, p: Predicate | None = None):
         if p is None:
-            self.link_task(task, self.changed)
-        else:
-            self.link_task(task, p)
+            p = self.changed
+        self.link_task(task, p)
 
     def _touch(self):
-        pend = self.pend_tasks()
-        for task in pend:
+        for task in self.pend_tasks():
             self.unlink_task(task)
             match task.state():
                 case TaskState.PENDING:
