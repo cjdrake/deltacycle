@@ -1,5 +1,7 @@
 """Task: coroutine wrapper"""
 
+# pylint: disable=protected-access
+
 from __future__ import annotations
 
 from abc import ABC
@@ -75,12 +77,12 @@ class WaitFifoIf(Parent):
         self._tasks.remove(task)
 
     def push_task(self, task: Task):
-        task.add_parent(self)
+        task._parents.add(self)
         self._tasks.append(task)
 
     def pop_task(self) -> Task:
         task = self._tasks.popleft()
-        task.remove_parent(self)
+        task._parents.remove(self)
         return task
 
 
@@ -99,13 +101,13 @@ class WaitTouchIf(Parent):
         del self._preds[task]
 
     def link_task(self, task: Task, pred: Predicate):
-        task.add_parent(self)
+        task._parents.add(self)
         self._tasks.add(task)
         self._preds[task] = pred
 
     def unlink_task(self, task: Task):
-        while task.has_parent():
-            parent = task.pop_parent()
+        while task._parents:
+            parent = task._parents.pop()
             parent.drop_task(task)
 
     def pend_tasks(self) -> set[Task]:
@@ -120,7 +122,6 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
 
         self._coro = coro
         self._region = region
-
         self._state = TaskState.INIT
         self._parents: set[Parent] = set()
 
@@ -148,18 +149,6 @@ class Task(Awaitable, LoopIf, WaitFifoIf):
     @property
     def region(self) -> int:
         return self._region
-
-    def add_parent(self, parent: Parent):
-        self._parents.add(parent)
-
-    def remove_parent(self, parent: Parent):
-        self._parents.remove(parent)
-
-    def has_parent(self) -> bool:
-        return bool(self._parents)
-
-    def pop_parent(self) -> Parent:
-        return self._parents.pop()
 
     def set_state(self, state: TaskState):
         match self._state:
