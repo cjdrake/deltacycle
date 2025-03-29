@@ -259,8 +259,7 @@ class Task(Awaitable, LoopIf):
                 self._renege()
             case TaskState.PENDING:
                 self.set_state(TaskState.CANCELLING)
-                # Drop task from loop queue
-                self._loop.drop_task(self)
+                self._loop._queue.drop(self)
             case _:
                 # TODO(cjdrake): Is this the correct error?
                 raise ValueError("Task is not WAITING or PENDING")

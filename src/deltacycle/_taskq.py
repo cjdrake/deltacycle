@@ -36,16 +36,15 @@ class TaskQueue:
         time, _, _, task, value = self._items[0]
         return (time, task, value)
 
-    # def pop(self) -> Item:
-    #    time, _, _, task, value = heapq.heappop(self._items)
-    #    return (time, task, value)
-
-    def pop_time(self) -> Generator[Item, None, None]:
+    def pop(self) -> Item:
         time, _, _, task, value = heapq.heappop(self._items)
-        yield (time, task, value)
-        while self._items and self._items[0][0] == time:
-            _, _, _, task, value = heapq.heappop(self._items)
-            yield (time, task, value)
+        return (time, task, value)
+
+    def iter_time(self) -> Generator[Item, None, None]:
+        item = self.pop()
+        yield item
+        while self._items and self._items[0][0] == item[0]:
+            yield self.pop()
 
     def drop(self, task: Task):
         for i, (_, _, _, t, _) in enumerate(self._items):

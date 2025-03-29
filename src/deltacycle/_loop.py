@@ -116,9 +116,6 @@ class Loop:
         self.call_soon(task)
         return task
 
-    def drop_task(self, task: Task):
-        self._queue.drop(task)
-
     def touch(self, v: Variable):
         self._touched.add(v)
 
@@ -169,7 +166,7 @@ class Loop:
             self._time = time
 
             # Execute time slot
-            for _, task, value in self._queue.pop_time():
+            for _, task, value in self._queue.iter_time():
                 self._task = task
                 try:
                     task.do_run(value)
@@ -219,7 +216,7 @@ class Loop:
             self._time = time
 
             # Execute time slot
-            for _, task, value in self._queue.pop_time():
+            for _, task, value in self._queue.iter_time():
                 self._task = task
                 try:
                     task.do_run(value)
