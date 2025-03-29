@@ -170,16 +170,16 @@ class Loop:
             for _, task, value in self._queue.iter_time():
                 self._task = task
                 try:
-                    task.do_run(value)
+                    task._do_run(value)
                 except StopIteration as e:
-                    task.do_complete(e)
+                    task._do_complete(e)
                 except CancelledError as e:
-                    task.do_cancel(e)
+                    task._do_cancel(e)
                 except FinishError:
                     self._finish()
                     return
                 except Exception as e:
-                    task.do_except(e)
+                    task._do_except(e)
 
             # Update simulation state
             self._update()
@@ -220,16 +220,16 @@ class Loop:
             for _, task, value in self._queue.iter_time():
                 self._task = task
                 try:
-                    task.do_run(value)
+                    task._do_run(value)
                 except StopIteration as e:
-                    task.do_complete(e)
+                    task._do_complete(e)
                 except CancelledError as e:
-                    task.do_cancel(e)
+                    task._do_cancel(e)
                 except FinishError:
                     self._finish()
                     return
                 except Exception as e:
-                    task.do_except(e)
+                    task._do_except(e)
 
             # Update simulation state
             self._update()

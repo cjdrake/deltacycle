@@ -175,29 +175,29 @@ class Task(Awaitable, LoopIf):
     def state(self) -> TaskState:
         return self._state
 
-    def do_run(self, value: Any = None):
+    def _do_run(self, value: Any = None):
         self._set_state(TaskState.RUNNING)
         if self._exception is None:
             self._coro.send(value)
         else:
             self._coro.throw(self._exception)
 
-    def do_complete(self, e: StopIteration):
+    def _do_complete(self, e: StopIteration):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
-        self.set_result(e.value)
+        self._set_result(e.value)
         self._set_state(TaskState.COMPLETE)
 
-    def do_cancel(self, e: CancelledError):
+    def _do_cancel(self, e: CancelledError):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
-        self.set_exception(e)
+        self._set_exception(e)
         self._set_state(TaskState.CANCELLED)
 
-    def do_except(self, e: Exception):
+    def _do_except(self, e: Exception):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
-        self.set_exception(e)
+        self._set_exception(e)
         self._set_state(TaskState.EXCEPTED)
 
     def done(self) -> bool:
@@ -210,7 +210,7 @@ class Task(Awaitable, LoopIf):
     def cancelled(self) -> bool:
         return self._state == TaskState.CANCELLED
 
-    def set_result(self, result: Any):
+    def _set_result(self, result: Any):
         if self.done():
             raise InvalidStateError("Task is already done")
         self._result = result
@@ -227,7 +227,7 @@ class Task(Awaitable, LoopIf):
             raise self._exception
         raise InvalidStateError("Task is not done")
 
-    def set_exception(self, e: Exception):
+    def _set_exception(self, e: Exception):
         if self.done():
             raise InvalidStateError("Task is already done")
         self._exception = e
@@ -260,5 +260,5 @@ class Task(Awaitable, LoopIf):
 
         args = () if msg is None else (msg,)
         exc = CancelledError(*args)
-        self.set_exception(exc)
+        self._set_exception(exc)
         self._loop.call_soon(self)
