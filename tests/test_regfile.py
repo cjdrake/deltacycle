@@ -2,7 +2,7 @@
 
 import logging
 
-from deltacycle import changed, create_task, resume, run, sleep
+from deltacycle import changed, create_task, run, sleep, touched
 
 from .common import Bool, Int, IntMem
 
@@ -74,7 +74,7 @@ def test_regfile(caplog):
             return clk.is_posedge() and wr_en.prev
 
         while True:
-            await resume((clk, clk_pred))
+            await touched({clk: clk_pred})
             regs[wr_addr.prev].next = wr_data.prev
 
     async def rd_port():

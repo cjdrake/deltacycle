@@ -18,7 +18,7 @@ class Semaphore(LoopIf):
             raise ValueError(f"Expected value >= 1, got {value}")
         self._value = value
         self._cnt = value
-        self._task_fifo = WaitFifo()
+        self._waiting = WaitFifo()
 
     async def __aenter__(self):
         await self.acquire()
@@ -31,7 +31,7 @@ class Semaphore(LoopIf):
         assert self._cnt >= 0
         if self.locked():
             task = self._loop.task()
-            self._task_fifo.push(task)
+            self._waiting.push(task)
             task.set_state(TaskState.WAITING)
             await SuspendResume()
         else:
@@ -46,9 +46,8 @@ class Semaphore(LoopIf):
 
     def release(self):
         assert self._cnt >= 0
-        if self._task_fifo:
-            task = self._task_fifo.pop()
-            self._loop.call_soon(task, value=self)
+        if self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
         else:
             self._cnt += 1
 
@@ -66,9 +65,8 @@ class BoundedSemaphore(Semaphore):
     @override
     def release(self):
         assert self._cnt >= 0
-        if self._task_fifo:
-            task = self._task_fifo.pop()
-            self._loop.call_soon(task, value=self)
+        if self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
         else:
             if self._cnt == self._value:
                 raise ValueError("Cannot release")

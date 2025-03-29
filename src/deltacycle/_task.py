@@ -85,19 +85,16 @@ class WaitFifo(WaitIf):
         task._waitqs.remove(self)
         return task
 
-    def pop_all(self) -> Generator[Task, None, None]:
-        while self._tasks:
-            yield self.pop()
 
-
-class WaitPredicate(WaitIf):
+class WaitTouch(WaitIf):
     """Initiator type; tasks wait for variable touch."""
 
     def __init__(self):
         self._tasks: dict[Task, Predicate] = dict()
+        self._predicated: set[Task] = set()
 
     def __bool__(self) -> bool:
-        return bool(self._tasks)
+        return bool(self._predicated)
 
     def drop(self, task: Task):
         del self._tasks[task]
@@ -106,12 +103,15 @@ class WaitPredicate(WaitIf):
         task._waitqs.add(self)
         self._tasks[task] = p
 
-    def pop_predicated(self) -> Generator[Task, None, None]:
-        tasks = {task for task, p in self._tasks.items() if p()}
-        while tasks:
-            task = tasks.pop()
-            task._renege()
-            yield task
+    def touch(self):
+        self._predicated = {task for task, p in self._tasks.items() if p()}
+
+    def pop(self) -> Task:
+        task = self._predicated.pop()
+        while task._waitqs:
+            waitq = task._waitqs.pop()
+            waitq.drop(task)
+        return task
 
 
 class Task(Awaitable, LoopIf):
@@ -123,7 +123,7 @@ class Task(Awaitable, LoopIf):
         self._state = TaskState.INIT
 
         self._waitqs: set[WaitIf] = set()
-        self._task_fifo = WaitFifo()
+        self._waiting = WaitFifo()
 
         # Completion
         self._result: Any = None
@@ -134,7 +134,7 @@ class Task(Awaitable, LoopIf):
     def __await__(self) -> Generator[None, None, Any]:
         if not self.done():
             task = self._loop.task()
-            self._task_fifo.push(task)
+            self._waiting.push(task)
             task.set_state(TaskState.WAITING)
             # Suspend
             yield
@@ -175,11 +175,6 @@ class Task(Awaitable, LoopIf):
     def state(self) -> TaskState:
         return self._state
 
-    def _renege(self):
-        while self._waitqs:
-            waitq = self._waitqs.pop()
-            waitq.drop(self)
-
     def do_run(self, value: Any = None):
         self.set_state(TaskState.RUNNING)
         if self._exception is None:
@@ -188,20 +183,20 @@ class Task(Awaitable, LoopIf):
             self._coro.throw(self._exception)
 
     def do_complete(self, e: StopIteration):
-        for task in self._task_fifo.pop_all():
-            self._loop.call_soon(task, value=self)
+        while self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
         self.set_result(e.value)
         self.set_state(TaskState.COMPLETE)
 
     def do_cancel(self, e: CancelledError):
-        for task in self._task_fifo.pop_all():
-            self._loop.call_soon(task, value=self)
+        while self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
         self.set_exception(e)
         self.set_state(TaskState.CANCELLED)
 
     def do_except(self, e: Exception):
-        for task in self._task_fifo.pop_all():
-            self._loop.call_soon(task, value=self)
+        while self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
         self.set_exception(e)
         self.set_state(TaskState.EXCEPTED)
 
@@ -253,7 +248,9 @@ class Task(Awaitable, LoopIf):
         match self._state:
             case TaskState.WAITING:
                 self.set_state(TaskState.CANCELLING)
-                self._renege()
+                while self._waitqs:
+                    waitq = self._waitqs.pop()
+                    waitq.drop(self)
             case TaskState.PENDING:
                 self.set_state(TaskState.CANCELLING)
                 self._loop._queue.drop(self)

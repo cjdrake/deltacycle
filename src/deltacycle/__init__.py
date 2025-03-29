@@ -19,10 +19,10 @@ from ._loop import (
     get_running_loop,
     irun,
     now,
-    resume,
     run,
     set_loop,
     sleep,
+    touched,
 )
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import Task, TaskState
@@ -77,5 +77,5 @@ __all__ = [
     "finish",
     "sleep",
     "changed",
-    "resume",
+    "touched",
 ]

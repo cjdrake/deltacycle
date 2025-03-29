@@ -318,11 +318,11 @@ async def changed(*vs: Variable) -> Variable:
     return v
 
 
-async def resume(*vps: tuple[Variable, Predicate]) -> Variable:
+async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
     """Resume execution upon variable predicate."""
     loop = get_running_loop()
     task = loop.task()
-    for v, p in vps:
+    for v, p in vps.items():
         v.wait_touch(task, p)
     task.set_state(TaskState.WAITING)
     v = await SuspendResume()

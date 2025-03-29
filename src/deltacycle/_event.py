@@ -10,18 +10,18 @@ class Event(LoopIf):
 
     def __init__(self):
         self._flag = False
-        self._task_fifo = WaitFifo()
+        self._waiting = WaitFifo()
 
     async def wait(self):
         if not self._flag:
             task = self._loop.task()
-            self._task_fifo.push(task)
+            self._waiting.push(task)
             task.set_state(TaskState.WAITING)
             await SuspendResume()
 
     def set(self):
-        for task in self._task_fifo.pop_all():
-            self._loop.call_soon(task, value=self)
+        while self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
         self._flag = True
 
     def clear(self):
