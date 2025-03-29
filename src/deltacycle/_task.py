@@ -135,7 +135,7 @@ class Task(Awaitable, LoopIf):
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
-            task.set_state(TaskState.WAITING)
+            task._set_state(TaskState.WAITING)
             # Suspend
             yield
 
@@ -150,7 +150,7 @@ class Task(Awaitable, LoopIf):
     def region(self) -> int:
         return self._region
 
-    def set_state(self, state: TaskState):
+    def _set_state(self, state: TaskState):
         match self._state:
             case TaskState.INIT:
                 assert state is TaskState.PENDING
@@ -176,7 +176,7 @@ class Task(Awaitable, LoopIf):
         return self._state
 
     def do_run(self, value: Any = None):
-        self.set_state(TaskState.RUNNING)
+        self._set_state(TaskState.RUNNING)
         if self._exception is None:
             self._coro.send(value)
         else:
@@ -186,19 +186,19 @@ class Task(Awaitable, LoopIf):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
         self.set_result(e.value)
-        self.set_state(TaskState.COMPLETE)
+        self._set_state(TaskState.COMPLETE)
 
     def do_cancel(self, e: CancelledError):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
         self.set_exception(e)
-        self.set_state(TaskState.CANCELLED)
+        self._set_state(TaskState.CANCELLED)
 
     def do_except(self, e: Exception):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
         self.set_exception(e)
-        self.set_state(TaskState.EXCEPTED)
+        self._set_state(TaskState.EXCEPTED)
 
     def done(self) -> bool:
         return self._state in {
@@ -247,12 +247,12 @@ class Task(Awaitable, LoopIf):
     def cancel(self, msg: str | None = None):
         match self._state:
             case TaskState.WAITING:
-                self.set_state(TaskState.CANCELLING)
+                self._set_state(TaskState.CANCELLING)
                 while self._waitqs:
                     waitq = self._waitqs.pop()
                     waitq.drop(self)
             case TaskState.PENDING:
-                self.set_state(TaskState.CANCELLING)
+                self._set_state(TaskState.CANCELLING)
                 self._loop._queue.drop(self)
             case _:
                 # TODO(cjdrake): Is this the correct error?

@@ -1,5 +1,7 @@
 """Semaphore synchronization primitive"""
 
+# pylint: disable=protected-access
+
 from typing import override
 
 from ._loop_if import LoopIf
@@ -32,7 +34,7 @@ class Semaphore(LoopIf):
         if self.locked():
             task = self._loop.task()
             self._waiting.push(task)
-            task.set_state(TaskState.WAITING)
+            task._set_state(TaskState.WAITING)
             await SuspendResume()
         else:
             self._cnt -= 1

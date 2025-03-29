@@ -1,6 +1,7 @@
 """Event Loop"""
 
 # pylint: disable=broad-exception-caught
+# pylint: disable=protected-access
 
 from __future__ import annotations
 
@@ -97,7 +98,7 @@ class Loop:
 
     # Scheduling methods
     def _schedule(self, time: int, task: Task, value: Any):
-        task.set_state(TaskState.PENDING)
+        task._set_state(TaskState.PENDING)
         self._queue.push(time, task, value)
 
     def call_soon(self, task: Task, value: Any = None):
@@ -313,7 +314,7 @@ async def changed(*vs: Variable) -> Variable:
     task = loop.task()
     for v in vs:
         v.wait_touch(task)
-    task.set_state(TaskState.WAITING)
+    task._set_state(TaskState.WAITING)
     v = await SuspendResume()
     return v
 
@@ -324,7 +325,7 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
     task = loop.task()
     for v, p in vps.items():
         v.wait_touch(task, p)
-    task.set_state(TaskState.WAITING)
+    task._set_state(TaskState.WAITING)
     v = await SuspendResume()
     return v
 

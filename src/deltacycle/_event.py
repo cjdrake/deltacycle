@@ -1,5 +1,7 @@
 """Event synchronization primitive"""
 
+# pylint: disable=protected-access
+
 from ._loop_if import LoopIf
 from ._suspend_resume import SuspendResume
 from ._task import TaskState, WaitFifo
@@ -16,7 +18,7 @@ class Event(LoopIf):
         if not self._flag:
             task = self._loop.task()
             self._waiting.push(task)
-            task.set_state(TaskState.WAITING)
+            task._set_state(TaskState.WAITING)
             await SuspendResume()
 
     def set(self):
