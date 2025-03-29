@@ -10,14 +10,14 @@ from collections.abc import Hashable
 from typing import Any
 
 from ._loop_if import LoopIf
-from ._task import Predicate, Task, TaskState, WaitTouch
+from ._task import Predicate, Task, TaskState, WaitPredicate
 
 
 class Variable(LoopIf):
     """Model component."""
 
     def __init__(self):
-        self._task_set = WaitTouch()
+        self._task_set = WaitPredicate()
 
     def wait_touch(self, task: Task, p: Predicate | None = None):
         if p is None:

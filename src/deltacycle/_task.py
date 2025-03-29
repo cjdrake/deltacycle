@@ -90,27 +90,24 @@ class WaitFifo(WaitIf):
             yield self.pop()
 
 
-class WaitTouch(WaitIf):
+class WaitPredicate(WaitIf):
     """Initiator type; tasks wait for variable touch."""
 
     def __init__(self):
-        self._tasks: set[Task] = set()
-        self._preds: dict[Task, Predicate] = dict()
+        self._tasks: dict[Task, Predicate] = dict()
 
     def __bool__(self) -> bool:
         return bool(self._tasks)
 
     def drop(self, task: Task):
-        self._tasks.remove(task)
-        del self._preds[task]
+        del self._tasks[task]
 
-    def push(self, task: Task, pred: Predicate):
+    def push(self, task: Task, p: Predicate):
         task._waitqs.add(self)
-        self._tasks.add(task)
-        self._preds[task] = pred
+        self._tasks[task] = p
 
     def pop_predicated(self) -> Generator[Task, None, None]:
-        tasks = {task for task in self._tasks if self._preds[task]()}
+        tasks = {task for task, p in self._tasks.items() if p()}
         while tasks:
             task = tasks.pop()
             task._renege()
