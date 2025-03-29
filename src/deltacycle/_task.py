@@ -56,7 +56,7 @@ class TaskState(IntEnum):
     EXCEPTED = auto()
 
 
-class WaitIf(ABC):
+class HoldIf(ABC):
     def __bool__(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
@@ -64,7 +64,7 @@ class WaitIf(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class WaitFifo(WaitIf):
+class WaitFifo(HoldIf):
     """Initiator type; tasks wait in FIFO order."""
 
     def __init__(self):
@@ -77,16 +77,16 @@ class WaitFifo(WaitIf):
         self._tasks.remove(task)
 
     def push(self, task: Task):
-        task._waitqs.add(self)
+        task._holding.add(self)
         self._tasks.append(task)
 
     def pop(self) -> Task:
         task = self._tasks.popleft()
-        task._waitqs.remove(self)
+        task._holding.remove(self)
         return task
 
 
-class WaitTouch(WaitIf):
+class WaitTouch(HoldIf):
     """Initiator type; tasks wait for variable touch."""
 
     def __init__(self):
@@ -100,7 +100,7 @@ class WaitTouch(WaitIf):
         del self._tasks[task]
 
     def push(self, task: Task, p: Predicate):
-        task._waitqs.add(self)
+        task._holding.add(self)
         self._tasks[task] = p
 
     def touch(self):
@@ -108,9 +108,8 @@ class WaitTouch(WaitIf):
 
     def pop(self) -> Task:
         task = self._predicated.pop()
-        while task._waitqs:
-            waitq = task._waitqs.pop()
-            waitq.drop(task)
+        while task._holding:
+            task._holding.pop().drop(task)
         return task
 
 
@@ -122,7 +121,7 @@ class Task(Awaitable, LoopIf):
         self._region = region
         self._state = TaskState.INIT
 
-        self._waitqs: set[WaitIf] = set()
+        self._holding: set[HoldIf] = set()
         self._waiting = WaitFifo()
 
         # Completion
@@ -248,9 +247,8 @@ class Task(Awaitable, LoopIf):
         match self._state:
             case TaskState.WAITING:
                 self._set_state(TaskState.CANCELLING)
-                while self._waitqs:
-                    waitq = self._waitqs.pop()
-                    waitq.drop(self)
+                while self._holding:
+                    self._holding.pop().drop(self)
             case TaskState.PENDING:
                 self._set_state(TaskState.CANCELLING)
                 self._loop._queue.drop(self)
