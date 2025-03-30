@@ -19,12 +19,12 @@ class Variable(LoopIf):
     def __init__(self):
         self._waiting = WaitTouch()
 
-    def wait_touch(self, task: Task, p: Predicate | None = None):
+    def wait(self, task: Task, p: Predicate | None = None):
         if p is None:
             p = self.changed
         self._waiting.push(task, p)
 
-    def _touch(self):
+    def _set(self):
         self._waiting.touch()
         while self._waiting:
             task = self._waiting.pop()
@@ -82,7 +82,7 @@ class Singular(Variable, Value):
         self._next = value
 
         # Notify the event loop
-        self._touch()
+        self._set()
 
     next = property(fset=_set_next)
 
@@ -126,7 +126,7 @@ class Aggregate(Variable):
             self._nexts[key] = value
 
         # Notify the event loop
-        self._touch()
+        self._set()
 
     # Variable
     def _get_value(self) -> AggrValue:
