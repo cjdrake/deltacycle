@@ -66,10 +66,10 @@ def test_add(caplog):
             logger.info("s=%d co=%d", s.prev, co.prev)
 
     async def main():
-        create_task(drv_clk(), region=2)
-        create_task(drv_inputs(), region=2)
-        create_task(drv_outputs(), region=1)
-        create_task(mon_outputs(), region=3)
+        create_task(drv_clk(), priority=2)
+        create_task(drv_inputs(), priority=2)
+        create_task(drv_outputs(), priority=1)
+        create_task(mon_outputs(), priority=3)
 
     run(main(), until=80)
 

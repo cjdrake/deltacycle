@@ -13,8 +13,8 @@ class TaskGroup(LoopIf):
     def __init__(self):
         self._tasks: set[Task] = set()
 
-    def create_task(self, coro: Coroutine[Any, Any, Any], region: int = 0) -> Task:
-        task = self._loop.create_task(coro, region)
+    def create_task(self, coro: Coroutine[Any, Any, Any], priority: int = 0) -> Task:
+        task = self._loop.create_task(coro, priority)
         self._tasks.add(task)
         return task
 

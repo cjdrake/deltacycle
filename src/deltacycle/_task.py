@@ -116,9 +116,9 @@ class WaitTouch(HoldIf):
 class Task(Awaitable, LoopIf):
     """Coroutine wrapper."""
 
-    def __init__(self, coro: Coroutine[Any, Any, Any], region: int = 0):
+    def __init__(self, coro: Coroutine[Any, Any, Any], priority: int = 0):
         self._coro = coro
-        self._region = region
+        self._priority = priority
         self._state = TaskState.INIT
 
         self._holding: set[HoldIf] = set()
@@ -146,8 +146,8 @@ class Task(Awaitable, LoopIf):
         return self._coro
 
     @property
-    def region(self) -> int:
-        return self._region
+    def priority(self) -> int:
+        return self._priority
 
     def _set_state(self, state: TaskState):
         match self._state:

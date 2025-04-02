@@ -13,11 +13,11 @@ class TaskQueue:
     """Priority queue for ordering task execution."""
 
     def __init__(self):
-        # time, region, index, task, value
+        # time, priority, index, task, value
         self._items: list[tuple[int, int, int, Task, Any]] = []
 
         # Monotonically increasing integer
-        # Breaks (time, region, ...) ties in the heapq
+        # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
     def __bool__(self) -> bool:
@@ -28,7 +28,7 @@ class TaskQueue:
     #    self._index = 0
 
     def push(self, time: int, task: Task, value: Any = None):
-        item = (time, task.region, self._index, task, value)
+        item = (time, task.priority, self._index, task, value)
         heapq.heappush(self._items, item)
         self._index += 1
 

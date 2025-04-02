@@ -83,11 +83,11 @@ def test_regfile(caplog):
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():
-        create_task(drv_clk(), region=2)
-        create_task(drv_inputs(), region=2)
-        create_task(mon_outputs(), region=3)
-        create_task(wr_port(), region=2)
-        create_task(rd_port(), region=1)
+        create_task(drv_clk(), priority=2)
+        create_task(drv_inputs(), priority=2)
+        create_task(mon_outputs(), priority=3)
+        create_task(wr_port(), priority=2)
+        create_task(rd_port(), priority=1)
 
     run(main(), until=120)
 

@@ -70,11 +70,11 @@ def test_vars_run(caplog):
     c = Bool()
 
     async def main():
-        create_task(drv_clk(clk), region=2)
-        create_task(drv_a(a, clk), region=2)
-        create_task(drv_b(b, clk), region=2)
-        create_task(drv_c(c, clk), region=2)
-        create_task(mon(a, b, c, clk), region=3)
+        create_task(drv_clk(clk), priority=2)
+        create_task(drv_a(a, clk), priority=2)
+        create_task(drv_b(b, clk), priority=2)
+        create_task(drv_c(c, clk), priority=2)
+        create_task(mon(a, b, c, clk), priority=3)
 
     # Relative run limit
     run(main(), ticks=25)
@@ -101,11 +101,11 @@ def test_vars_iter(caplog):
     c = Bool()
 
     async def main():
-        create_task(drv_clk(clk), region=2)
-        create_task(drv_a(a, clk), region=2)
-        create_task(drv_b(b, clk), region=2)
-        create_task(drv_c(c, clk), region=2)
-        create_task(mon(a, b, c, clk), region=3)
+        create_task(drv_clk(clk), priority=2)
+        create_task(drv_a(a, clk), priority=2)
+        create_task(drv_b(b, clk), priority=2)
+        create_task(drv_c(c, clk), priority=2)
+        create_task(mon(a, b, c, clk), priority=3)
 
     for t in irun(main()):
         if t >= 25:
@@ -134,11 +134,11 @@ def test_vars_run_iter(caplog):
     c = Bool()
 
     async def main():
-        create_task(drv_clk(clk), region=2)
-        create_task(drv_a(a, clk), region=2)
-        create_task(drv_b(b, clk), region=2)
-        create_task(drv_c(c, clk), region=2)
-        create_task(mon(a, b, c, clk), region=3)
+        create_task(drv_clk(clk), priority=2)
+        create_task(drv_a(a, clk), priority=2)
+        create_task(drv_b(b, clk), priority=2)
+        create_task(drv_c(c, clk), priority=2)
+        create_task(mon(a, b, c, clk), priority=3)
 
     # Relative run limit
     run(main(), ticks=25)

@@ -18,9 +18,9 @@ from ._variable import Variable
 type Predicate = Callable[[], bool]
 
 
-def create_task(coro: Coroutine[Any, Any, Any], region: int = 0) -> Task:
+def create_task(coro: Coroutine[Any, Any, Any], priority: int = 0) -> Task:
     loop = get_running_loop()
-    return loop.create_task(coro, region)
+    return loop.create_task(coro, priority)
 
 
 class LoopState(IntEnum):
@@ -110,10 +110,10 @@ class Loop:
     def call_at(self, when: int, task: Task, value: Any = None):
         self._schedule(when, task, value)
 
-    def create_task(self, coro: Coroutine[Any, Any, Any], region: int = 0) -> Task:
+    def create_task(self, coro: Coroutine[Any, Any, Any], priority: int = 0) -> Task:
         # Cannot call create_task before the simulation starts
         assert self._time >= 0
-        task = Task(coro, region)
+        task = Task(coro, priority)
         self.call_soon(task)
         return task
 
@@ -264,7 +264,7 @@ def now() -> int:
 
 def run(
     coro: Coroutine[Any, Any, Any] | None = None,
-    region: int = 0,
+    priority: int = 0,
     loop: Loop | None = None,
     ticks: int | None = None,
     until: int | None = None,
@@ -274,7 +274,7 @@ def run(
         set_loop(loop := Loop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
-        task = Task(coro, region)
+        task = Task(coro, priority)
         loop.call_at(Loop.start_time, task)
     else:
         set_loop(loop)
@@ -284,7 +284,7 @@ def run(
 
 def irun(
     coro: Coroutine[Any, Any, Any] | None = None,
-    region: int = 0,
+    priority: int = 0,
     loop: Loop | None = None,
 ) -> Generator[int, None, None]:
     """Iterate a simulation."""
@@ -292,7 +292,7 @@ def irun(
         set_loop(loop := Loop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
-        task = Task(coro, region)
+        task = Task(coro, priority)
         loop.call_at(Loop.start_time, task)
     else:
         set_loop(loop)
