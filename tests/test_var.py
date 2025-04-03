@@ -27,6 +27,8 @@ def test_var_await():
             await sleep(1)
             x.next = i
             await sleep(1)
-            assert x8.value == i * 8
+            assert x2.value == 2 * i
+            assert x4.value == 4 * i
+            assert x8.value == 8 * i
 
     run(main())
