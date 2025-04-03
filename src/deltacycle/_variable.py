@@ -21,13 +21,13 @@ class Variable(Awaitable, LoopIf):
 
     def __await__(self) -> Generator[None, None, Any]:
         task = self._loop.task()
-        self.wait(task)
+        self._wait(task)
         task._set_state(TaskState.WAITING)
         v = yield
         assert v is self
         return v
 
-    def wait(self, task: Task, p: Predicate | None = None):
+    def _wait(self, task: Task, p: Predicate | None = None):
         if p is None:
             p = self.changed
         self._waiting.push(task, p)
@@ -45,7 +45,7 @@ class Variable(Awaitable, LoopIf):
                     assert False
 
         # Add variable to update set
-        self._loop.touch(self)
+        self._loop._touch(self)
 
     value = property(fget=lambda self: NotImplemented)
 

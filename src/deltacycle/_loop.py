@@ -131,7 +131,7 @@ class Loop:
         self.call_soon(task)
         return task
 
-    def touch(self, v: Variable):
+    def _touch(self, v: Variable):
         self._touched.add(v)
 
     def _update(self):
@@ -328,7 +328,7 @@ async def changed(*vs: Variable) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v in vs:
-        v.wait(task)
+        v._wait(task)
     task._set_state(TaskState.WAITING)
     v = await SuspendResume()
     return v
@@ -339,7 +339,7 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v, p in vps.items():
-        v.wait(task, p)
+        v._wait(task, p)
     task._set_state(TaskState.WAITING)
     v = await SuspendResume()
     return v
