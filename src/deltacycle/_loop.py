@@ -180,11 +180,13 @@ class Loop:
             yield (task, value)
 
     def _kernel(self, limit: int | None):
-        if self._state in {LoopState.INIT, LoopState.HALTED}:
-            self._set_state(LoopState.RUNNING)
-        else:
-            s = f"Expected state in {{INIT, HALTED}}, got {self._state.name}"
+        expect_states = (LoopState.INIT, LoopState.HALTED)
+        if self._state not in expect_states:
+            exp = "{" + ", ".join(state.name for state in expect_states) + "}"
+            s = f"Expected state in {exp}, got {self._state.name}"
             raise InvalidStateError(s)
+
+        self._set_state(LoopState.RUNNING)
 
         while self._queue:
             # Peek when next event is scheduled
@@ -193,7 +195,7 @@ class Loop:
             # Protect against time traveling tasks
             assert time > self._time
 
-            # Exit if we hit the run limit
+            # Halt if we hit the run limit
             if limit is not None and time >= limit:
                 self._set_state(LoopState.HALTED)
                 break
