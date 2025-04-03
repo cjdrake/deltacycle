@@ -1,5 +1,7 @@
 """Test deltacycle.Task"""
 
+# pylint: disable=protected-access
+
 import logging
 from random import randint
 
@@ -63,7 +65,7 @@ def test_one_result():
 
         # Cannot set a result after task is done
         with pytest.raises(InvalidStateError):
-            t1.set_result(42)
+            t1._set_result(42)
 
     run(main())
 
@@ -97,7 +99,7 @@ def test_one_exception():
 
         # Cannot set an exception after task is done
         with pytest.raises(InvalidStateError):
-            t1.set_exception(ValueError())
+            t1._set_exception(ValueError())
 
     run(main())
 
