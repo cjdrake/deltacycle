@@ -24,8 +24,10 @@ def test_hello(caplog):
         logger.info("Hello")
         await sleep(2)
         logger.info("World")
+        return 42
 
-    run(hello())
+    ret = run(hello())
+    assert ret == 42
 
     loop = get_running_loop()
     assert loop.state() is LoopState.COMPLETED
