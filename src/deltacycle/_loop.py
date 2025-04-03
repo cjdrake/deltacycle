@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
@@ -15,12 +16,18 @@ from ._task import Task, TaskState
 from ._taskq import TaskQueue
 from ._variable import Variable
 
+logger = logging.getLogger("deltacycle")
+
 type Predicate = Callable[[], bool]
 
 
-def create_task(coro: Coroutine[Any, Any, Any], priority: int = 0) -> Task:
+def create_task(
+    coro: Coroutine[Any, Any, Any],
+    name: str | None = None,
+    priority: int = 0,
+) -> Task:
     loop = get_running_loop()
-    return loop.create_task(coro, priority)
+    return loop.create_task(coro, name, priority)
 
 
 class LoopState(IntEnum):
@@ -87,6 +94,8 @@ class Loop:
                 assert state is LoopState.RUNNING
             case _:  # pragma: no cover
                 assert False
+
+        logger.debug("Loop: %s => %s", self._state.name, state.name)
         self._state = state
 
     def state(self) -> LoopState:
@@ -120,14 +129,19 @@ class Loop:
 
     def create_main(self, coro: Coroutine[Any, Any, Any]) -> Task:
         assert self._time == self.init_time
-        main = Task(coro, priority=0)
+        main = Task(coro, parent=None, name="main", priority=0)
         self._main = main
         self.call_at(self.start_time, main)
         return main
 
-    def create_task(self, coro: Coroutine[Any, Any, Any], priority: int = 0) -> Task:
+    def create_task(
+        self,
+        coro: Coroutine[Any, Any, Any],
+        name: str | None = None,
+        priority: int = 0,
+    ) -> Task:
         assert self._time >= self.start_time
-        task = Task(coro, priority)
+        task = Task(coro, parent=self._task, name=name, priority=priority)
         self.call_soon(task)
         return task
 

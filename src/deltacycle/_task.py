@@ -4,14 +4,17 @@
 
 from __future__ import annotations
 
+import logging
 from abc import ABC
-from collections import deque
+from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
 from ._error import CancelledError, InvalidStateError
 from ._loop_if import LoopIf
+
+logger = logging.getLogger("deltacycle")
 
 type Predicate = Callable[[], bool]
 
@@ -116,12 +119,36 @@ class WaitTouch(HoldIf):
 class Task(Awaitable, LoopIf):
     """Coroutine wrapper."""
 
-    def __init__(self, coro: Coroutine[Any, Any, Any], priority: int = 0):
-        self._coro = coro
-        self._priority = priority
+    def __init__(
+        self,
+        coro: Coroutine[Any, Any, Any],
+        parent: Task | None,
+        name: str | None = None,
+        priority: int = 0,
+    ):
         self._state = TaskState.INIT
 
+        self._coro = coro
+        self._parent = parent
+        self._children = Counter()
+
+        if parent is None:
+            assert name is not None
+            self._name = name
+        else:
+            index = parent._children[name]
+            parent._children[name] += 1
+            if name is None:
+                self._name = f"{index}"
+            else:
+                self._name = f"{name}.{index}"
+
+        self._priority = priority
+
+        # Containers holding a reference to this task
         self._holding: set[HoldIf] = set()
+
+        # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
 
         # Completion
@@ -144,6 +171,20 @@ class Task(Awaitable, LoopIf):
     @property
     def coro(self) -> Coroutine[Any, Any, Any]:
         return self._coro
+
+    @property
+    def parent(self) -> Task | None:
+        return self._parent
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def qualname(self) -> str:
+        if self._parent is None:
+            return f"/{self._name}"
+        return f"{self._parent.qualname}/{self._name}"
 
     @property
     def priority(self) -> int:
@@ -169,6 +210,8 @@ class Task(Awaitable, LoopIf):
                 }
             case _:  # pragma: no cover
                 assert False
+
+        logger.debug("Task %s: %s => %s", self.qualname, self._state.name, state.name)
         self._state = state
 
     def state(self) -> TaskState:
