@@ -6,18 +6,26 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import defaultdict
-from collections.abc import Hashable
+from collections.abc import Awaitable, Generator, Hashable
 from typing import Any
 
 from ._loop_if import LoopIf
 from ._task import Predicate, Task, TaskState, WaitTouch
 
 
-class Variable(LoopIf):
+class Variable(Awaitable, LoopIf):
     """Model component."""
 
     def __init__(self):
         self._waiting = WaitTouch()
+
+    def __await__(self) -> Generator[None, None, Any]:
+        task = self._loop.task()
+        self.wait(task)
+        task._set_state(TaskState.WAITING)
+        v = yield
+        assert v is self
+        return v
 
     def wait(self, task: Task, p: Predicate | None = None):
         if p is None:
