@@ -158,6 +158,13 @@ class Loop:
                 s = "Expected either ticks or until to be int | None"
                 raise TypeError(s)
 
+    def _iter_time_slot(self, time: int) -> Generator[tuple[Task, Any], None, None]:
+        _, task, value = self._queue.pop()
+        yield (task, value)
+        while self._queue and self._queue.peek_time() == time:
+            _, task, value = self._queue.pop()
+            yield (task, value)
+
     def _kernel(self, limit: int | None):
         if self._state in {LoopState.INIT, LoopState.HALTED}:
             self._set_state(LoopState.RUNNING)
@@ -167,7 +174,7 @@ class Loop:
 
         while self._queue:
             # Peek when next event is scheduled
-            time, _, _ = self._queue.peek()
+            time = self._queue.peek_time()
 
             # Protect against time traveling tasks
             assert time > self._time
@@ -181,7 +188,7 @@ class Loop:
             self._time = time
 
             # Execute time slot
-            for _, task, value in self._queue.iter_time():
+            for task, value in self._iter_time_slot(time):
                 self._task = task
                 try:
                     task._do_run(value)
@@ -219,7 +226,7 @@ class Loop:
 
         while self._queue:
             # Peek when next event is scheduled
-            time, _, _ = self._queue.peek()
+            time = self._queue.peek_time()
 
             # Protect against time traveling tasks
             assert time > self._time
@@ -231,7 +238,7 @@ class Loop:
             self._time = time
 
             # Execute time slot
-            for _, task, value in self._queue.iter_time():
+            for task, value in self._iter_time_slot(time):
                 self._task = task
                 try:
                     task._do_run(value)
