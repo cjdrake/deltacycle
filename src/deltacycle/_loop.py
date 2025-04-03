@@ -286,7 +286,8 @@ def run(
     """Run a simulation."""
     if loop is None:
         set_loop(loop := Loop())
-        # TODO(cjdrake): Raise an exception for this
+        if coro is None:
+            raise ValueError("New loop requires a valid coro arg")
         assert coro is not None
         _ = loop.create_main(coro)
     else:
@@ -303,7 +304,8 @@ def irun(
     """Iterate a simulation."""
     if loop is None:
         set_loop(loop := Loop())
-        # TODO(cjdrake): Raise an exception for this
+        if coro is None:
+            raise ValueError("New loop requires a valid coro arg")
         assert coro is not None
         _ = loop.create_main(coro)
     else:
