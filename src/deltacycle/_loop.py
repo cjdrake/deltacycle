@@ -95,6 +95,7 @@ class Loop:
     def time(self) -> int:
         return self._time
 
+    @property
     def main(self) -> Task:
         assert self._main is not None
         return self._main
@@ -292,7 +293,7 @@ def run(
         set_loop(loop)
 
     loop.run(ticks, until)
-    return loop.main().result()
+    return loop.main.result()
 
 
 def irun(
@@ -309,7 +310,7 @@ def irun(
         set_loop(loop)
 
     yield from loop
-    return loop.main().result()
+    return loop.main.result()
 
 
 async def sleep(delay: int):
