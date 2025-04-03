@@ -243,12 +243,15 @@ class Task(Awaitable, LoopIf):
             return self._exception
         raise InvalidStateError("Task is not done")
 
+    def _renege(self):
+        while self._holding:
+            self._holding.pop().drop(self)
+
     def cancel(self, msg: str | None = None):
         match self._state:
             case TaskState.WAITING:
                 self._set_state(TaskState.CANCELLING)
-                while self._holding:
-                    self._holding.pop().drop(self)
+                self._renege()
             case TaskState.PENDING:
                 self._set_state(TaskState.CANCELLING)
                 self._loop._queue.drop(self)
