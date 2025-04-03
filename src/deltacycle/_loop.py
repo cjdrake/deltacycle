@@ -65,6 +65,9 @@ class Loop:
         # Simulation time
         self._time: int = self.init_time
 
+        # Main task
+        self._main: Task | None = None
+
         # Currently executing task
         self._task: Task | None = None
 
@@ -92,6 +95,10 @@ class Loop:
     def time(self) -> int:
         return self._time
 
+    def main(self) -> Task:
+        assert self._main is not None
+        return self._main
+
     def task(self) -> Task:
         assert self._task is not None
         return self._task
@@ -110,9 +117,15 @@ class Loop:
     def call_at(self, when: int, task: Task, value: Any = None):
         self._schedule(when, task, value)
 
+    def create_main(self, coro: Coroutine[Any, Any, Any]) -> Task:
+        assert self._time == self.init_time
+        main = Task(coro, priority=0)
+        self._main = main
+        self.call_at(self.start_time, main)
+        return main
+
     def create_task(self, coro: Coroutine[Any, Any, Any], priority: int = 0) -> Task:
-        # Cannot call create_task before the simulation starts
-        assert self._time >= 0
+        assert self._time >= self.start_time
         task = Task(coro, priority)
         self.call_soon(task)
         return task
@@ -258,46 +271,45 @@ def set_loop(loop: Loop):
 
 
 def now() -> int:
+    """Return current time."""
     loop = get_running_loop()
     return loop.time()
 
 
 def run(
     coro: Coroutine[Any, Any, Any] | None = None,
-    priority: int = 0,
     loop: Loop | None = None,
     ticks: int | None = None,
     until: int | None = None,
-):
+) -> Any:
     """Run a simulation."""
     if loop is None:
         set_loop(loop := Loop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
-        task = Task(coro, priority)
-        loop.call_at(Loop.start_time, task)
+        _ = loop.create_main(coro)
     else:
         set_loop(loop)
 
     loop.run(ticks, until)
+    return loop.main().result()
 
 
 def irun(
     coro: Coroutine[Any, Any, Any] | None = None,
-    priority: int = 0,
     loop: Loop | None = None,
-) -> Generator[int, None, None]:
+) -> Generator[int, None, Any]:
     """Iterate a simulation."""
     if loop is None:
         set_loop(loop := Loop())
         # TODO(cjdrake): Raise an exception for this
         assert coro is not None
-        task = Task(coro, priority)
-        loop.call_at(Loop.start_time, task)
+        _ = loop.create_main(coro)
     else:
         set_loop(loop)
 
     yield from loop
+    return loop.main().result()
 
 
 async def sleep(delay: int):
