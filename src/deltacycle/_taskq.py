@@ -5,8 +5,6 @@ from typing import Any
 
 from ._task import Task
 
-type Item = tuple[int, Task, Any]
-
 
 class TaskQueue:
     """Priority queue for ordering task execution."""
@@ -31,16 +29,12 @@ class TaskQueue:
         heapq.heappush(self._items, item)
         self._index += 1
 
-    def peek(self) -> Item:
-        time, _, _, task, value = self._items[0]
-        return (time, task, value)
-
-    def peek_time(self) -> int:
+    def peek(self) -> int:
         return self._items[0][0]
 
-    def pop(self) -> Item:
-        time, _, _, task, value = heapq.heappop(self._items)
-        return (time, task, value)
+    def pop(self) -> tuple[Task, Any]:
+        _, _, _, task, value = heapq.heappop(self._items)
+        return (task, value)
 
     def drop(self, task: Task):
         for i, (_, _, _, t, _) in enumerate(self._items):

@@ -173,10 +173,10 @@ class Loop:
                 raise TypeError(s)
 
     def _iter_time_slot(self, time: int) -> Generator[tuple[Task, Any], None, None]:
-        _, task, value = self._queue.pop()
+        task, value = self._queue.pop()
         yield (task, value)
-        while self._queue and self._queue.peek_time() == time:
-            _, task, value = self._queue.pop()
+        while self._queue and self._queue.peek() == time:
+            task, value = self._queue.pop()
             yield (task, value)
 
     def _kernel(self, limit: int | None):
@@ -190,7 +190,7 @@ class Loop:
 
         while self._queue:
             # Peek when next event is scheduled
-            time = self._queue.peek_time()
+            time = self._queue.peek()
 
             # Protect against time traveling tasks
             assert time > self._time
@@ -242,7 +242,7 @@ class Loop:
 
         while self._queue:
             # Peek when next event is scheduled
-            time = self._queue.peek_time()
+            time = self._queue.peek()
 
             # Protect against time traveling tasks
             assert time > self._time
