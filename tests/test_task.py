@@ -7,7 +7,16 @@ from random import randint
 
 import pytest
 
-from deltacycle import CancelledError, Event, InvalidStateError, Task, create_task, run, sleep
+from deltacycle import (
+    CancelledError,
+    Event,
+    InvalidStateError,
+    Task,
+    create_task,
+    get_running_loop,
+    run,
+    sleep,
+)
 
 logger = logging.getLogger("deltacycle")
 
@@ -229,3 +238,39 @@ def test_cancel_waiting(caplog):
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP2
+
+
+def test_names():
+    async def foo():
+        await sleep(10)
+
+    async def bar():
+        fiz1 = create_task(fiz(), name="fiz")
+        assert fiz1.name == "fiz.0"
+        assert fiz1.qualname == "/main/bar.0/fiz.0"
+        await sleep(10)
+
+    async def fiz():
+        await sleep(10)
+
+    async def main():
+        foo1 = create_task(foo())
+        foo2 = create_task(foo())
+        foo3 = create_task(foo(), name="foo")
+        foo4 = create_task(foo(), name="foo")
+
+        loop = get_running_loop()
+        assert foo1.parent is loop.main
+
+        assert foo1.name == "0"
+        assert foo1.qualname == "/main/0"
+        assert foo2.name == "1"
+        assert foo2.qualname == "/main/1"
+        assert foo3.name == "foo.0"
+        assert foo3.qualname == "/main/foo.0"
+        assert foo4.name == "foo.1"
+        assert foo4.qualname == "/main/foo.1"
+
+        create_task(bar(), name="bar")
+
+    run(main())
