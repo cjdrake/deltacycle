@@ -35,11 +35,7 @@ class LoopState(IntEnum):
 
     Transitions::
 
-                   +---------+
-                   |         |
-                   v         |
-        INIT -> RUNNING -> HALTED
-                        -> COMPLETED
+        INIT -> RUNNING -> COMPLETED
                         -> FINISHED
     """
 
@@ -48,9 +44,6 @@ class LoopState(IntEnum):
 
     # Currently running
     RUNNING = auto()
-
-    # Halted by run limit
-    HALTED = auto()
 
     # All tasks completed
     COMPLETED = auto()
@@ -66,7 +59,6 @@ class Loop:
     start_time = 0
 
     def __init__(self):
-        """Initialize simulation."""
         self._state = LoopState.INIT
 
         # Simulation time
@@ -89,9 +81,7 @@ class Loop:
             case LoopState.INIT:
                 assert state is LoopState.RUNNING
             case LoopState.RUNNING:
-                assert state in {LoopState.HALTED, LoopState.COMPLETED, LoopState.FINISHED}
-            case LoopState.HALTED:
-                assert state is LoopState.RUNNING
+                assert state in {LoopState.COMPLETED, LoopState.FINISHED}
             case _:  # pragma: no cover
                 assert False
 
@@ -154,10 +144,11 @@ class Loop:
             v.update()
 
     def _finish(self):
+        self._queue.clear()
+        self._touched.clear()
         self._set_state(LoopState.FINISHED)
 
     def _limit(self, ticks: int | None, until: int | None) -> int | None:
-        """Determine the run limit."""
         match ticks, until:
             # Run until no tasks left
             case None, None:
@@ -180,13 +171,11 @@ class Loop:
             yield (task, value)
 
     def _kernel(self, limit: int | None):
-        expect_states = (LoopState.INIT, LoopState.HALTED)
-        if self._state not in expect_states:
-            exp = "{" + ", ".join(state.name for state in expect_states) + "}"
-            s = f"Expected state in {exp}, got {self._state.name}"
+        if self._state is LoopState.INIT:
+            self._set_state(LoopState.RUNNING)
+        elif self._state is not LoopState.RUNNING:
+            s = f"Loop has invalid state: {self._state.name}"
             raise InvalidStateError(s)
-
-        self._set_state(LoopState.RUNNING)
 
         while self._queue:
             # Peek when next event is scheduled
@@ -197,7 +186,6 @@ class Loop:
 
             # Halt if we hit the run limit
             if limit is not None and time >= limit:
-                self._set_state(LoopState.HALTED)
                 break
 
             # Otherwise, advance to new timeslot
@@ -224,20 +212,14 @@ class Loop:
             self._set_state(LoopState.COMPLETED)
 
     def run(self, ticks: int | None = None, until: int | None = None):
-        """Run the simulation.
-
-        Until:
-        1. We hit the runlimit, OR
-        2. There are no tasks left in the queue
-        """
         limit = self._limit(ticks, until)
         self._kernel(limit)
 
     def __iter__(self) -> Generator[int, None, None]:
-        if self._state in {LoopState.INIT, LoopState.HALTED}:
+        if self._state is LoopState.INIT:
             self._set_state(LoopState.RUNNING)
         elif self._state is not LoopState.RUNNING:
-            s = f"Expected state in {{INIT, HALTED, RUNNING}}, got {self._state.name}"
+            s = f"Loop has invalid state: {self._state.name}"
             raise InvalidStateError(s)
 
         while self._queue:
@@ -278,8 +260,18 @@ _loop: Loop | None = None
 
 
 def get_running_loop() -> Loop:
+    """Return currently running loop.
+
+    Returns:
+        Loop instance
+
+    Raises:
+        RuntimeError: No loop, or loop is not currently running.
+    """
     if _loop is None:
-        raise RuntimeError("No running loop")
+        raise RuntimeError("No loop")
+    if _loop.state() is not LoopState.RUNNING:
+        raise RuntimeError("Loop not RUNNING")
     return _loop
 
 
@@ -288,7 +280,7 @@ def get_loop() -> Loop | None:
     return _loop
 
 
-def set_loop(loop: Loop):
+def set_loop(loop: Loop | None = None):
     """Set the current event loop."""
     global _loop
     _loop = loop
@@ -317,7 +309,9 @@ def run(
         set_loop(loop)
 
     loop.run(ticks, until)
-    return loop.main.result()
+
+    if loop.main.done():
+        return loop.main.result()
 
 
 def irun(
@@ -335,6 +329,8 @@ def irun(
         set_loop(loop)
 
     yield from loop
+
+    assert loop.main.done()
     return loop.main.result()
 
 

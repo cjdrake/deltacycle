@@ -80,12 +80,9 @@ def test_vars_run(caplog):
     run(main(), ticks=25)
 
     loop = get_running_loop()
-    assert loop.state() is LoopState.HALTED
 
     # Absolute run limit
     run(loop=loop, until=50)
-
-    assert loop.state() is LoopState.HALTED
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP
@@ -144,7 +141,6 @@ def test_vars_run_iter(caplog):
     run(main(), ticks=25)
 
     loop = get_running_loop()
-    assert loop.state() is LoopState.HALTED
 
     for t in irun(loop=loop):
         if t >= 50:

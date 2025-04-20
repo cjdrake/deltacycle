@@ -20,9 +20,9 @@ class TaskQueue:
     def __bool__(self) -> bool:
         return bool(self._items)
 
-    # def clear(self):
-    #    self._items.clear()
-    #    self._index = 0
+    def clear(self):
+        self._items.clear()
+        self._index = 0
 
     def push(self, time: int, task: Task, value: Any = None):
         item = (time, task.priority, self._index, task, value)

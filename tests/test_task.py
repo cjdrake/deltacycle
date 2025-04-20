@@ -14,6 +14,7 @@ from deltacycle import (
     Task,
     create_task,
     get_running_loop,
+    irun,
     run,
     sleep,
 )
@@ -111,6 +112,7 @@ def test_one_exception():
             t1._set_exception(ValueError())
 
     run(main())
+    list(irun(main()))
 
 
 EXP1 = {
@@ -132,7 +134,7 @@ EXP1 = {
 }
 
 
-def test_cancel_pending(caplog):
+def test_cancel_pending1(caplog):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(name: str, n: int):
@@ -182,6 +184,60 @@ def test_cancel_pending(caplog):
             t1.cancel()
 
     run(main())
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP1
+
+
+def test_cancel_pending2(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
+
+    async def cf(name: str, n: int):
+        logger.info("%s enter", name)
+        try:
+            await sleep(n)
+        except CancelledError:
+            logger.info("%s except", name)
+            raise
+        finally:
+            logger.info("%s finally", name)
+
+    async def main():
+        logger.info("main enter")
+
+        t1 = create_task(cf("C1", 1000))
+        t2 = create_task(cf("C2", 10))
+        t3 = create_task(cf("C3", 10))
+
+        await sleep(5)
+
+        logger.info("main cancels C1")
+        t1.cancel()
+
+        try:
+            await t1
+        except CancelledError:
+            logger.info("main except")
+        finally:
+            logger.info("main finally")
+
+        await t2
+        await t3
+
+        assert t1.done()
+        assert t1.cancelled()
+
+        # Result should re-raise CancelledError
+        with pytest.raises(CancelledError):
+            t1.result()
+        # So should exception
+        with pytest.raises(CancelledError):
+            t1.exception()
+
+        # Cannot cancel done task
+        with pytest.raises(ValueError):
+            t1.cancel()
+
+    list(irun(main()))
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 

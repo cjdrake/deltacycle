@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from deltacycle import InvalidStateError, LoopState, get_running_loop, run, sleep
+from deltacycle import InvalidStateError, LoopState, get_loop, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -29,7 +29,8 @@ def test_hello(caplog):
     ret = run(hello())
     assert ret == 42
 
-    loop = get_running_loop()
+    loop = get_loop()
+    assert loop is not None
     assert loop.state() is LoopState.COMPLETED
 
     with pytest.raises(InvalidStateError):

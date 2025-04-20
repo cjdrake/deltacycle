@@ -2,7 +2,7 @@
 
 import logging
 
-from deltacycle import LoopState, create_task, finish, get_running_loop, run, sleep
+from deltacycle import LoopState, create_task, finish, get_loop, irun, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -113,7 +113,7 @@ EXP1 = {
 }
 
 
-def test_finish(caplog):
+def test_finish1(caplog):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
@@ -126,7 +126,29 @@ def test_finish(caplog):
     # Subsequent calls to run() have no effect
     run(main())
 
-    loop = get_running_loop()
+    loop = get_loop()
+    assert loop is not None
+    assert loop.state() is LoopState.FINISHED
+
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP1
+
+
+def test_finish2(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
+
+    async def main():
+        create_task(ctl())
+        create_task(ping("FOO", 3))
+        create_task(ping("BAR", 5))
+        create_task(ping("FIZ", 7))
+        create_task(ping("BUZ", 11))
+
+    # Subsequent calls to run() have no effect
+    list(irun(main()))
+
+    loop = get_loop()
+    assert loop is not None
     assert loop.state() is LoopState.FINISHED
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
