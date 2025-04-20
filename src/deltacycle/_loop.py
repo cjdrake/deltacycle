@@ -292,13 +292,7 @@ def now() -> int:
     return loop.time()
 
 
-def run(
-    coro: Coroutine[Any, Any, Any] | None = None,
-    loop: Loop | None = None,
-    ticks: int | None = None,
-    until: int | None = None,
-) -> Any:
-    """Run a simulation."""
+def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None):
     if loop is None:
         set_loop(loop := Loop())
         if coro is None:
@@ -307,7 +301,17 @@ def run(
         _ = loop.create_main(coro)
     else:
         set_loop(loop)
+    return loop
 
+
+def run(
+    coro: Coroutine[Any, Any, Any] | None = None,
+    loop: Loop | None = None,
+    ticks: int | None = None,
+    until: int | None = None,
+) -> Any:
+    """Run a simulation."""
+    loop = _run_pre(coro, loop)
     loop.run(ticks, until)
 
     if loop.main.done():
@@ -319,15 +323,7 @@ def irun(
     loop: Loop | None = None,
 ) -> Generator[int, None, Any]:
     """Iterate a simulation."""
-    if loop is None:
-        set_loop(loop := Loop())
-        if coro is None:
-            raise ValueError("New loop requires a valid coro arg")
-        assert coro is not None
-        _ = loop.create_main(coro)
-    else:
-        set_loop(loop)
-
+    loop = _run_pre(coro, loop)
     yield from loop
 
     assert loop.main.done()
