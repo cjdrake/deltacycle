@@ -134,7 +134,6 @@ def test_bounded():
 
         # No exception!
         sem.put()
-        assert sem.cnt() == 3  # pylint: disable = protected-access
 
     run(use_unbounded())
 

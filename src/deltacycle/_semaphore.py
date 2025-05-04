@@ -28,9 +28,6 @@ class Semaphore(LoopIf):
     async def __aexit__(self, exc_type, exc_value, exc_tb):
         self.put()
 
-    def cnt(self) -> int:
-        return self._cnt
-
     def put(self):
         assert self._cnt >= 0
         if self._waiting:
