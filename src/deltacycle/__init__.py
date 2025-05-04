@@ -7,9 +7,10 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 import logging
 from logging import Filter, LogRecord
 
-from ._error import CancelledError, FinishError, InvalidStateError
+from ._error import InvalidStateError
 from ._event import Event
 from ._loop import (
+    FinishError,
     Loop,
     LoopState,
     changed,
@@ -25,7 +26,7 @@ from ._loop import (
     touched,
 )
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
-from ._task import Task, TaskState
+from ._task import CancelledError, Task, TaskState
 from ._task_group import TaskGroup
 from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
@@ -44,8 +45,6 @@ logger.addFilter(DeltaCycleFilter())
 
 __all__ = [
     # error
-    "CancelledError",
-    "FinishError",
     "InvalidStateError",
     # variable
     "Variable",
@@ -55,6 +54,7 @@ __all__ = [
     "AggrItem",
     "AggrValue",
     # task
+    "CancelledError",
     "Task",
     "TaskState",
     "TaskGroup",
@@ -66,6 +66,7 @@ __all__ = [
     "BoundedSemaphore",
     "Lock",
     # loop
+    "FinishError",
     "Loop",
     "LoopState",
     "get_running_loop",

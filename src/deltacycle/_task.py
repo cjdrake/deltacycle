@@ -11,12 +11,16 @@ from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
-from ._error import CancelledError, InvalidStateError
+from ._error import InvalidStateError
 from ._loop_if import LoopIf
 
 logger = logging.getLogger("deltacycle")
 
 type Predicate = Callable[[], bool]
+
+
+class CancelledError(Exception):
+    """Task has been cancelled."""
 
 
 class TaskState(IntEnum):

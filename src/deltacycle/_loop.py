@@ -10,15 +10,19 @@ from collections.abc import Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
-from ._error import CancelledError, FinishError, InvalidStateError
+from ._error import InvalidStateError
 from ._suspend_resume import SuspendResume
-from ._task import Task, TaskState
+from ._task import CancelledError, Task, TaskState
 from ._taskq import TaskQueue
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
 
 type Predicate = Callable[[], bool]
+
+
+class FinishError(Exception):
+    """Force the simulation to stop."""
 
 
 def create_task(
