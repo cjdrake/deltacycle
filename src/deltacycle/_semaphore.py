@@ -18,7 +18,6 @@ class Semaphore(LoopIf):
     def __init__(self, value: int = 1):
         if value < 1:
             raise ValueError(f"Expected value >= 1, got {value}")
-        self._value = value
         self._cnt = value
         self._waiting = WaitFifo()
 
@@ -29,9 +28,12 @@ class Semaphore(LoopIf):
     async def __aexit__(self, exc_type, exc_value, exc_tb):
         self.release()
 
+    def cnt(self) -> int:
+        return self._cnt
+
     async def acquire(self):
         assert self._cnt >= 0
-        if self.locked():
+        if self._cnt == 0:
             task = self._loop.task()
             self._waiting.push(task)
             task._set_state(TaskState.WAITING)
@@ -41,7 +43,7 @@ class Semaphore(LoopIf):
 
     def try_acquire(self) -> bool:
         assert self._cnt >= 0
-        if self.locked():
+        if self._cnt == 0:
             return False
         self._cnt -= 1
         return True
@@ -53,9 +55,6 @@ class Semaphore(LoopIf):
         else:
             self._cnt += 1
 
-    def locked(self) -> bool:
-        return self._cnt == 0
-
 
 class BoundedSemaphore(Semaphore):
     """Bounded Semaphore to synchronize tasks.
@@ -64,13 +63,21 @@ class BoundedSemaphore(Semaphore):
     number of release() > resource count.
     """
 
+    def __init__(self, value: int = 1):
+        super().__init__(value)
+        self._maxcnt = value
+
+    @property
+    def maxcnt(self) -> int:
+        return self._maxcnt
+
     @override
     def release(self):
         assert self._cnt >= 0
         if self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
         else:
-            if self._cnt == self._value:
+            if self._cnt == self._maxcnt:
                 raise ValueError("Cannot release")
             self._cnt += 1
 

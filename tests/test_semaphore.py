@@ -134,7 +134,7 @@ def test_bounded():
 
         # No exception!
         sem.release()
-        assert sem._cnt == 3  # pylint: disable = protected-access
+        assert sem.cnt() == 3  # pylint: disable = protected-access
 
     run(use_unbounded())
 
@@ -142,6 +142,7 @@ def test_bounded():
 def test_unbounded():
     async def use_bounded():
         sem = BoundedSemaphore(2)
+        assert sem.maxcnt == 2
 
         await sem.acquire()
         await sem.acquire()
