@@ -67,15 +67,15 @@ async def pick_up_forks(i: int):
 
     while True:
         # Wait until first fork is available
-        await forks[first].acquire()
+        await forks[first].get()
 
         # If second fork is available, get it.
-        if forks[second].try_acquire():
+        if forks[second].try_get():
             break
 
         # Second fork is NOT available:
         # 1. Release the first fork
-        forks[first].release()
+        forks[first].put()
         # 2. Swap which fork we're waiting on first
         first, second = second, first
 
@@ -89,8 +89,8 @@ async def eat(i: int):
 def put_down_forks(i: int):
     """Philosopher[i] is not hungry. Put down left/right forks."""
     first, second = i, (i + 1) % N
-    forks[first].release()
-    forks[second].release()
+    forks[first].put()
+    forks[second].put()
 
 
 async def philosopher(i: int):

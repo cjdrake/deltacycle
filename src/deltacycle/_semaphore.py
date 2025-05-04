@@ -12,7 +12,7 @@ from ._task import TaskState, WaitFifo
 class Semaphore(LoopIf):
     """Semaphore to synchronize tasks.
 
-    Permits number of release() > resource count.
+    Permits number of put() > resource count.
     """
 
     def __init__(self, value: int = 1):
@@ -22,16 +22,30 @@ class Semaphore(LoopIf):
         self._waiting = WaitFifo()
 
     async def __aenter__(self):
-        await self.acquire()
+        await self.get()
         return self
 
     async def __aexit__(self, exc_type, exc_value, exc_tb):
-        self.release()
+        self.put()
 
     def cnt(self) -> int:
         return self._cnt
 
-    async def acquire(self):
+    def put(self):
+        assert self._cnt >= 0
+        if self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
+        else:
+            self._cnt += 1
+
+    def try_get(self) -> bool:
+        assert self._cnt >= 0
+        if self._cnt == 0:
+            return False
+        self._cnt -= 1
+        return True
+
+    async def get(self):
         assert self._cnt >= 0
         if self._cnt == 0:
             task = self._loop.task()
@@ -41,26 +55,12 @@ class Semaphore(LoopIf):
         else:
             self._cnt -= 1
 
-    def try_acquire(self) -> bool:
-        assert self._cnt >= 0
-        if self._cnt == 0:
-            return False
-        self._cnt -= 1
-        return True
-
-    def release(self):
-        assert self._cnt >= 0
-        if self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
-        else:
-            self._cnt += 1
-
 
 class BoundedSemaphore(Semaphore):
     """Bounded Semaphore to synchronize tasks.
 
     Like Semaphore, but raises ValueError when
-    number of release() > resource count.
+    number of put() > resource count.
     """
 
     def __init__(self, value: int = 1):
@@ -72,13 +72,13 @@ class BoundedSemaphore(Semaphore):
         return self._maxcnt
 
     @override
-    def release(self):
+    def put(self):
         assert self._cnt >= 0
         if self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
         else:
             if self._cnt == self._maxcnt:
-                raise ValueError("Cannot release")
+                raise ValueError("Cannot put")
             self._cnt += 1
 
 
