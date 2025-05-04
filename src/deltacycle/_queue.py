@@ -19,9 +19,9 @@ class Queue(LoopIf):
         self._wait_not_empty = WaitFifo()
         self._wait_not_full = WaitFifo()
 
-    # @property
-    # def maxsize(self) -> int:
-    #    return self._maxsize
+    @property
+    def maxsize(self) -> int:
+        return self._maxsize
 
     # def __len__(self) -> int:
     #    return len(self._items)

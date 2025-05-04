@@ -36,6 +36,7 @@ def test_prod_cons(caplog):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     q = Queue()
+    assert q.maxsize == 0
 
     async def prod():
         for i in range(10):
