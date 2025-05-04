@@ -70,6 +70,9 @@ class HoldIf(ABC):
     def drop(self, task: Task):
         raise NotImplementedError()  # pragma: no cover
 
+    def pop(self) -> Task:
+        raise NotImplementedError()  # pragma: no cover
+
 
 class WaitFifo(HoldIf):
     """Initiator type; tasks wait in FIFO order."""

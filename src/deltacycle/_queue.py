@@ -3,6 +3,7 @@
 # pylint: disable=protected-access
 
 from collections import deque
+from collections.abc import Sized
 from typing import Any
 
 from ._loop_if import LoopIf
@@ -10,18 +11,18 @@ from ._suspend_resume import SuspendResume
 from ._task import TaskState, WaitFifo
 
 
-class Queue(LoopIf):
-    """TODO(cjdrake): Write docstring."""
+class Queue(Sized, LoopIf):
+    """First-in, First-out (FIFO) queue."""
 
-    def __init__(self, cap: int = 0):
-        self._cap = cap
+    def __init__(self, maxlen: int = 0):
+        self._maxlen = maxlen
         self._items: deque[Any] = deque()
         self._wait_not_empty = WaitFifo()
         self._wait_not_full = WaitFifo()
 
     @property
-    def cap(self) -> int:
-        return self._cap
+    def maxlen(self) -> int:
+        return self._maxlen
 
     def __len__(self) -> int:
         return len(self._items)
@@ -30,7 +31,7 @@ class Queue(LoopIf):
         return not self._items
 
     def full(self) -> bool:
-        return self._cap > 0 and len(self._items) == self._cap
+        return self._maxlen > 0 and len(self._items) == self._maxlen
 
     def _put(self, item: Any):
         self._items.append(item)
