@@ -25,6 +25,7 @@ from ._loop import (
     sleep,
     touched,
 )
+from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import CancelledError, Task, TaskState
 from ._task_group import TaskGroup
@@ -65,6 +66,8 @@ __all__ = [
     "Semaphore",
     "BoundedSemaphore",
     "Lock",
+    # queue
+    "Queue",
     # loop
     "FinishError",
     "Loop",
