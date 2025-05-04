@@ -23,8 +23,8 @@ class Queue(LoopIf):
     def cap(self) -> int:
         return self._cap
 
-    # def __len__(self) -> int:
-    #    return len(self._items)
+    def __len__(self) -> int:
+        return len(self._items)
 
     def empty(self) -> bool:
         return not self._items
@@ -37,11 +37,11 @@ class Queue(LoopIf):
         if self._wait_not_empty:
             self._loop.call_soon(self._wait_not_empty.pop(), value=self)
 
-    # def try_put(self, item: Any) -> bool:
-    #    if self.full():
-    #        return False
-    #    self._put(item)
-    #    return True
+    def try_put(self, item: Any) -> bool:
+        if self.full():
+            return False
+        self._put(item)
+        return True
 
     async def put(self, item: Any):
         if self.full():
@@ -58,10 +58,10 @@ class Queue(LoopIf):
             self._loop.call_soon(self._wait_not_full.pop(), value=self)
         return item
 
-    # def try_get(self) -> tuple[bool, Any]:
-    #    if self.empty():
-    #        return False, None
-    #    return True, self._get()
+    def try_get(self) -> tuple[bool, Any]:
+        if self.empty():
+            return False, None
+        return True, self._get()
 
     async def get(self) -> Any:
         if self.empty():

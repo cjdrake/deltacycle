@@ -111,3 +111,37 @@ def test_prod_cons2(caplog):
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP2
+
+
+def test_prod_cons3():
+    q = Queue(2)
+    assert len(q) == 0
+
+    async def prod():
+        assert q.try_put(1)
+        assert len(q) == 1
+
+        assert q.try_put(2)
+        assert len(q) == 2
+
+        assert not q.try_put(3)
+
+    async def cons():
+        await sleep(10)
+
+        success, value = q.try_get()
+        assert success
+        assert value == 1
+
+        success, value = q.try_get()
+        assert success
+        assert value == 2
+
+        success, value = q.try_get()
+        assert not success
+
+    async def main():
+        create_task(prod())
+        create_task(cons())
+
+    run(main())

@@ -84,7 +84,6 @@ Synchronization Primitives
 .. autoclass:: deltacycle.BoundedSemaphore
     :show-inheritance:
 
-    .. autoproperty:: maxcnt
     .. automethod:: put
 
 .. autoclass:: deltacycle.Lock
@@ -96,10 +95,12 @@ Queues
 .. autoclass:: deltacycle.Queue
     :show-inheritance:
 
-    .. autoproperty:: maxsize
+    .. autoproperty:: cap
     .. automethod:: empty
     .. automethod:: full
+    .. automethod:: try_put
     .. automethod:: put
+    .. automethod:: try_get
     .. automethod:: get
 
 Loop
