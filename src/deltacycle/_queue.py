@@ -13,15 +13,15 @@ from ._task import TaskState, WaitFifo
 class Queue(LoopIf):
     """TODO(cjdrake): Write docstring."""
 
-    def __init__(self, maxsize: int = 0):
-        self._maxsize = maxsize
+    def __init__(self, cap: int = 0):
+        self._cap = cap
         self._items: deque[Any] = deque()
         self._wait_not_empty = WaitFifo()
         self._wait_not_full = WaitFifo()
 
     @property
-    def maxsize(self) -> int:
-        return self._maxsize
+    def cap(self) -> int:
+        return self._cap
 
     # def __len__(self) -> int:
     #    return len(self._items)
@@ -30,7 +30,7 @@ class Queue(LoopIf):
         return not self._items
 
     def full(self) -> bool:
-        return self._maxsize > 0 and len(self._items) == self._maxsize
+        return self._cap > 0 and len(self._items) == self._cap
 
     def _put(self, item: Any):
         self._items.append(item)
