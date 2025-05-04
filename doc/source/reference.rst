@@ -76,18 +76,31 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
 
-    .. automethod:: acquire
-    .. automethod:: try_acquire
-    .. automethod:: release
-    .. automethod:: locked
+    .. automethod:: cnt
+    .. automethod:: put
+    .. automethod:: try_get
+    .. automethod:: get
 
 .. autoclass:: deltacycle.BoundedSemaphore
     :show-inheritance:
 
-    .. automethod:: release
+    .. autoproperty:: maxcnt
+    .. automethod:: put
 
 .. autoclass:: deltacycle.Lock
     :show-inheritance:
+
+Queues
+======
+
+.. autoclass:: deltacycle.Queue
+    :show-inheritance:
+
+    .. autoproperty:: maxsize
+    .. automethod:: empty
+    .. automethod:: full
+    .. automethod:: put
+    .. automethod:: get
 
 Loop
 ====
