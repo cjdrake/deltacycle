@@ -67,10 +67,6 @@ class BoundedSemaphore(Semaphore):
         super().__init__(value)
         self._maxcnt = value
 
-    @property
-    def maxcnt(self) -> int:
-        return self._maxcnt
-
     @override
     def put(self):
         assert self._cnt >= 0

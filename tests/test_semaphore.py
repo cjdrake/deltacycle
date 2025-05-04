@@ -142,7 +142,6 @@ def test_bounded():
 def test_unbounded():
     async def use_bounded():
         sem = BoundedSemaphore(2)
-        assert sem.maxcnt == 2
 
         await sem.get()
         await sem.get()
