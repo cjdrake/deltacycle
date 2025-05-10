@@ -11,6 +11,7 @@ dependencies = [
     "pytest-cov>=6.1.1",
     "pytest-profiling>=1.8.1",
     "sphinx>=8.2.3",
+    "sphinx-autobuild>=2024.10.3",
 ]
 
 [project.urls]
