@@ -18,6 +18,3 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/cjdrake/deltacycle.git"
-
-[tool.black]
-line-length = 100
