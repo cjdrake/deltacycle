@@ -4,8 +4,6 @@ Allows easy access to global event loop for Event, Semaphore, Task, ...
 Works around tricky circular import: Loop => Task => Loop.
 """
 
-# pylint: disable=import-outside-toplevel
-
 from abc import ABC
 from functools import cached_property
 

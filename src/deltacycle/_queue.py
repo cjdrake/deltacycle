@@ -1,7 +1,5 @@
 """Queue synchronization primitive."""
 
-# pylint: disable=protected-access
-
 from collections import deque
 from collections.abc import Sized
 from typing import Any

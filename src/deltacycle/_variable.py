@@ -1,7 +1,5 @@
 """Model variables"""
 
-# pylint: disable=protected-access
-
 from __future__ import annotations
 
 from abc import ABC

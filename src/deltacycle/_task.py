@@ -1,7 +1,5 @@
 """Task: coroutine wrapper"""
 
-# pylint: disable=protected-access
-
 from __future__ import annotations
 
 import logging

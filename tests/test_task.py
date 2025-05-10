@@ -1,7 +1,5 @@
 """Test deltacycle.Task"""
 
-# pylint: disable=protected-access
-
 import logging
 from random import randint
 

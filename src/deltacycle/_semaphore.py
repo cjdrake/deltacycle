@@ -1,7 +1,5 @@
 """Semaphore synchronization primitive"""
 
-# pylint: disable=protected-access
-
 from typing import override
 
 from ._loop_if import LoopIf

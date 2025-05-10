@@ -1,7 +1,5 @@
 """Event synchronization primitive"""
 
-# pylint: disable=protected-access
-
 from ._loop_if import LoopIf
 from ._suspend_resume import SuspendResume
 from ._task import TaskState, WaitFifo

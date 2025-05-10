@@ -1,8 +1,5 @@
 """Event Loop"""
 
-# pylint: disable=broad-exception-caught
-# pylint: disable=protected-access
-
 from __future__ import annotations
 
 import logging
