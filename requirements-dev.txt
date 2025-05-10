@@ -1,16 +1,13 @@
 # Development Dependencies
 
-# Python Package Index
-build
-twine
-
 # Documentation
 -r doc/requirements.txt
 
-# Code Quality
-black
-flake8
-pylint
+# Lint / Format
+ruff
+
+# Test
+pytest
 pytest-cov
 pytest-profiling
 
