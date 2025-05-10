@@ -5,7 +5,9 @@ description = "Delta Cycle"
 readme = "README.md"
 
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pytest>=8.3.5",
+]
 
 [project.urls]
 Repository = "https://github.com/cjdrake/deltacycle.git"
