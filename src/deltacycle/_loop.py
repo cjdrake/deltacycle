@@ -253,8 +253,8 @@ class Loop:
 
             # Update simulation state
             self._update()
-        else:
-            self._set_state(LoopState.COMPLETED)
+
+        self._set_state(LoopState.COMPLETED)
 
 
 _loop: Loop | None = None

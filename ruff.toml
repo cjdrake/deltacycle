@@ -13,6 +13,5 @@ select = [
 
 ignore = [
     "PLR2004",  # magic-value-comparison
-    "PLW0120",  # useless-else-on-loop
     "PLW0603",  # global-statement
 ]
