@@ -10,6 +10,7 @@ dependencies = [
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-profiling>=1.8.1",
+    "sphinx>=8.2.3",
 ]
 
 [project.urls]
