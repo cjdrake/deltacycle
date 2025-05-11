@@ -1,6 +1,7 @@
 """Task Group"""
 
 from collections.abc import Coroutine
+from types import TracebackType
 from typing import Any
 
 from ._loop_if import LoopIf
@@ -26,7 +27,7 @@ class TaskGroup(LoopIf):
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_value, exc_tb):
+    async def __aexit__(self, exc_type, exc_value, tb: TracebackType):
         while self._tasks:
             task = self._tasks.pop()
             await task

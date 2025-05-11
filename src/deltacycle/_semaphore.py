@@ -1,5 +1,6 @@
 """Semaphore synchronization primitive"""
 
+from types import TracebackType
 from typing import override
 
 from ._loop_if import LoopIf
@@ -23,7 +24,7 @@ class Semaphore(LoopIf):
         await self.get()
         return self
 
-    async def __aexit__(self, exc_type, exc_value, exc_tb):
+    async def __aexit__(self, exc_type, exc_value, tb: TracebackType):
         self.put()
 
     def put(self):
