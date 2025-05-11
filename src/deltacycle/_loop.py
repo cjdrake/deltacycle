@@ -52,6 +52,12 @@ class LoopState(IntEnum):
     FINISHED = auto()
 
 
+_loop_state_transitions = {
+    LoopState.INIT: {LoopState.RUNNING},
+    LoopState.RUNNING: {LoopState.COMPLETED, LoopState.FINISHED},
+}
+
+
 class Loop:
     """Simulation event loop."""
 
@@ -77,14 +83,7 @@ class Loop:
         self._touched: set[Variable] = set()
 
     def _set_state(self, state: LoopState):
-        match self._state:
-            case LoopState.INIT:
-                assert state is LoopState.RUNNING
-            case LoopState.RUNNING:
-                assert state in {LoopState.COMPLETED, LoopState.FINISHED}
-            case _:  # pragma: no cover
-                assert False
-
+        assert state in _loop_state_transitions[self._state]
         logger.debug("Loop: %s => %s", self._state.name, state.name)
         self._state = state
 

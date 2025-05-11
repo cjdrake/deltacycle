@@ -65,6 +65,21 @@ class TaskState(IntEnum):
     EXCEPTED = auto()
 
 
+_task_state_transitions = {
+    TaskState.INIT: {TaskState.PENDING},
+    TaskState.PENDING: {TaskState.CANCELLING, TaskState.RUNNING},
+    TaskState.WAITING: {TaskState.CANCELLING, TaskState.PENDING},
+    TaskState.CANCELLING: {TaskState.PENDING},
+    TaskState.RUNNING: {
+        TaskState.PENDING,  # sleep
+        TaskState.WAITING,  # suspend/resume
+        TaskState.COMPLETE,
+        TaskState.CANCELLED,
+        TaskState.EXCEPTED,
+    },
+}
+
+
 class HoldIf(ABC):
     def __bool__(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
@@ -200,26 +215,7 @@ class Task(Awaitable[Any], LoopIf):
         return self._priority
 
     def _set_state(self, state: TaskState):
-        match self._state:
-            case TaskState.INIT:
-                assert state is TaskState.PENDING
-            case TaskState.PENDING:
-                assert state in {TaskState.CANCELLING, TaskState.RUNNING}
-            case TaskState.WAITING:
-                assert state in {TaskState.CANCELLING, TaskState.PENDING}
-            case TaskState.CANCELLING:
-                assert state is TaskState.PENDING
-            case TaskState.RUNNING:
-                assert state in {
-                    TaskState.PENDING,  # sleep
-                    TaskState.WAITING,  # suspend/resume
-                    TaskState.COMPLETE,
-                    TaskState.CANCELLED,
-                    TaskState.EXCEPTED,
-                }
-            case _:  # pragma: no cover
-                assert False
-
+        assert state in _task_state_transitions[self._state]
         logger.debug("Task %s: %s => %s", self.qualname, self._state.name, state.name)
         self._state = state
 
