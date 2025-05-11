@@ -7,7 +7,6 @@ from collections.abc import Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
-from ._error import InvalidStateError
 from ._suspend_resume import SuspendResume
 from ._task import CancelledError, Task, TaskState
 from ._taskq import TaskQueue
@@ -176,7 +175,7 @@ class Loop:
             self._set_state(LoopState.RUNNING)
         elif self._state is not LoopState.RUNNING:
             s = f"Loop has invalid state: {self._state.name}"
-            raise InvalidStateError(s)
+            raise RuntimeError(s)
 
         while self._queue:
             # Peek when next event is scheduled
@@ -221,7 +220,7 @@ class Loop:
             self._set_state(LoopState.RUNNING)
         elif self._state is not LoopState.RUNNING:
             s = f"Loop has invalid state: {self._state.name}"
-            raise InvalidStateError(s)
+            raise RuntimeError(s)
 
         while self._queue:
             # Peek when next event is scheduled

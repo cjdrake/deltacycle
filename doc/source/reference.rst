@@ -2,12 +2,6 @@
     Reference
 #################
 
-Errors
-======
-
-.. autoexception:: deltacycle.CancelledError
-.. autoexception:: deltacycle.FinishError
-.. autoexception:: deltacycle.InvalidStateError
 
 Variables
 =========
@@ -38,8 +32,12 @@ Variables
 
 .. autoclass:: deltacycle.AggrValue
 
+
 Tasks
 =====
+
+.. autoexception:: deltacycle.CancelledError
+.. autoexception:: deltacycle.InvalidStateError
 
 .. autoclass:: deltacycle.Task
     :show-inheritance:
@@ -61,6 +59,7 @@ Tasks
     .. automethod:: deltacycle.TaskGroup.create_task
 
 .. autofunction:: deltacycle.create_task
+
 
 Synchronization Primitives
 ==========================
@@ -88,6 +87,7 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Lock
     :show-inheritance:
 
+
 Queues
 ======
 
@@ -102,8 +102,11 @@ Queues
     .. automethod:: try_get
     .. automethod:: get
 
+
 Loop
 ====
+
+.. autoexception:: deltacycle.FinishError
 
 .. autoclass:: deltacycle.Loop
 

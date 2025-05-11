@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from deltacycle import InvalidStateError, get_loop, get_running_loop, irun, run, set_loop, sleep
+from deltacycle import get_loop, get_running_loop, irun, run, set_loop, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -47,10 +47,10 @@ def test_cannot_run(caplog):
     loop = get_loop()
 
     # Loop is already in COMPLETED state
-    with pytest.raises(InvalidStateError):
+    with pytest.raises(RuntimeError):
         run(loop=loop)
 
-    with pytest.raises(InvalidStateError):
+    with pytest.raises(RuntimeError):
         list(irun(loop=loop))
 
 
