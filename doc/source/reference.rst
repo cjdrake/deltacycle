@@ -82,6 +82,7 @@ Synchronization Primitives
 .. autoclass:: deltacycle.BoundedSemaphore
     :show-inheritance:
 
+    .. automethod:: try_put
     .. automethod:: put
 
 .. autoclass:: deltacycle.Lock

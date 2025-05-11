@@ -144,8 +144,10 @@ def test_bounded():
 
         await sem.get()
         await sem.get()
+        assert sem.try_put()
         sem.put()
-        sem.put()
+
+        assert not sem.try_put()
 
         # Exception!
         with pytest.raises(ValueError):
