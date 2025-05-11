@@ -11,7 +11,7 @@ from ._loop_if import LoopIf
 from ._task import Predicate, Task, TaskState, WaitTouch
 
 
-class Variable(Awaitable, LoopIf):
+class Variable(Awaitable[Any], LoopIf):
     """Model component."""
 
     def __init__(self):

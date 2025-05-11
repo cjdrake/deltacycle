@@ -124,7 +124,7 @@ class WaitTouch(HoldIf):
         return task
 
 
-class Task(Awaitable, LoopIf):
+class Task(Awaitable[Any], LoopIf):
     """Coroutine wrapper."""
 
     def __init__(

@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Generator
 from typing import Any
 
 
-class SuspendResume(Awaitable):
+class SuspendResume(Awaitable[Any]):
     """Suspend/Resume current task.
 
     Use case:
