@@ -27,7 +27,7 @@ class TaskGroup(LoopIf):
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_value, tb: TracebackType):
+    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
         while self._tasks:
             task = self._tasks.pop()
             await task

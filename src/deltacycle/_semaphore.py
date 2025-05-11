@@ -24,7 +24,7 @@ class Semaphore(LoopIf):
         await self.get()
         return self
 
-    async def __aexit__(self, exc_type, exc_value, tb: TracebackType):
+    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
         self.put()
 
     def put(self):
