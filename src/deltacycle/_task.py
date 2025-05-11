@@ -7,6 +7,7 @@ from abc import ABC
 from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
+from functools import cached_property
 from typing import Any
 
 from ._loop_if import LoopIf
@@ -188,7 +189,7 @@ class Task(Awaitable[Any], LoopIf):
     def name(self) -> str:
         return self._name
 
-    @property
+    @cached_property
     def qualname(self) -> str:
         if self._parent is None:
             return f"/{self._name}"
