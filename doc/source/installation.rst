@@ -13,7 +13,7 @@ This page explains how to install DeltaCycle using various methods.
 With pip
 ========
 
-To install the latest release of DeltaCycle, run:
+To install the latest release of ``deltacycle``, run:
 
 .. code-block:: console
 
