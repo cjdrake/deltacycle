@@ -64,6 +64,9 @@ class BoundedSemaphore(Semaphore):
 
     def try_put(self) -> bool:
         assert self._cnt >= 0
+        if self._waiting:
+            self._loop.call_soon(self._waiting.pop(), value=self)
+            return True
         if self._cnt == self._maxcnt:
             return False
         self._cnt += 1
