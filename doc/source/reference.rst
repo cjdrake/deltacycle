@@ -12,6 +12,7 @@ Variables
     :show-inheritance:
 
     .. autoproperty:: value
+    .. automethod:: __await__
     .. automethod:: changed
     .. automethod:: update
 
@@ -107,7 +108,7 @@ Queues
 Loop
 ====
 
-.. autoexception:: deltacycle.FinishError
+.. autoclass:: deltacycle.LoopState
 
 .. autoclass:: deltacycle.Loop
 
@@ -115,8 +116,6 @@ Loop
     .. automethod:: deltacycle.Loop.time
     .. autoproperty:: deltacycle.Loop.main
     .. automethod:: deltacycle.Loop.task
-
-.. autoclass:: deltacycle.LoopState
 
 .. autofunction:: deltacycle.get_running_loop
 .. autofunction:: deltacycle.get_loop

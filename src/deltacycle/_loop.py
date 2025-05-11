@@ -17,7 +17,7 @@ logger = logging.getLogger("deltacycle")
 type Predicate = Callable[[], bool]
 
 
-class FinishError(Exception):
+class _FinishError(Exception):
     """Force the simulation to stop."""
 
 
@@ -26,6 +26,7 @@ def create_task(
     name: str | None = None,
     priority: int = 0,
 ) -> Task:
+    """Create a task, and schedule it to start soon."""
     loop = get_running_loop()
     return loop.create_task(coro, name, priority)
 
@@ -59,7 +60,17 @@ _loop_state_transitions = {
 
 
 class Loop:
-    """Simulation event loop."""
+    """Simulation event loop.
+
+    Responsible for:
+
+    * Scheduling and executing all tasks
+    * Updating all model state
+
+    This is a low level API.
+    User code is not expected to interact with it directly.
+    To run a simulation, use the run and irun functions.
+    """
 
     init_time = -1
     start_time = 0
@@ -88,17 +99,21 @@ class Loop:
         self._state = state
 
     def state(self) -> LoopState:
+        """Current simulation state."""
         return self._state
 
     def time(self) -> int:
+        """Current simulation time."""
         return self._time
 
     @property
     def main(self) -> Task:
+        """Parent task of all other tasks."""
         assert self._main is not None
         return self._main
 
     def task(self) -> Task:
+        """Currently running task."""
         assert self._task is not None
         return self._task
 
@@ -147,22 +162,12 @@ class Loop:
         self._touched.clear()
         self._set_state(LoopState.FINISHED)
 
-    def _limit(self, ticks: int | None, until: int | None) -> int | None:
-        match ticks, until:
-            # Run until no tasks left
-            case None, None:
-                return None
-            # Run until an absolute time
-            case None, int():
-                return until
-            # Run until a number of ticks in the future
-            case int(), None:
-                return max(self.start_time, self._time) + ticks
-            case _:
-                s = "Expected either ticks or until to be int | None"
-                raise TypeError(s)
-
     def _iter_time_slot(self, time: int) -> Generator[tuple[Task, Any], None, None]:
+        """Iterate through all tasks in a time slot.
+
+        The first task has already been peeked.
+        This is a do-while loop.
+        """
         task, value = self._queue.pop()
         yield (task, value)
         while self._queue and self._queue.peek() == time:
@@ -199,7 +204,7 @@ class Loop:
                     task._do_complete(e)
                 except CancelledError as e:
                     task._do_cancel(e)
-                except FinishError:
+                except _FinishError:
                     self._finish()
                     return
                 except Exception as e:
@@ -208,10 +213,25 @@ class Loop:
             # Update simulation state
             self._update()
         else:
+            # All tasks exhausted
             self._set_state(LoopState.COMPLETED)
 
     def run(self, ticks: int | None = None, until: int | None = None):
-        limit = self._limit(ticks, until)
+        # Determine the run limit
+        match ticks, until:
+            # Run until no tasks left
+            case None, None:
+                limit = None
+            # Run until an absolute time
+            case None, int():
+                limit = until
+            # Run until a number of ticks in the future
+            case int(), None:
+                limit = max(self.start_time, self._time) + ticks
+            case _:
+                s = "Expected either ticks or until to be int | None"
+                raise TypeError(s)
+
         self._kernel(limit)
 
     def __iter__(self) -> Generator[int, None, None]:
@@ -243,7 +263,7 @@ class Loop:
                     task._do_complete(e)
                 except CancelledError as e:
                     task._do_cancel(e)
-                except FinishError:
+                except _FinishError:
                     self._finish()
                     return
                 except Exception as e:
@@ -252,6 +272,7 @@ class Loop:
             # Update simulation state
             self._update()
 
+        # All tasks exhausted
         self._set_state(LoopState.COMPLETED)
 
 
@@ -286,12 +307,12 @@ def set_loop(loop: Loop | None = None):
 
 
 def now() -> int:
-    """Return current time."""
+    """Return current simulation time."""
     loop = get_running_loop()
     return loop.time()
 
 
-def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None):
+def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None) -> Loop:
     if loop is None:
         set_loop(loop := Loop())
         if coro is None:
@@ -309,7 +330,32 @@ def run(
     ticks: int | None = None,
     until: int | None = None,
 ) -> Any:
-    """Run a simulation."""
+    """Run a simulation.
+
+    If a simulation hits the run limit, it will exit and return None.
+    That simulation may be resumed any number of times.
+    If all tasks are exhausted, return the main coroutine result.
+
+    Args:
+        coro: Optional main coroutine.
+            Required if creating a new loop.
+            Ignored if using an existing loop.
+        loop: Optional Loop instance.
+            If not provided, a new loop will be created.
+        ticks: Optional relative run limit.
+            If provided, run for *ticks* simulation time steps.
+        until: Optional absolute run limit.
+            If provided, run until *ticks* simulation time steps.
+
+    Returns:
+        If the main coroutine runs til completion, return its result.
+        Otherwise, return ``None``.
+
+    Raises:
+        ValueError: Creating a new loop, but no coro provided.
+        TypeError: ticks and until args conflict.
+        RuntimeError: The loop is in an invalid state.
+    """
     loop = _run_pre(coro, loop)
     loop.run(ticks, until)
 
@@ -321,7 +367,30 @@ def irun(
     coro: Coroutine[Any, Any, Any] | None = None,
     loop: Loop | None = None,
 ) -> Generator[int, None, Any]:
-    """Iterate a simulation."""
+    """Iterate a simulation.
+
+    Iterated simulations do not have a run limit.
+    It is the user's responsibility to break at the desired time.
+    If all tasks are exhausted, return the main coroutine result.
+
+    Args:
+        coro: Optional main coroutine.
+            Required if creating a new loop.
+            Ignored if using an existing loop.
+        loop: Optional Loop instance.
+            If not provided, a new loop will be created.
+
+    Yields:
+        int time immediately *before* the next time slot executes.
+
+    Returns:
+        main coroutine result.
+
+    Raises:
+        ValueError: Creating a new loop, but no coro provided.
+        TypeError: ticks and until args conflict.
+        RuntimeError: The loop is in an invalid state.
+    """
     loop = _run_pre(coro, loop)
     yield from loop
 
@@ -338,7 +407,17 @@ async def sleep(delay: int):
 
 
 async def changed(*vs: Variable) -> Variable:
-    """Resume execution upon variable change."""
+    """Resume execution upon variable change.
+
+    Suspend execution of the current task;
+    Resume when any variable in the sensitivity list changes.
+
+    Args:
+        vs: Tuple of Variables, a sensitivity list.
+
+    Returns:
+        The Variable instance that triggered the task to resume.
+    """
     loop = get_running_loop()
     task = loop.task()
     for v in vs:
@@ -349,7 +428,19 @@ async def changed(*vs: Variable) -> Variable:
 
 
 async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
-    """Resume execution upon variable predicate."""
+    """Resume execution upon predicated variable change.
+
+    Suspend execution of the current task;
+    Resume when any variable in the sensitivity list changes,
+    *and* the predicate function evaluates to True.
+    If the predicate function is None, it will default to *any* change.
+
+    Args:
+        vps: Dict of Variable => Predicate mappings, a sensitivity list.
+
+    Returns:
+        The Variable instance that triggered the task to resume.
+    """
     loop = get_running_loop()
     task = loop.task()
     for v, p in vps.items():
@@ -360,4 +451,8 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
 
 
 def finish():
-    raise FinishError()
+    """Halt all incomplete coroutines, and immediately exit simulation.
+
+    Clear all loop data, and transition state to FINISHED.
+    """
+    raise _FinishError()

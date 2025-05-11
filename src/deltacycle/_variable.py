@@ -12,7 +12,16 @@ from ._task import Predicate, Task, TaskState, WaitTouch
 
 
 class Variable(Awaitable[Any], LoopIf):
-    """Model component."""
+    """Model component.
+
+    Children::
+
+               Variable
+                  |
+           +------+------+
+           |             |
+        Singular     Aggregate
+    """
 
     def __init__(self):
         self._waiting = WaitTouch()
@@ -48,9 +57,11 @@ class Variable(Awaitable[Any], LoopIf):
     value = property(fget=lambda self: NotImplemented)
 
     def changed(self) -> bool:
+        """Return True if changed during the current time slot."""
         raise NotImplementedError()  # pragma: no cover
 
     def update(self):
+        """Loop callback."""
         raise NotImplementedError()  # pragma: no cover
 
 

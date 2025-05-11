@@ -9,7 +9,6 @@ from logging import Filter, LogRecord
 
 from ._event import Event
 from ._loop import (
-    FinishError,
     Loop,
     LoopState,
     changed,
@@ -67,7 +66,6 @@ __all__ = [
     # queue
     "Queue",
     # loop
-    "FinishError",
     "Loop",
     "LoopState",
     "get_running_loop",
