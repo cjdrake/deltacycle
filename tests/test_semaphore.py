@@ -123,7 +123,7 @@ def test_async_with(caplog):
     assert msgs == EXP
 
 
-def test_bounded():
+def test_unbounded():
     async def use_unbounded():
         sem = Semaphore(2)
 
@@ -138,7 +138,7 @@ def test_bounded():
     run(use_unbounded())
 
 
-def test_unbounded():
+def test_bounded():
     async def use_bounded():
         sem = BoundedSemaphore(2)
 
