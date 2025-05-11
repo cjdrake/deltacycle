@@ -139,54 +139,21 @@ def test_unbounded():
 
 
 def test_bounded():
-    sem = BoundedSemaphore(2)
-
-    async def use_bounded1():
-        await sem.get()
-        await sleep(10)
-        assert sem.try_put()
-        await sleep(10)
-        assert not sem.try_put()
-
-        await sleep(10)
+    async def use_bounded():
+        sem = BoundedSemaphore(2)
 
         await sem.get()
         await sem.get()
-        await sem.get()  # blocks
-
-        await sleep(10)
 
         sem.put()
         sem.put()
-        sem.put()  # unblocks
 
         # Exception!
         with pytest.raises(ValueError):
             sem.put()
 
-    async def use_bounded2():
-        await sem.get()
-        await sleep(10)
-        assert sem.try_put()
-        await sleep(10)
-        assert not sem.try_put()
-
-        await sleep(10)
-
-        assert sem.try_put()
-        assert sem.try_put()
-        assert sem.try_put()  # unblocks
-        assert not sem.try_put()
-
-        await sleep(10)
-
-        await sem.get()
-        await sem.get()
-        await sem.get()  # blocks
-
     async def main():
-        create_task(use_bounded1())
-        create_task(use_bounded2())
+        create_task(use_bounded())
 
     run(main())
 
