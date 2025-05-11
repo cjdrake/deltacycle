@@ -7,4 +7,5 @@
     :caption: Contents:
 
     installation
+    release_notes
     reference
