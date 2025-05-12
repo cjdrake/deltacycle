@@ -206,6 +206,7 @@ class Task(Awaitable[Any], LoopIf):
 
     @cached_property
     def qualname(self) -> str:
+        """Fully qualified name, including parents."""
         if self._parent is None:
             return f"/{self._name}"
         return f"{self._parent.qualname}/{self._name}"
@@ -229,21 +230,22 @@ class Task(Awaitable[Any], LoopIf):
         else:
             self._coro.throw(self._exception)
 
-    def _do_complete(self, e: StopIteration):
+    def _drain(self):
         while self._waiting:
             self._loop.call_soon(self._waiting.pop(), value=self)
+
+    def _do_complete(self, e: StopIteration):
+        self._drain()
         self._set_result(e.value)
         self._set_state(TaskState.COMPLETE)
 
     def _do_cancel(self, e: CancelledError):
-        while self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
+        self._drain()
         self._set_exception(e)
         self._set_state(TaskState.CANCELLED)
 
     def _do_except(self, e: Exception):
-        while self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
+        self._drain()
         self._set_exception(e)
         self._set_state(TaskState.EXCEPTED)
 
@@ -296,6 +298,15 @@ class Task(Awaitable[Any], LoopIf):
         self._exception = e
 
     def exception(self) -> Exception | None:
+        """Return the task's exception.
+
+        Returns:
+            If the task raised an exception, return it.
+            Otherwise, return None.
+
+        Raises:
+            If the task was cancelled, re-raise the CancelledError.
+        """
         if self._state == TaskState.COMPLETE:
             assert self._exception is None
             return self._exception
