@@ -10,6 +10,7 @@ logger = logging.getLogger("deltacycle")
 
 
 EXP = [
+    (-1, "Before Time"),
     (2, "Hello"),
     (4, "World"),
 ]
@@ -18,6 +19,8 @@ EXP = [
 def test_hello(caplog):
     """Test basic async/await hello world functionality."""
     caplog.set_level(logging.INFO, logger="deltacycle")
+
+    logger.info("Before Time")
 
     async def hello():
         await sleep(2)
