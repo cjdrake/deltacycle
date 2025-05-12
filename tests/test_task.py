@@ -12,7 +12,6 @@ from deltacycle import (
     Task,
     create_task,
     get_current_task,
-    get_running_loop,
     irun,
     run,
     sleep,
