@@ -46,9 +46,7 @@ Tasks
     :show-inheritance:
 
     .. autoproperty:: coro
-    .. autoproperty:: parent
     .. autoproperty:: name
-    .. autoproperty:: qualname
     .. autoproperty:: priority
     .. automethod:: state
     .. automethod:: done

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from collections import Counter, deque
+from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
-from functools import cached_property
 from typing import Any
 
 from ._loop_if import LoopIf
@@ -143,30 +142,22 @@ class WaitTouch(HoldIf):
 class Task(Awaitable[Any], LoopIf):
     """Coroutine wrapper."""
 
+    _index = 0
+
     def __init__(
         self,
         coro: Coroutine[Any, Any, Any],
-        parent: Task | None,
         name: str | None = None,
         priority: int = 0,
     ):
         self._state = TaskState.INIT
 
         self._coro = coro
-        self._parent = parent
-        self._children = Counter()
-
-        if parent is None:
-            assert name is not None
-            self._name = name
+        if name is None:
+            self._name = f"Task-{self.__class__._index}"
+            self.__class__._index += 1
         else:
-            index = parent._children[name]
-            parent._children[name] += 1
-            if name is None:
-                self._name = f"{index}"
-            else:
-                self._name = f"{name}.{index}"
-
+            self._name = name
         self._priority = priority
 
         # Containers holding a reference to this task
@@ -197,19 +188,8 @@ class Task(Awaitable[Any], LoopIf):
         return self._coro
 
     @property
-    def parent(self) -> Task | None:
-        return self._parent
-
-    @property
     def name(self) -> str:
         return self._name
-
-    @cached_property
-    def qualname(self) -> str:
-        """Fully qualified name, including parents."""
-        if self._parent is None:
-            return f"/{self._name}"
-        return f"{self._parent.qualname}/{self._name}"
 
     @property
     def priority(self) -> int:
@@ -217,7 +197,7 @@ class Task(Awaitable[Any], LoopIf):
 
     def _set_state(self, state: TaskState):
         assert state in _task_state_transitions[self._state]
-        logger.debug("Task %s: %s => %s", self.qualname, self._state.name, state.name)
+        logger.debug("%s: %s => %s", self.name, self._state.name, state.name)
         self._state = state
 
     def state(self) -> TaskState:

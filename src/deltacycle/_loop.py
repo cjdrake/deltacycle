@@ -72,10 +72,15 @@ class Loop:
     To run a simulation, use the run and irun functions.
     """
 
+    _index = 0
+
     init_time = -1
     start_time = 0
 
     def __init__(self):
+        self._name = f"Loop-{self.__class__._index}"
+        self.__class__._index += 1
+
         self._state = LoopState.INIT
 
         # Simulation time
@@ -95,7 +100,7 @@ class Loop:
 
     def _set_state(self, state: LoopState):
         assert state in _loop_state_transitions[self._state]
-        logger.debug("Loop: %s => %s", self._state.name, state.name)
+        logger.debug("%s: %s => %s", self._name, self._state.name, state.name)
         self._state = state
 
     def state(self) -> LoopState:
@@ -133,7 +138,7 @@ class Loop:
 
     def create_main(self, coro: Coroutine[Any, Any, Any]) -> Task:
         assert self._time == self.init_time
-        main = Task(coro, parent=None, name="main", priority=0)
+        main = Task(coro, name="main", priority=0)
         self._main = main
         self.call_at(self.start_time, main)
         return main
@@ -145,7 +150,7 @@ class Loop:
         priority: int = 0,
     ) -> Task:
         assert self._time >= self.start_time
-        task = Task(coro, parent=self._task, name=name, priority=priority)
+        task = Task(coro, name=name, priority=priority)
         self.call_soon(task)
         return task
 

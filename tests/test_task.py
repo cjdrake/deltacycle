@@ -329,8 +329,7 @@ def test_names():
 
     async def bar():
         fiz1 = create_task(fiz(), name="fiz")
-        assert fiz1.name == "fiz.0"
-        assert fiz1.qualname == "/main/bar.0/fiz.0"
+        assert fiz1.name == "fiz"
         await sleep(10)
 
     async def fiz():
@@ -342,17 +341,10 @@ def test_names():
         foo3 = create_task(foo(), name="foo")
         foo4 = create_task(foo(), name="foo")
 
-        loop = get_running_loop()
-        assert foo1.parent is loop.main
-
-        assert foo1.name == "0"
-        assert foo1.qualname == "/main/0"
-        assert foo2.name == "1"
-        assert foo2.qualname == "/main/1"
-        assert foo3.name == "foo.0"
-        assert foo3.qualname == "/main/foo.0"
-        assert foo4.name == "foo.1"
-        assert foo4.qualname == "/main/foo.1"
+        assert foo1.name.startswith("Task-")
+        assert foo2.name.startswith("Task-")
+        assert foo3.name == "foo"
+        assert foo4.name == "foo"
 
         create_task(bar(), name="bar")
 
