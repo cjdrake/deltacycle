@@ -122,6 +122,12 @@ class Loop:
         assert self._task is not None
         return self._task
 
+    def done(self) -> bool:
+        return self._state in {LoopState.COMPLETED, LoopState.FINISHED}
+
+    def finished(self) -> bool:
+        return self._state is LoopState.FINISHED
+
     # Scheduling methods
     def _schedule(self, time: int, task: Task, value: Any):
         task._set_state(TaskState.PENDING)

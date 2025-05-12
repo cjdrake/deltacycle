@@ -150,6 +150,8 @@ def test_finish2(caplog):
     loop = get_loop()
     assert loop is not None
     assert loop.state() is LoopState.FINISHED
+    assert loop.done()
+    assert loop.finished()
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
