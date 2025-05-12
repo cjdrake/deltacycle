@@ -248,6 +248,11 @@ class Task(Awaitable[Any], LoopIf):
         self._set_state(TaskState.EXCEPTED)
 
     def done(self) -> bool:
+        """Return True if the task is done.
+
+        A task that is "done" either 1) completed normally,
+        2) was cancelled by another task, or 3) raised an exception.
+        """
         return self._state in {
             TaskState.COMPLETE,
             TaskState.CANCELLED,
@@ -255,6 +260,7 @@ class Task(Awaitable[Any], LoopIf):
         }
 
     def cancelled(self) -> bool:
+        """Return True if the task was cancelled."""
         return self._state == TaskState.CANCELLED
 
     def _set_result(self, result: Any):
@@ -263,6 +269,16 @@ class Task(Awaitable[Any], LoopIf):
         self._result = result
 
     def result(self) -> Any:
+        """Return the task's result, or raise an exception.
+
+        Returns:
+            If the task ran to completion, return its result.
+
+        Raises:
+            CancelledError: If the task was cancelled.
+            Exception: If the task raise any other type of exception.
+            InvalidStateError: If the task is not done.
+        """
         if self._state == TaskState.COMPLETE:
             assert self._exception is None
             return self._result
