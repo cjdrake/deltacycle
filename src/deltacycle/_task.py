@@ -309,21 +309,57 @@ class Task(Awaitable[Any], LoopIf):
 
     def _renege(self):
         while self._holding:
-            self._holding.pop().drop(self)
+            q = self._holding.pop()
+            q.drop(self)
 
-    def cancel(self, msg: str | None = None):
-        match self._state:
-            case TaskState.WAITING:
-                self._set_state(TaskState.CANCELLING)
-                self._renege()
-            case TaskState.PENDING:
-                self._set_state(TaskState.CANCELLING)
-                self._loop._queue.drop(self)
-            case _:
-                # TODO(cjdrake): Is this the correct error?
-                raise ValueError("Task is not WAITING or PENDING")
+    def cancel(self, msg: str | None = None) -> bool:
+        """Schedule task for cancellation.
+
+        If a task is already done: return False.
+
+        If a task is pending or waiting:
+
+        1. Renege from all queues
+        2. Reschedule to raise CancelledError in the current time slot
+        3. Return True
+
+        If a task is running, immediately raise CancelledError.
+
+        Args:
+            msg: Optional str message passed to CancelledError instance
+
+        Returns:
+            bool success indicator
+
+        Raises:
+            CancelledError: If the task cancels itself
+        """
+        # A normal task would be scheduled immediately.
+        # Something went wrong here.
+        assert self._state not in {TaskState.INIT, TaskState.CANCELLING}
+
+        # Already done; do nothing
+        if self.done():
+            return False
 
         args = () if msg is None else (msg,)
         exc = CancelledError(*args)
+
+        # Task is cancelling itself. Weird, but legal.
+        if self._state is TaskState.RUNNING:
+            raise exc
+
+        # Pending/Waiting tasks must first renege from queues
+        if self._state is TaskState.PENDING:
+            self._loop._queue.drop(self)
+        elif self._state is TaskState.WAITING:
+            self._renege()
+        else:
+            assert False  # pragma: no cover
+
+        # Reschedule for cancellation
+        self._set_state(TaskState.CANCELLING)
         self._set_exception(exc)
         self._loop.call_soon(self)
+
+        return True

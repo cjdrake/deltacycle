@@ -178,8 +178,7 @@ def test_cancel_pending1(caplog):
             t1.exception()
 
         # Cannot cancel done task
-        with pytest.raises(ValueError):
-            t1.cancel()
+        assert not t1.cancel()
 
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
@@ -232,8 +231,7 @@ def test_cancel_pending2(caplog):
             t1.exception()
 
         # Cannot cancel done task
-        with pytest.raises(ValueError):
-            t1.cancel()
+        assert not t1.cancel()
 
     list(irun(main()))
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
@@ -292,6 +290,37 @@ def test_cancel_waiting(caplog):
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP2
+
+
+EXP3 = {
+    (0, "Task started"),
+    (1, "Main caught CancelledError from task"),
+    (1, "Task cancelling itself"),
+}
+
+
+def test_cancel_running(caplog):
+    caplog.set_level(logging.INFO, logger="deltacycle")
+
+    async def self_cancelling_task():
+        logger.info("Task started")
+        await sleep(1)
+        task = get_running_loop().task()
+        logger.info("Task cancelling itself")
+        task.cancel()  # Cancel self
+        await sleep(1)  # This won't execute
+        logger.info("This won't print")
+
+    async def main():
+        task = create_task(self_cancelling_task())
+        try:
+            await task
+        except CancelledError:
+            logger.info("Main caught CancelledError from task")
+
+    run(main())
+    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP3
 
 
 def test_names():
