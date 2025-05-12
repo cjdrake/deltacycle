@@ -317,6 +317,19 @@ def set_loop(loop: Loop | None = None):
     _loop = loop
 
 
+def get_current_task() -> Task:
+    """Return currently running task.
+
+    Returns:
+        Task instance
+
+    Raises:
+        RuntimeError: No loop, or loop is not currently running.
+    """
+    loop = get_running_loop()
+    return loop.task()
+
+
 def now() -> int:
     """Return current simulation time."""
     loop = get_running_loop()

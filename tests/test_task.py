@@ -11,6 +11,7 @@ from deltacycle import (
     InvalidStateError,
     Task,
     create_task,
+    get_current_task,
     get_running_loop,
     irun,
     run,
@@ -305,7 +306,7 @@ def test_cancel_running(caplog):
     async def self_cancelling_task():
         logger.info("Task started")
         await sleep(1)
-        task = get_running_loop().task()
+        task = get_current_task()
         logger.info("Task cancelling itself")
         task.cancel()  # Cancel self
         await sleep(1)  # This won't execute
