@@ -201,7 +201,7 @@ class Loop:
 
             # Halt if we hit the run limit
             if limit is not None and time >= limit:
-                break
+                return
 
             # Otherwise, advance to new timeslot
             self._time = time
@@ -223,9 +223,9 @@ class Loop:
 
             # Update simulation state
             self._update()
-        else:
-            # All tasks exhausted
-            self._set_state(LoopState.COMPLETED)
+
+        # All tasks exhausted
+        self._set_state(LoopState.COMPLETED)
 
     def run(self, ticks: int | None = None, until: int | None = None):
         # Determine the run limit
