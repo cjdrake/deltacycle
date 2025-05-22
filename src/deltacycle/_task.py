@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import heapq
 import logging
 from abc import ABC
 from collections import deque
@@ -86,12 +87,52 @@ class TaskQueueIf(ABC):
     def push(self, item):
         raise NotImplementedError()  # pragma: no cover
 
-    def pop(self) -> Task:
+    def pop(self):
         raise NotImplementedError()  # pragma: no cover
 
     def drop(self, task: Task):
         """If a task reneges, drop it from the queue."""
         raise NotImplementedError()  # pragma: no cover
+
+
+class PendQueue:
+    """Priority queue for ordering task execution."""
+
+    def __init__(self):
+        # time, priority, index, task, value
+        self._items: list[tuple[int, int, int, Task, Any]] = []
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[int, Task, Any]):
+        time, task, value = item
+        heapq.heappush(self._items, (time, task.priority, self._index, task, value))
+        self._index += 1
+
+    def pop(self) -> tuple[Task, Any]:
+        _, _, _, task, value = heapq.heappop(self._items)
+        return (task, value)
+
+    def drop(self, task: Task):
+        for i, (_, _, _, t, _) in enumerate(self._items):
+            if t is task:
+                index = i
+                break
+        else:
+            assert False  # pragma: no cover
+        self._items.pop(index)
+
+    def peek(self) -> int:
+        return self._items[0][0]
+
+    def clear(self):
+        self._items.clear()
+        self._index = 0
 
 
 class WaitFifo(TaskQueueIf):

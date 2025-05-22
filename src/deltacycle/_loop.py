@@ -8,8 +8,7 @@ from enum import IntEnum, auto
 from typing import Any
 
 from ._suspend_resume import SuspendResume
-from ._task import CancelledError, Task, TaskState
-from ._taskq import TaskQueue
+from ._task import CancelledError, PendQueue, Task, TaskState
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -93,7 +92,7 @@ class Loop:
         self._task: Task | None = None
 
         # Task queue
-        self._queue = TaskQueue()
+        self._queue = PendQueue()
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -131,7 +130,7 @@ class Loop:
     # Scheduling methods
     def _schedule(self, time: int, task: Task, value: Any):
         task._set_state(TaskState.PENDING)
-        self._queue.push(time, task, value)
+        self._queue.push((time, task, value))
 
     def call_soon(self, task: Task, value: Any = None):
         self._schedule(self._time, task, value)
