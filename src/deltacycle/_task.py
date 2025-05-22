@@ -95,7 +95,7 @@ class TaskQueueIf(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class PendQueue:
+class PendQueue(TaskQueueIf):
     """Priority queue for ordering task execution."""
 
     def __init__(self):
