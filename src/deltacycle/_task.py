@@ -29,11 +29,10 @@ class TaskState(IntEnum):
 
     Transitions::
 
-                   +---------------------+
-                   |                     |
-                   v                     |
-        INIT -> PENDING -> RUNNING -> WAITING
-                                   -> COMPLETE
+                   +-------WAITING
+                   |          ^
+                   v          |
+        INIT -> PENDING -> RUNNING -> COMPLETE
                                    -> CANCELLED
                                    -> EXCEPTED
     """
@@ -79,64 +78,72 @@ _task_state_transitions = {
 }
 
 
-class HoldIf(ABC):
+class TaskQueueIf(ABC):
     def __bool__(self) -> bool:
+        """Return True if the queue has tasks ready to run."""
         raise NotImplementedError()  # pragma: no cover
 
-    def drop(self, task: Task):
+    def push(self, item):
         raise NotImplementedError()  # pragma: no cover
 
     def pop(self) -> Task:
         raise NotImplementedError()  # pragma: no cover
 
+    def drop(self, task: Task):
+        """If a task reneges, drop it from the queue."""
+        raise NotImplementedError()  # pragma: no cover
 
-class WaitFifo(HoldIf):
-    """Initiator type; tasks wait in FIFO order."""
+
+class WaitFifo(TaskQueueIf):
+    """Tasks wait in FIFO order."""
 
     def __init__(self):
-        self._tasks: deque[Task] = deque()
+        self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
-        return bool(self._tasks)
+        return bool(self._items)
 
-    def drop(self, task: Task):
-        self._tasks.remove(task)
-
-    def push(self, task: Task):
-        task._holding.add(self)
-        self._tasks.append(task)
+    def push(self, item: Task):
+        item._holding.add(self)
+        self._items.append(item)
 
     def pop(self) -> Task:
-        task = self._tasks.popleft()
+        task = self._items.popleft()
         task._holding.remove(self)
         return task
 
+    def drop(self, task: Task):
+        self._items.remove(task)
 
-class WaitTouch(HoldIf):
-    """Initiator type; tasks wait for variable touch."""
+
+class WaitTouch(TaskQueueIf):
+    """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._tasks: dict[Task, Predicate] = dict()
-        self._predicated: set[Task] = set()
+        self._items: dict[Task, Predicate] = dict()
+        self._ready: set[Task] = set()
 
     def __bool__(self) -> bool:
-        return bool(self._predicated)
+        return bool(self._ready)
 
-    def drop(self, task: Task):
-        del self._tasks[task]
-
-    def push(self, task: Task, p: Predicate):
+    def push(self, item: tuple[Predicate, Task]):
+        p, task = item
         task._holding.add(self)
-        self._tasks[task] = p
-
-    def touch(self):
-        self._predicated = {task for task, p in self._tasks.items() if p()}
+        self._items[task] = p
 
     def pop(self) -> Task:
-        task = self._predicated.pop()
+        task = self._ready.pop()
         while task._holding:
             task._holding.pop().drop(task)
         return task
+
+    def drop(self, task: Task):
+        del self._items[task]
+
+    def touch(self):
+        for task, p in self._items.items():
+            if p():
+                self._ready.add(task)
 
 
 class Task(Awaitable[Any], LoopIf):
@@ -161,7 +168,7 @@ class Task(Awaitable[Any], LoopIf):
         self._priority = priority
 
         # Containers holding a reference to this task
-        self._holding: set[HoldIf] = set()
+        self._holding: set[TaskQueueIf] = set()
 
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()

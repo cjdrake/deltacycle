@@ -37,7 +37,7 @@ class Variable(Awaitable[Any], LoopIf):
     def _wait(self, task: Task, p: Predicate | None = None):
         if p is None:
             p = self.changed
-        self._waiting.push(task, p)
+        self._waiting.push((p, task))
 
     def _set(self):
         self._waiting.touch()
