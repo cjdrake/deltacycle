@@ -111,11 +111,13 @@ class PendQueue(TaskQueueIf):
 
     def push(self, item: tuple[int, Task, Any]):
         time, task, value = item
+        task._holding.add(self)
         heapq.heappush(self._items, (time, task.priority, self._index, task, value))
         self._index += 1
 
     def pop(self) -> tuple[Task, Any]:
         _, _, _, task, value = heapq.heappop(self._items)
+        task._holding.remove(self)
         return (task, value)
 
     def drop(self, task: Task):
@@ -389,12 +391,8 @@ class Task(Awaitable[Any], LoopIf):
             raise exc
 
         # Pending/Waiting tasks must first renege from queues
-        if self._state is TaskState.PENDING:
-            self._loop._queue.drop(self)
-        elif self._state is TaskState.WAITING:
-            self._renege()
-        else:
-            assert False  # pragma: no cover
+        assert self._state in {TaskState.PENDING, TaskState.WAITING}
+        self._renege()
 
         # Reschedule for cancellation
         self._set_state(TaskState.CANCELLING)
