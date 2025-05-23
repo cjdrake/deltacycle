@@ -111,13 +111,13 @@ class PendQueue(TaskQueueIf):
 
     def push(self, item: tuple[int, Task, Any]):
         time, task, value = item
-        task._link_unique(self)
+        task._link(self)
         heapq.heappush(self._items, (time, task.priority, self._index, task, value))
         self._index += 1
 
     def pop(self) -> tuple[Task, Any]:
         _, _, _, task, value = heapq.heappop(self._items)
-        task._unlink_unique(self)
+        task._unlink(self)
         return (task, value)
 
     def drop(self, task: Task):
@@ -147,12 +147,12 @@ class WaitFifo(TaskQueueIf):
         return bool(self._items)
 
     def push(self, item: Task):
-        item._link_unique(self)
+        item._link(self)
         self._items.append(item)
 
     def pop(self) -> Task:
         task = self._items.popleft()
-        task._unlink_unique(self)
+        task._unlink(self)
         return task
 
     def drop(self, task: Task):
@@ -232,6 +232,9 @@ class Task(Awaitable[Any], LoopIf):
         # Resume
         return self.result()
 
+    def _wait(self, task: Task):
+        self._waiting.push(task)
+
     @property
     def coro(self) -> Coroutine[Any, Any, Any]:
         return self._coro
@@ -252,16 +255,8 @@ class Task(Awaitable[Any], LoopIf):
     def state(self) -> TaskState:
         return self._state
 
-    def _link_unique(self, tq: TaskQueueIf):
-        assert not self._holding
-        self._holding.add(tq)
-
     def _link(self, tq: TaskQueueIf):
         self._holding.add(tq)
-
-    def _unlink_unique(self, tq: TaskQueueIf):
-        self._holding.remove(tq)
-        assert not self._holding
 
     def _unlink(self, tq: TaskQueueIf):
         self._holding.remove(tq)

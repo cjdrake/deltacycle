@@ -5,6 +5,7 @@ from types import TracebackType
 from typing import Any
 
 from ._loop_if import LoopIf
+from ._suspend_resume import SuspendResume
 from ._task import Task
 
 
@@ -12,7 +13,7 @@ class TaskGroup(LoopIf):
     """Group of tasks."""
 
     def __init__(self):
-        self._tasks: set[Task] = set()
+        self._children: set[Task] = set()
 
     def create_task(
         self,
@@ -20,14 +21,23 @@ class TaskGroup(LoopIf):
         name: str | None = None,
         priority: int = 0,
     ) -> Task:
-        task = self._loop.create_task(coro, name, priority)
-        self._tasks.add(task)
-        return task
+        parent = self._loop.task()
+        child = self._loop.create_task(coro, name, priority)
+        self._children.add(child)
+        child._wait(parent)
+        return child
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
-        while self._tasks:
-            task = self._tasks.pop()
-            await task
+        done: set[Task] = set()
+
+        while True:
+            child = await SuspendResume()
+            done.add(child)
+
+            # TODO(cjdrake): Handle exceptions
+
+            if done == self._children:
+                break
