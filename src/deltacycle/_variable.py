@@ -43,13 +43,9 @@ class Variable(Awaitable[Any], LoopIf):
         self._waiting.touch()
         while self._waiting:
             task = self._waiting.pop()
-            match task.state():
-                case TaskState.PENDING:
-                    pass
-                case TaskState.WAITING:
-                    self._loop.call_soon(task, value=self)
-                case _:  # pragma: no cover
-                    assert False
+            assert task.state() is TaskState.WAITING
+            task._renege()
+            self._loop.call_soon(task, value=self)
 
         # Add variable to update set
         self._loop._touch(self)

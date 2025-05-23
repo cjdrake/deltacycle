@@ -111,13 +111,13 @@ class PendQueue(TaskQueueIf):
 
     def push(self, item: tuple[int, Task, Any]):
         time, task, value = item
-        task._holding.add(self)
+        task._link_unique(self)
         heapq.heappush(self._items, (time, task.priority, self._index, task, value))
         self._index += 1
 
     def pop(self) -> tuple[Task, Any]:
         _, _, _, task, value = heapq.heappop(self._items)
-        task._holding.remove(self)
+        task._unlink_unique(self)
         return (task, value)
 
     def drop(self, task: Task):
@@ -147,12 +147,12 @@ class WaitFifo(TaskQueueIf):
         return bool(self._items)
 
     def push(self, item: Task):
-        item._holding.add(self)
+        item._link_unique(self)
         self._items.append(item)
 
     def pop(self) -> Task:
         task = self._items.popleft()
-        task._holding.remove(self)
+        task._unlink_unique(self)
         return task
 
     def drop(self, task: Task):
@@ -163,30 +163,30 @@ class WaitTouch(TaskQueueIf):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._items: dict[Task, Predicate] = dict()
-        self._ready: set[Task] = set()
+        self._items: deque[Task] = deque()
+        self._tps: dict[Task, Predicate] = dict()
 
     def __bool__(self) -> bool:
-        return bool(self._ready)
+        return bool(self._items)
 
     def push(self, item: tuple[Predicate, Task]):
         p, task = item
-        task._holding.add(self)
-        self._items[task] = p
+        task._link(self)
+        self._tps[task] = p
 
     def pop(self) -> Task:
-        task = self._ready.pop()
-        while task._holding:
-            task._holding.pop().drop(task)
+        task = self._items.popleft()
+        task._unlink(self)
         return task
 
     def drop(self, task: Task):
-        del self._items[task]
+        del self._tps[task]
 
     def touch(self):
-        for task, p in self._items.items():
+        assert not self._items
+        for task, p in self._tps.items():
             if p():
-                self._ready.add(task)
+                self._items.append(task)
 
 
 class Task(Awaitable[Any], LoopIf):
@@ -252,6 +252,25 @@ class Task(Awaitable[Any], LoopIf):
 
     def state(self) -> TaskState:
         return self._state
+
+    def _link_unique(self, tq: TaskQueueIf):
+        assert not self._holding
+        self._holding.add(tq)
+
+    def _link(self, tq: TaskQueueIf):
+        self._holding.add(tq)
+
+    def _unlink_unique(self, tq: TaskQueueIf):
+        self._holding.remove(tq)
+        assert not self._holding
+
+    def _unlink(self, tq: TaskQueueIf):
+        self._holding.remove(tq)
+
+    def _renege(self):
+        while self._holding:
+            tq = self._holding.pop()
+            tq.drop(self)
 
     def _do_run(self, value: Any = None):
         self._set_state(TaskState.RUNNING)
@@ -347,11 +366,6 @@ class Task(Awaitable[Any], LoopIf):
             assert isinstance(self._exception, Exception)
             return self._exception
         raise InvalidStateError("Task is not done")
-
-    def _renege(self):
-        while self._holding:
-            q = self._holding.pop()
-            q.drop(self)
 
     def cancel(self, msg: str | None = None) -> bool:
         """Schedule task for cancellation.
