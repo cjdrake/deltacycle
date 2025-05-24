@@ -3,6 +3,7 @@
 import logging
 
 import pytest
+from pytest import LogCaptureFixture
 
 from deltacycle import LoopState, get_loop, run, sleep
 
@@ -16,7 +17,7 @@ EXP = [
 ]
 
 
-def test_hello(caplog):
+def test_hello(caplog: LogCaptureFixture):
     """Test basic async/await hello world functionality."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 

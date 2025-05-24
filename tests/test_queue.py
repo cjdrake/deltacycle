@@ -2,6 +2,8 @@
 
 import logging
 
+from pytest import LogCaptureFixture
+
 from deltacycle import Queue, create_task, run, sleep
 
 logger = logging.getLogger("deltacycle")
@@ -32,7 +34,7 @@ EXP1 = {
 }
 
 
-def test_prod_cons1(caplog):
+def test_prod_cons1(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     q = Queue()
@@ -84,7 +86,7 @@ EXP2 = {
 }
 
 
-def test_prod_cons2(caplog):
+def test_prod_cons2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     q = Queue(2)

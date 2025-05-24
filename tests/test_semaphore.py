@@ -3,6 +3,7 @@
 import logging
 
 import pytest
+from pytest import LogCaptureFixture
 
 from deltacycle import BoundedSemaphore, Semaphore, create_task, run, sleep
 
@@ -95,7 +96,7 @@ EXP = {
 }
 
 
-def test_acquire_release(caplog):
+def test_acquire_release(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
@@ -109,7 +110,7 @@ def test_acquire_release(caplog):
     assert msgs == EXP
 
 
-def test_async_with(caplog):
+def test_async_with(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():

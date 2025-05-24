@@ -2,6 +2,8 @@
 
 import logging
 
+from pytest import LogCaptureFixture
+
 from deltacycle import changed, create_task, run, sleep, touched
 
 from .common import Bool, Int, IntMem
@@ -27,7 +29,7 @@ VALS = [
 ]
 
 
-def test_regfile(caplog):
+def test_regfile(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     clk = Bool()

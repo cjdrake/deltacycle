@@ -2,6 +2,8 @@
 
 import logging
 
+from pytest import LogCaptureFixture
+
 from deltacycle import TaskGroup, run, sleep
 
 logger = logging.getLogger("deltacycle")
@@ -30,7 +32,7 @@ EXP = {
 }
 
 
-def test_group(caplog):
+def test_group(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():

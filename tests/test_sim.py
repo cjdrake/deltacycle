@@ -2,6 +2,8 @@
 
 import logging
 
+from pytest import LogCaptureFixture
+
 from deltacycle import LoopState, create_task, get_running_loop, irun, run, sleep
 
 from .common import Bool
@@ -60,7 +62,7 @@ EXP = {
 }
 
 
-def test_vars_run(caplog):
+def test_vars_run(caplog: LogCaptureFixture):
     """Test run, halt, run."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 
@@ -88,7 +90,7 @@ def test_vars_run(caplog):
     assert msgs == EXP
 
 
-def test_vars_iter(caplog):
+def test_vars_iter(caplog: LogCaptureFixture):
     """Test iter, iter."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 
@@ -121,7 +123,7 @@ def test_vars_iter(caplog):
     assert msgs == EXP
 
 
-def test_vars_run_iter(caplog):
+def test_vars_run_iter(caplog: LogCaptureFixture):
     """Test run, halt, iter."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 

@@ -3,6 +3,7 @@
 import logging
 
 import pytest
+from pytest import LogCaptureFixture
 
 from deltacycle import get_loop, get_running_loop, irun, run, set_loop, sleep
 
@@ -16,7 +17,7 @@ async def main(n: int):
     return n
 
 
-def test_run(caplog):
+def test_run(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     ret = run(main(42))
@@ -26,7 +27,7 @@ def test_run(caplog):
     assert msgs == [(i, str(i)) for i in range(42)]
 
 
-def test_irun(caplog):
+def test_irun(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     g = irun(main(42))
@@ -40,7 +41,7 @@ def test_irun(caplog):
     assert msgs == [(i, str(i)) for i in range(42)]
 
 
-def test_cannot_run(caplog):
+def test_cannot_run(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     run(main(100))
@@ -54,7 +55,7 @@ def test_cannot_run(caplog):
         list(irun(loop=loop))
 
 
-def test_limits(caplog):
+def test_limits(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     run(main(1000), ticks=51)

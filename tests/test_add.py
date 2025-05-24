@@ -2,6 +2,8 @@
 
 import logging
 
+from pytest import LogCaptureFixture
+
 from deltacycle import changed, create_task, run, sleep
 
 from .common import Bool
@@ -22,7 +24,7 @@ VALS = [
 ]
 
 
-def test_add(caplog):
+def test_add(caplog: LogCaptureFixture):
     """Test 4-bit adder simulation."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 

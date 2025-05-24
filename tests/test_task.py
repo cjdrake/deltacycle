@@ -4,6 +4,7 @@ import logging
 from random import randint
 
 import pytest
+from pytest import LogCaptureFixture
 
 from deltacycle import (
     CancelledError,
@@ -132,7 +133,7 @@ EXP1 = {
 }
 
 
-def test_cancel_pending1(caplog):
+def test_cancel_pending1(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(name: str, n: int):
@@ -185,7 +186,7 @@ def test_cancel_pending1(caplog):
     assert msgs == EXP1
 
 
-def test_cancel_pending2(caplog):
+def test_cancel_pending2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(name: str, n: int):
@@ -255,7 +256,7 @@ EXP2 = {
 }
 
 
-def test_cancel_waiting(caplog):
+def test_cancel_waiting(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(name: str, event: Event):
@@ -299,7 +300,7 @@ EXP3 = {
 }
 
 
-def test_cancel_running(caplog):
+def test_cancel_running(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def self_cancelling_task():

@@ -2,6 +2,8 @@
 
 import logging
 
+from pytest import LogCaptureFixture
+
 from deltacycle import LoopState, create_task, finish, get_loop, irun, run, sleep
 
 logger = logging.getLogger("deltacycle")
@@ -113,7 +115,7 @@ EXP1 = {
 }
 
 
-def test_finish1(caplog):
+def test_finish1(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
@@ -134,7 +136,7 @@ def test_finish1(caplog):
     assert msgs == EXP1
 
 
-def test_finish2(caplog):
+def test_finish2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
