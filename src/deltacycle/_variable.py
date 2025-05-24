@@ -53,7 +53,7 @@ class Variable(Awaitable[Any], LoopIf):
         """Return True if changed during the current time slot."""
         raise NotImplementedError()  # pragma: no cover
 
-    def update(self):
+    def update(self) -> None:
         """Loop callback."""
         raise NotImplementedError()  # pragma: no cover
 
@@ -131,7 +131,7 @@ class Aggregate(Variable):
         except KeyError:
             return self._prevs[key]
 
-    def _set_next(self, key: Hashable, value):
+    def _set_next(self, key: Hashable, value: Any):
         if value != self._get_next(key):
             self._nexts[key] = value
 

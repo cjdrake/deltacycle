@@ -84,13 +84,13 @@ class TaskQueueIf(ABC):
         """Return True if the queue has tasks ready to run."""
         raise NotImplementedError()  # pragma: no cover
 
-    def push(self, item):
+    def push(self, item) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     def pop(self):
         raise NotImplementedError()  # pragma: no cover
 
-    def drop(self, task: Task):
+    def drop(self, task: Task) -> None:
         """If a task reneges, drop it from the queue."""
         raise NotImplementedError()  # pragma: no cover
 
