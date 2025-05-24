@@ -306,7 +306,7 @@ class Task(Awaitable[Any], LoopIf):
 
     def cancelled(self) -> bool:
         """Return True if the task was cancelled."""
-        return self._state == TaskState.CANCELLED
+        return self._state is TaskState.CANCELLED
 
     def _set_result(self, result: Any):
         if self.done():
@@ -324,13 +324,13 @@ class Task(Awaitable[Any], LoopIf):
             Exception: If the task raise any other type of exception.
             InvalidStateError: If the task is not done.
         """
-        if self._state == TaskState.COMPLETE:
+        if self._state is TaskState.COMPLETE:
             assert self._exception is None
             return self._result
-        if self._state == TaskState.CANCELLED:
+        if self._state is TaskState.CANCELLED:
             assert isinstance(self._exception, CancelledError)
             raise self._exception
-        if self._state == TaskState.EXCEPTED:
+        if self._state is TaskState.EXCEPTED:
             assert isinstance(self._exception, Exception)
             raise self._exception
         raise InvalidStateError("Task is not done")
@@ -350,13 +350,13 @@ class Task(Awaitable[Any], LoopIf):
         Raises:
             If the task was cancelled, re-raise the CancelledError.
         """
-        if self._state == TaskState.COMPLETE:
+        if self._state is TaskState.COMPLETE:
             assert self._exception is None
             return self._exception
-        if self._state == TaskState.CANCELLED:
+        if self._state is TaskState.CANCELLED:
             assert isinstance(self._exception, CancelledError)
             raise self._exception
-        if self._state == TaskState.EXCEPTED:
+        if self._state is TaskState.EXCEPTED:
             assert isinstance(self._exception, Exception)
             return self._exception
         raise InvalidStateError("Task is not done")
