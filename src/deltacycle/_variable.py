@@ -66,7 +66,7 @@ class Value(ABC):
 
     prev = property(fget=_get_prev)
 
-    def _set_next(self, value: Any):
+    def _set_next(self, value: Any) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     next = property(fset=_set_next)
