@@ -222,15 +222,16 @@ class Task(Awaitable[Any], LoopIf):
         # Exception
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, None, Any]:
+    def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
             task._set_state(TaskState.WAITING)
             # Suspend
-            yield
+            t = yield
+            # Resume
+            assert t is self
 
-        # Resume
         return self.result()
 
     @property

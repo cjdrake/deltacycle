@@ -26,11 +26,13 @@ class Variable(Awaitable[Any], LoopIf):
     def __init__(self):
         self._waiting = WaitTouch()
 
-    def __await__(self) -> Generator[None, None, Any]:
+    def __await__(self) -> Generator[None, Variable, Any]:
         task = self._loop.task()
         self._waiting.push((self.changed, task))
         task._set_state(TaskState.WAITING)
+        # Suspend
         v = yield
+        # Resume
         assert v is self
         return v
 
