@@ -28,15 +28,13 @@ class Variable(Awaitable[Any], LoopIf):
 
     def __await__(self) -> Generator[None, None, Any]:
         task = self._loop.task()
-        self._wait(task)
+        self._waiting.push((self.changed, task))
         task._set_state(TaskState.WAITING)
         v = yield
         assert v is self
         return v
 
-    def _wait(self, task: Task, p: Predicate | None = None):
-        if p is None:
-            p = self.changed
+    def _wait(self, p: Predicate, task: Task):
         self._waiting.push((p, task))
 
     def _set(self):

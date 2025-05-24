@@ -444,7 +444,7 @@ async def changed(*vs: Variable) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v in vs:
-        v._wait(task)
+        v._wait(v.changed, task)
     task._set_state(TaskState.WAITING)
     v = await SuspendResume()
     return v
@@ -467,7 +467,10 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v, p in vps.items():
-        v._wait(task, p)
+        if p is None:
+            v._wait(v.changed, task)
+        else:
+            v._wait(p, task)
     task._set_state(TaskState.WAITING)
     v = await SuspendResume()
     return v
