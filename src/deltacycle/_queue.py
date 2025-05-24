@@ -5,8 +5,7 @@ from collections.abc import Sized
 from typing import Any
 
 from ._loop_if import LoopIf
-from ._suspend_resume import SuspendResume
-from ._task import TaskState, WaitFifo
+from ._task import WaitFifo
 
 
 class Queue(Sized, LoopIf):
@@ -42,8 +41,7 @@ class Queue(Sized, LoopIf):
         if self.full():
             task = self._loop.task()
             self._wait_not_full.push(task)
-            task._set_state(TaskState.WAITING)
-            await SuspendResume()
+            await self._loop.switch_coro()
 
         self._put(item)
 
@@ -62,7 +60,6 @@ class Queue(Sized, LoopIf):
         if self.empty():
             task = self._loop.task()
             self._wait_not_empty.push(task)
-            task._set_state(TaskState.WAITING)
-            await SuspendResume()
+            await self._loop.switch_coro()
 
         return self._get()

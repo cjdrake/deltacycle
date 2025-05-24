@@ -226,12 +226,10 @@ class Task(Awaitable[Any], LoopIf):
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
-            task._set_state(TaskState.WAITING)
-            # Suspend
-            t = yield
-            # Resume
+            t = yield from self._loop.switch_gen()
             assert t is self
 
+        # Resume
         return self.result()
 
     @property

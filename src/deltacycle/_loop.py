@@ -159,6 +159,19 @@ class Loop:
         self.call_soon(task)
         return task
 
+    async def switch_coro(self):
+        assert self._task is not None
+        self._task._set_state(TaskState.WAITING)
+        await SuspendResume()
+
+    def switch_gen(self) -> Generator[None, Any, Any]:
+        assert self._task is not None
+        self._task._set_state(TaskState.WAITING)
+        # Suspend
+        value = yield
+        # Resume
+        return value
+
     def _touch(self, v: Variable):
         self._touched.add(v)
 

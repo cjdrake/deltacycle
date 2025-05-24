@@ -1,8 +1,7 @@
 """Event synchronization primitive"""
 
 from ._loop_if import LoopIf
-from ._suspend_resume import SuspendResume
-from ._task import TaskState, WaitFifo
+from ._task import WaitFifo
 
 
 class Event(LoopIf):
@@ -16,8 +15,7 @@ class Event(LoopIf):
         if not self._flag:
             task = self._loop.task()
             self._waiting.push(task)
-            task._set_state(TaskState.WAITING)
-            await SuspendResume()
+            await self._loop.switch_coro()
 
     def set(self):
         while self._waiting:

@@ -4,8 +4,7 @@ from types import TracebackType
 from typing import override
 
 from ._loop_if import LoopIf
-from ._suspend_resume import SuspendResume
-from ._task import TaskState, WaitFifo
+from ._task import WaitFifo
 
 
 class Semaphore(LoopIf):
@@ -46,8 +45,7 @@ class Semaphore(LoopIf):
         if self._cnt == 0:
             task = self._loop.task()
             self._waiting.push(task)
-            task._set_state(TaskState.WAITING)
-            await SuspendResume()
+            await self._loop.switch_coro()
         else:
             self._cnt -= 1
 

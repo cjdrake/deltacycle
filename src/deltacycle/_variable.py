@@ -29,10 +29,7 @@ class Variable(Awaitable[Any], LoopIf):
     def __await__(self) -> Generator[None, Variable, Any]:
         task = self._loop.task()
         self._waiting.push((self.changed, task))
-        task._set_state(TaskState.WAITING)
-        # Suspend
-        v = yield
-        # Resume
+        v = yield from self._loop.switch_gen()
         assert v is self
         return v
 
