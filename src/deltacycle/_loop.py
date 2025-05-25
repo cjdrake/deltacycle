@@ -159,10 +159,11 @@ class Loop:
         self.call_soon(task)
         return task
 
-    async def switch_coro(self):
+    async def switch_coro(self) -> Any:
         assert self._task is not None
         self._task._set_state(TaskState.WAITING)
-        await SuspendResume()
+        value = await SuspendResume()
+        return value
 
     def switch_gen(self) -> Generator[None, Any, Any]:
         assert self._task is not None
