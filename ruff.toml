@@ -11,7 +11,8 @@ select = [
     "PL",   # pylint
 ]
 
-ignore = [
-    "PLR2004",  # magic-value-comparison
-    "PLW0603",  # global-statement
-]
+ignore = []
+
+# Ignore PyLint Refactor/Warning rules for example and tests
+[lint.per-file-ignores]
+"{ipynb,tests}/*" = ["PLR", "PLW"]

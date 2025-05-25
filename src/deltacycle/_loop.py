@@ -325,7 +325,7 @@ def get_loop() -> Loop | None:
 
 def set_loop(loop: Loop | None = None):
     """Set the current event loop."""
-    global _loop
+    global _loop  # noqa: PLW0603
     _loop = loop
 
 
