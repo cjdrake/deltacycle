@@ -15,6 +15,7 @@ class Event(LoopIf):
         if not self._flag:
             task = self._loop.task()
             self._waiting.push(task)
+            # Task state: RUNNING => WAITING
             await self._loop.switch_coro()
 
     def set(self):

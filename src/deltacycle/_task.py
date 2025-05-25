@@ -226,7 +226,8 @@ class Task(Awaitable[Any], LoopIf):
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
-            t = yield from self._loop.switch_gen()
+            # Task state: RUNNING => WAITING
+            t: Task = yield from self._loop.switch_gen()
             assert t is self
 
         # Resume

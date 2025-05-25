@@ -439,6 +439,7 @@ async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
     loop = get_running_loop()
     task = loop.task()
+    # Task state: RUNNING => PENDING
     loop.call_later(delay, task)
     await SuspendResume()
 
@@ -459,6 +460,7 @@ async def changed(*vs: Variable) -> Variable:
     task = loop.task()
     for v in vs:
         v._wait(v.changed, task)
+    # Task state: RUNNING => WAITING
     v: Variable = await loop.switch_coro()
     return v
 
@@ -484,6 +486,7 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
             v._wait(v.changed, task)
         else:
             v._wait(p, task)
+    # Task state: RUNNING => WAITING
     v: Variable = await loop.switch_coro()
     return v
 

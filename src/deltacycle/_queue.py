@@ -41,6 +41,7 @@ class Queue(Sized, LoopIf):
         if self.full():
             task = self._loop.task()
             self._wait_not_full.push(task)
+            # Task state: RUNNING => WAITING
             await self._loop.switch_coro()
 
         self._put(item)
@@ -60,6 +61,7 @@ class Queue(Sized, LoopIf):
         if self.empty():
             task = self._loop.task()
             self._wait_not_empty.push(task)
+            # Task state: RUNNING => WAITING
             await self._loop.switch_coro()
 
         return self._get()
