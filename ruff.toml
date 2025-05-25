@@ -13,6 +13,6 @@ select = [
 
 ignore = []
 
-# Ignore PyLint Refactor/Warning rules for example and tests
+# Ignore PyLint Refactor/Warning rules for examples and tests
 [lint.per-file-ignores]
 "{ipynb,tests}/*" = ["PLR", "PLW"]
