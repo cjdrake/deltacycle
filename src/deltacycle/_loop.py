@@ -162,7 +162,9 @@ class Loop:
     async def switch_coro(self) -> Any:
         assert self._task is not None
         self._task._set_state(TaskState.WAITING)
+        # Suspend
         value = await SuspendResume()
+        # Resume
         return value
 
     def switch_gen(self) -> Generator[None, Any, Any]:
