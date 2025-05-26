@@ -116,54 +116,54 @@ def test_one_exception():
 
 EXP1 = {
     # main
-    (0, "main enter"),
-    (5, "main cancels C1"),
-    (5, "main except"),
-    (5, "main finally"),
+    (0, "main", "enter"),
+    (5, "main", "cancels C1"),
+    (5, "main", "except"),
+    (5, "main", "finally"),
     # C1
-    (0, "C1 enter"),
-    (5, "C1 except"),
-    (5, "C1 finally"),
+    (0, "C1", "enter"),
+    (5, "C1", "except"),
+    (5, "C1", "finally"),
     # C2
-    (0, "C2 enter"),
-    (10, "C2 finally"),
+    (0, "C2", "enter"),
+    (10, "C2", "finally"),
     # C3
-    (0, "C3 enter"),
-    (10, "C3 finally"),
+    (0, "C3", "enter"),
+    (10, "C3", "finally"),
 }
 
 
 def test_cancel_pending1(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    async def cf(name: str, n: int):
-        logger.info("%s enter", name)
+    async def cf(n: int):
+        logger.info("enter")
         try:
             await sleep(n)
         except CancelledError:
-            logger.info("%s except", name)
+            logger.info("except")
             raise
         finally:
-            logger.info("%s finally", name)
+            logger.info("finally")
 
     async def main():
-        logger.info("main enter")
+        logger.info("enter")
 
-        t1 = create_task(cf("C1", 1000))
-        t2 = create_task(cf("C2", 10))
-        t3 = create_task(cf("C3", 10))
+        t1 = create_task(cf(1000), name="C1")
+        t2 = create_task(cf(10), name="C2")
+        t3 = create_task(cf(10), name="C3")
 
         await sleep(5)
 
-        logger.info("main cancels C1")
+        logger.info("cancels C1")
         t1.cancel()
 
         try:
             await t1
         except CancelledError:
-            logger.info("main except")
+            logger.info("except")
         finally:
-            logger.info("main finally")
+            logger.info("finally")
 
         await t2
         await t3
@@ -182,41 +182,41 @@ def test_cancel_pending1(caplog: LogCaptureFixture):
         assert not t1.cancel()
 
     run(main())
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 
 
 def test_cancel_pending2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    async def cf(name: str, n: int):
-        logger.info("%s enter", name)
+    async def cf(n: int):
+        logger.info("enter")
         try:
             await sleep(n)
         except CancelledError:
-            logger.info("%s except", name)
+            logger.info("except")
             raise
         finally:
-            logger.info("%s finally", name)
+            logger.info("finally")
 
     async def main():
-        logger.info("main enter")
+        logger.info("enter")
 
-        t1 = create_task(cf("C1", 1000))
-        t2 = create_task(cf("C2", 10))
-        t3 = create_task(cf("C3", 10))
+        t1 = create_task(cf(1000), name="C1")
+        t2 = create_task(cf(10), name="C2")
+        t3 = create_task(cf(10), name="C3")
 
         await sleep(5)
 
-        logger.info("main cancels C1")
+        logger.info("cancels C1")
         t1.cancel()
 
         try:
             await t1
         except CancelledError:
-            logger.info("main except")
+            logger.info("except")
         finally:
-            logger.info("main finally")
+            logger.info("finally")
 
         await t2
         await t3
@@ -235,45 +235,45 @@ def test_cancel_pending2(caplog: LogCaptureFixture):
         assert not t1.cancel()
 
     list(irun(main()))
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 
 
 EXP2 = {
     # main
-    (0, "main enter"),
-    (20, "main exit"),
+    (0, "main", "enter"),
+    (20, "main", "exit"),
     # C1
-    (0, "C1 enter"),
-    (10, "C1 cancelled"),
-    (10, "C1 finally"),
+    (0, "C1", "enter"),
+    (10, "C1", "cancelled"),
+    (10, "C1", "finally"),
     # C2
-    (0, "C2 enter"),
-    (20, "C2 finally"),
+    (0, "C2", "enter"),
+    (20, "C2", "finally"),
     # C3
-    (0, "C3 enter"),
-    (20, "C3 finally"),
+    (0, "C3", "enter"),
+    (20, "C3", "finally"),
 }
 
 
 def test_cancel_waiting(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    async def cf(name: str, event: Event):
-        logger.info("%s enter", name)
+    async def cf(event: Event):
+        logger.info("enter")
         try:
             await event.wait()
         except CancelledError:
-            logger.info("%s cancelled", name)
+            logger.info("cancelled")
         finally:
-            logger.info("%s finally", name)
+            logger.info("finally")
 
     async def main():
-        logger.info("main enter")
+        logger.info("enter")
         event = Event()
-        t1 = create_task(cf("C1", event))
-        t2 = create_task(cf("C2", event))
-        t3 = create_task(cf("C3", event))
+        t1 = create_task(cf(event), name="C1")
+        t2 = create_task(cf(event), name="C2")
+        t3 = create_task(cf(event), name="C3")
 
         await sleep(10)
 
@@ -286,10 +286,10 @@ def test_cancel_waiting(caplog: LogCaptureFixture):
         await t2
         await t3
 
-        logger.info("main exit")
+        logger.info("exit")
 
     run(main())
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP2
 
 

@@ -10,27 +10,27 @@ logger = logging.getLogger("deltacycle")
 
 
 EXP1 = {
-    (0, "Producing: 0"),
-    (0, "Consuming: 0"),
-    (10, "Producing: 1"),
-    (10, "Consuming: 1"),
-    (20, "Producing: 2"),
-    (20, "Consuming: 2"),
-    (30, "Producing: 3"),
-    (30, "Consuming: 3"),
-    (40, "Producing: 4"),
-    (40, "Consuming: 4"),
-    (50, "Producing: 5"),
-    (50, "Consuming: 5"),
-    (60, "Producing: 6"),
-    (60, "Consuming: 6"),
-    (70, "Producing: 7"),
-    (70, "Consuming: 7"),
-    (80, "Producing: 8"),
-    (80, "Consuming: 8"),
-    (90, "Producing: 9"),
-    (90, "Consuming: 9"),
-    (100, "Producer: CLOSED"),
+    (0, "P", "0"),
+    (0, "C", "0"),
+    (10, "P", "1"),
+    (10, "C", "1"),
+    (20, "P", "2"),
+    (20, "C", "2"),
+    (30, "P", "3"),
+    (30, "C", "3"),
+    (40, "P", "4"),
+    (40, "C", "4"),
+    (50, "P", "5"),
+    (50, "C", "5"),
+    (60, "P", "6"),
+    (60, "C", "6"),
+    (70, "P", "7"),
+    (70, "C", "7"),
+    (80, "P", "8"),
+    (80, "C", "8"),
+    (90, "P", "9"),
+    (90, "C", "9"),
+    (100, "P", "CLOSED"),
 }
 
 
@@ -41,48 +41,48 @@ def test_prod_cons1(caplog: LogCaptureFixture):
 
     async def prod():
         for i in range(10):
-            logger.info("Producing: %d", i)
+            logger.info("%d", i)
             await q.put(i)
             await sleep(10)
-        logger.info("Producer: CLOSED")
+        logger.info("CLOSED")
 
     async def cons():
         while True:
             i = await q.get()
-            logger.info("Consuming: %d", i)
+            logger.info("%d", i)
 
     async def main():
-        create_task(prod())
-        create_task(cons())
+        create_task(prod(), name="P")
+        create_task(cons(), name="C")
 
     run(main())
 
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 
 
 EXP2 = {
-    (0, "Producing: 0"),
-    (0, "Producing: 1"),
-    (0, "Producing: 2"),
-    (10, "Consuming: 0"),
-    (10, "Producing: 3"),
-    (20, "Consuming: 1"),
-    (20, "Producing: 4"),
-    (30, "Consuming: 2"),
-    (30, "Producing: 5"),
-    (40, "Consuming: 3"),
-    (40, "Producing: 6"),
-    (50, "Consuming: 4"),
-    (50, "Producing: 7"),
-    (60, "Consuming: 5"),
-    (60, "Producing: 8"),
-    (70, "Consuming: 6"),
-    (70, "Producing: 9"),
-    (80, "Consuming: 7"),
-    (80, "Producer: CLOSED"),
-    (90, "Consuming: 8"),
-    (100, "Consuming: 9"),
+    (0, "P", "0"),
+    (0, "P", "1"),
+    (0, "P", "2"),
+    (10, "C", "0"),
+    (10, "P", "3"),
+    (20, "C", "1"),
+    (20, "P", "4"),
+    (30, "C", "2"),
+    (30, "P", "5"),
+    (40, "C", "3"),
+    (40, "P", "6"),
+    (50, "C", "4"),
+    (50, "P", "7"),
+    (60, "C", "5"),
+    (60, "P", "8"),
+    (70, "C", "6"),
+    (70, "P", "9"),
+    (80, "C", "7"),
+    (80, "P", "CLOSED"),
+    (90, "C", "8"),
+    (100, "C", "9"),
 }
 
 
@@ -93,23 +93,23 @@ def test_prod_cons2(caplog: LogCaptureFixture):
 
     async def prod():
         for i in range(10):
-            logger.info("Producing: %d", i)
+            logger.info("%d", i)
             await q.put(i)
-        logger.info("Producer: CLOSED")
+        logger.info("CLOSED")
 
     async def cons():
         while True:
             await sleep(10)
             i = await q.get()
-            logger.info("Consuming: %d", i)
+            logger.info("%d", i)
 
     async def main():
-        create_task(prod())
-        create_task(cons())
+        create_task(prod(), name="P")
+        create_task(cons(), name="C")
 
     run(main())
 
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
+    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP2
 
 

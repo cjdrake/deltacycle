@@ -37,9 +37,13 @@ logger = logging.getLogger(__name__)
 class DeltaCycleFilter(Filter):
     def filter(self, record: LogRecord) -> bool:
         try:
-            record.time = now()
+            loop = get_running_loop()
         except RuntimeError:
             record.time = -1
+            record.taskName = None
+        else:
+            record.time = loop.time()
+            record.taskName = loop.task().name
         return True
 
 
