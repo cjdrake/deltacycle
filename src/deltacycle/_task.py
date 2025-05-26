@@ -267,17 +267,17 @@ class Task(Awaitable[Any], LoopIf):
             tq = self._holding.pop()
             tq.drop(self)
 
+    def _drain(self):
+        while self._waiting:
+            task = self._waiting.pop()
+            self._loop.call_soon(task, value=self)
+
     def _do_run(self, value: Any = None):
         self._set_state(TaskState.RUNNING)
         if self._exception is None:
             self._coro.send(value)
         else:
             self._coro.throw(self._exception)
-
-    def _drain(self):
-        while self._waiting:
-            task = self._waiting.pop()
-            self._loop.call_soon(task, value=self)
 
     def _do_complete(self, e: StopIteration):
         self._drain()
