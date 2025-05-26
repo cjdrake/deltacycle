@@ -5,7 +5,6 @@ from types import TracebackType
 from typing import Any
 
 from ._loop_if import LoopIf
-from ._suspend_resume import SuspendResume
 from ._task import Task
 
 
@@ -13,7 +12,8 @@ class TaskGroup(LoopIf):
     """Group of tasks."""
 
     def __init__(self):
-        self._children: set[Task] = set()
+        self._parent = self._loop.task()
+        self._children: list[Task] = []
 
     def create_task(
         self,
@@ -21,23 +21,32 @@ class TaskGroup(LoopIf):
         name: str | None = None,
         priority: int = 0,
     ) -> Task:
-        parent = self._loop.task()
-        child = self._loop.create_task(coro, name, priority)
-        self._children.add(child)
-        child._wait(parent)
-        return child
+        task = self._loop.create_task(coro, name, priority)
+        self._children.append(task)
+        return task
 
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type: type[Exception], exc: Exception, tb: TracebackType):
-        done: set[Task] = set()
+    async def __aexit__(
+        self,
+        exc_type: type[Exception] | None,
+        exc: Exception | None,
+        tb: TracebackType | None,
+    ):
+        # TODO(cjdrake): Handle this case
+        assert exc_type is None and exc is None and tb is None
 
-        while True:
-            child = await SuspendResume()
-            done.add(child)
+        not_done: set[Task] = set()
 
+        for task in self._children:
+            # TODO(cjdrake): Handle complete/cancelled/excepted tasks
+            assert not task.done()
+            not_done.add(task)
+            # When child completes, immediately schedule parent
+            task._wait(self._parent)
+
+        while not_done:
+            task: Task = await self._loop.switch_coro()
+            not_done.remove(task)
             # TODO(cjdrake): Handle exceptions
-
-            if done == self._children:
-                break

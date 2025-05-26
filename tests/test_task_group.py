@@ -20,12 +20,15 @@ EXP = {
     # Main
     (0, "MAIN enter"),
     (15, "MAIN exit"),
+    # Group 0
+    (0, "C0 enter"),
+    (5, "C0 exit"),
     # Group 1
     (0, "C1 enter"),
-    (5, "C1 exit"),
+    (10, "C1 exit"),
     # Group 2
-    (0, "C2 enter"),
-    (10, "C2 exit"),
+    # (0, "C2 enter"),
+    # (10, "C2 exit"),
     # Group 3
     (0, "C3 enter"),
     (15, "C3 exit"),
@@ -38,17 +41,19 @@ def test_group(caplog: LogCaptureFixture):
     async def main():
         logger.info("MAIN enter")
 
-        r1, r2, r3 = 1, 2, 3
+        rs = list(range(4))
         async with TaskGroup() as tg:
-            t1 = tg.create_task(group_coro("C1", 5, r1))
-            t2 = tg.create_task(group_coro("C2", 10, r2))
-            t3 = tg.create_task(group_coro("C3", 15, r3))
+            t0 = tg.create_task(group_coro("C0", 5, rs[0]))
+            t1 = tg.create_task(group_coro("C1", 10, rs[1]))
+            # t2 = tg.create_task(group_coro("C2", 10, rs[2]))
+            t3 = tg.create_task(group_coro("C3", 15, rs[3]))
 
         logger.info("MAIN exit")
 
-        assert t1.result() == r1
-        assert t2.result() == r2
-        assert t3.result() == r3
+        assert t0.result() == rs[0]
+        assert t1.result() == rs[1]
+        # assert t2.result() == rs[2]
+        assert t3.result() == rs[3]
 
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}

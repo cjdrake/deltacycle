@@ -276,7 +276,8 @@ class Task(Awaitable[Any], LoopIf):
 
     def _drain(self):
         while self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
+            task = self._waiting.pop()
+            self._loop.call_soon(task, value=self)
 
     def _do_complete(self, e: StopIteration):
         self._drain()
