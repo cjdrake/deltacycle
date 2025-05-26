@@ -175,7 +175,7 @@ class Loop:
         # Resume
         return value
 
-    def _touch(self, v: Variable):
+    def touch(self, v: Variable):
         self._touched.add(v)
 
     def _update(self):

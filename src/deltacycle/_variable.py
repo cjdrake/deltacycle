@@ -46,7 +46,7 @@ class Variable(Awaitable[Any], LoopIf):
             self._loop.call_soon(task, value=self)
 
         # Add variable to update set
-        self._loop._touch(self)
+        self._loop.touch(self)
 
     value = property(fget=lambda self: NotImplemented)
 
