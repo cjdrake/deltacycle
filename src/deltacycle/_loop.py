@@ -128,17 +128,14 @@ class Loop:
         return self._state is LoopState.FINISHED
 
     # Scheduling methods
-    def _schedule(self, time: int, task: Task, value: Any):
-        self._queue.push((time, task, value))
-
     def call_soon(self, task: Task, value: Any = None):
-        self._schedule(self._time, task, value)
+        self._queue.push((self._time, task, value))
 
     def call_later(self, delay: int, task: Task, value: Any = None):
-        self._schedule(self._time + delay, task, value)
+        self._queue.push((self._time + delay, task, value))
 
     def call_at(self, when: int, task: Task, value: Any = None):
-        self._schedule(when, task, value)
+        self._queue.push((when, task, value))
 
     def create_main(self, coro: Coroutine[Any, Any, Any]) -> Task:
         assert self._time == self.init_time
