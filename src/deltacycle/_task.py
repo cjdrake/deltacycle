@@ -30,28 +30,13 @@ class TaskState(IntEnum):
 
     Transitions::
 
-                   +-------WAITING
-                   |          ^
-                   v          |
-        INIT -> PENDING -> RUNNING -> COMPLETE
-                                   -> CANCELLED
-                                   -> EXCEPTED
+        INIT -> RUNNING -> COMPLETE
+                        -> CANCELLED
+                        -> EXCEPTED
     """
 
     # Initialized
     INIT = auto()
-
-    # In the event queue
-    PENDING = auto()
-
-    # Suspended; Waiting for:
-    # * Event set
-    # * Semaphore release
-    # * Task done
-    WAITING = auto()
-
-    # Dropped from PENDING/WAITING
-    CANCELLING = auto()
 
     # Currently running
     RUNNING = auto()
@@ -65,13 +50,8 @@ class TaskState(IntEnum):
 
 
 _task_state_transitions = {
-    TaskState.INIT: {TaskState.PENDING},
-    TaskState.PENDING: {TaskState.CANCELLING, TaskState.RUNNING},
-    TaskState.WAITING: {TaskState.CANCELLING, TaskState.PENDING},
-    TaskState.CANCELLING: {TaskState.PENDING},
+    TaskState.INIT: {TaskState.RUNNING},
     TaskState.RUNNING: {
-        TaskState.PENDING,  # sleep
-        TaskState.WAITING,  # suspend/resume
         TaskState.COMPLETE,
         TaskState.CANCELLED,
         TaskState.EXCEPTED,
@@ -227,7 +207,6 @@ class Task(Awaitable[Any], LoopIf):
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
-            # Task state: RUNNING => WAITING
             t: Task = yield from self._loop.switch_gen()
             assert t is self
 
@@ -276,7 +255,8 @@ class Task(Awaitable[Any], LoopIf):
                 tq.drop(self)
 
     def _do_run(self, value: Any = None):
-        self._set_state(TaskState.RUNNING)
+        if self._state is TaskState.INIT:
+            self._set_state(TaskState.RUNNING)
         if self._exception is None:
             self._coro.send(value)
         else:
@@ -388,10 +368,6 @@ class Task(Awaitable[Any], LoopIf):
         Raises:
             CancelledError: If the task cancels itself
         """
-        # A normal task would be scheduled immediately.
-        # Something went wrong here.
-        assert self._state not in {TaskState.INIT, TaskState.CANCELLING}
-
         # Already done; do nothing
         if self.done():
             return False
@@ -400,15 +376,13 @@ class Task(Awaitable[Any], LoopIf):
         exc = CancelledError(*args)
 
         # Task is cancelling itself. Weird, but legal.
-        if self._state is TaskState.RUNNING:
+        if self is self._loop.task():
             raise exc
 
         # Pending/Waiting tasks must first renege from queues
-        assert self._state in {TaskState.PENDING, TaskState.WAITING}
         self._renege()
 
         # Reschedule for cancellation
-        self._set_state(TaskState.CANCELLING)
         self._set_exception(exc)
         self._loop.call_soon(self)
 

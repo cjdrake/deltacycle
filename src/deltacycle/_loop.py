@@ -8,7 +8,7 @@ from enum import IntEnum, auto
 from typing import Any
 
 from ._suspend_resume import SuspendResume
-from ._task import CancelledError, PendQueue, Task, TaskState
+from ._task import CancelledError, PendQueue, Task
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -129,7 +129,6 @@ class Loop:
 
     # Scheduling methods
     def _schedule(self, time: int, task: Task, value: Any):
-        task._set_state(TaskState.PENDING)
         self._queue.push((time, task, value))
 
     def call_soon(self, task: Task, value: Any = None):
@@ -161,7 +160,6 @@ class Loop:
 
     async def switch_coro(self) -> Any:
         assert self._task is not None
-        self._task._set_state(TaskState.WAITING)
         # Suspend
         value = await SuspendResume()
         # Resume
@@ -169,7 +167,6 @@ class Loop:
 
     def switch_gen(self) -> Generator[None, Any, Any]:
         assert self._task is not None
-        self._task._set_state(TaskState.WAITING)
         # Suspend
         value = yield
         # Resume
@@ -441,7 +438,6 @@ async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
     loop = get_running_loop()
     task = loop.task()
-    # Task state: RUNNING => PENDING
     loop.call_later(delay, task)
     await SuspendResume()
 
@@ -462,7 +458,6 @@ async def changed(*vs: Variable) -> Variable:
     task = loop.task()
     for v in vs:
         v._wait(v.changed, task)
-    # Task state: RUNNING => WAITING
     v: Variable = await loop.switch_coro()
     return v
 
@@ -488,7 +483,6 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
             v._wait(v.changed, task)
         else:
             v._wait(p, task)
-    # Task state: RUNNING => WAITING
     v: Variable = await loop.switch_coro()
     return v
 

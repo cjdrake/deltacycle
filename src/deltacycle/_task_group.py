@@ -39,14 +39,14 @@ class TaskGroup(LoopIf):
 
         not_done: set[Task] = set()
 
-        for task in self._children:
+        for child in self._children:
             # TODO(cjdrake): Handle complete/cancelled/excepted tasks
-            assert not task.done()
-            not_done.add(task)
+            assert not child.done()
+            not_done.add(child)
             # When child completes, immediately schedule parent
-            task._wait(self._parent)
+            child._wait(self._parent)
 
         while not_done:
-            task: Task = await self._loop.switch_coro()
-            not_done.remove(task)
+            child: Task = await self._loop.switch_coro()
+            not_done.remove(child)
             # TODO(cjdrake): Handle exceptions
