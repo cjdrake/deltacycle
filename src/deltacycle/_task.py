@@ -5,7 +5,7 @@ from __future__ import annotations
 import heapq
 import logging
 from abc import ABC
-from collections import deque
+from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
@@ -210,8 +210,8 @@ class Task(Awaitable[Any], LoopIf):
             self._name = name
         self._priority = priority
 
-        # Containers holding a reference to this task
-        self._holding: set[TaskQueueIf] = set()
+        # Reference counts for this task
+        self._refcnts: Counter[TaskQueueIf] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
@@ -257,15 +257,17 @@ class Task(Awaitable[Any], LoopIf):
         return self._state
 
     def _link(self, tq: TaskQueueIf):
-        self._holding.add(tq)
+        self._refcnts[tq] += 1
 
     def _unlink(self, tq: TaskQueueIf):
-        self._holding.remove(tq)
+        assert self._refcnts[tq] > 0
+        self._refcnts[tq] -= 1
 
     def _renege(self):
-        while self._holding:
-            tq = self._holding.pop()
-            tq.drop(self)
+        while self._refcnts:
+            tq, cnt = self._refcnts.popitem()
+            for _ in range(cnt):
+                tq.drop(self)
 
     def _drain(self):
         while self._waiting:
