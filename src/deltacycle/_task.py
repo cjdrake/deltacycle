@@ -133,7 +133,8 @@ class PendQueue(TaskQueueIf):
         return self._items[0][0]
 
     def clear(self):
-        self._items.clear()
+        while self._items:
+            self.pop()
         self._index = 0
 
 
