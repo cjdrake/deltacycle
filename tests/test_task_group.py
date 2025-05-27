@@ -27,8 +27,8 @@ EXP = {
     (0, "C1", "enter"),
     (10, "C1", "exit"),
     # Group 2
-    # (0, "C2", "enter"),
-    # (10, "C2", "exit"),
+    (0, "C2", "enter"),
+    (10, "C2", "exit"),
     # Group 3
     (0, "C3", "enter"),
     (15, "C3", "exit"),
@@ -45,14 +45,14 @@ def test_group(caplog: LogCaptureFixture):
         async with TaskGroup() as tg:
             t0 = tg.create_task(group_coro(5, rs[0]), name="C0")
             t1 = tg.create_task(group_coro(10, rs[1]), name="C1")
-            # t2 = tg.create_task(group_coro(10, rs[2]), name="C2")
+            t2 = tg.create_task(group_coro(10, rs[2]), name="C2")
             t3 = tg.create_task(group_coro(15, rs[3]), name="C3")
 
         logger.info("exit")
 
         assert t0.result() == rs[0]
         assert t1.result() == rs[1]
-        # assert t2.result() == rs[2]
+        assert t2.result() == rs[2]
         assert t3.result() == rs[3]
 
     run(main())
