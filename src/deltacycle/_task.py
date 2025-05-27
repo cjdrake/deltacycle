@@ -236,6 +236,11 @@ class Task(Awaitable[Any], LoopIf):
     def _wait(self, task: Task):
         self._waiting.push(task)
 
+    def _set(self):
+        while self._waiting:
+            task = self._waiting.pop()
+            self._loop.call_soon(task, value=self)
+
     @property
     def coro(self) -> Coroutine[Any, Any, Any]:
         return self._coro
@@ -269,11 +274,6 @@ class Task(Awaitable[Any], LoopIf):
             for _ in range(cnt):
                 tq.drop(self)
 
-    def _drain(self):
-        while self._waiting:
-            task = self._waiting.pop()
-            self._loop.call_soon(task, value=self)
-
     def _do_run(self, value: Any = None):
         self._set_state(TaskState.RUNNING)
         if self._exception is None:
@@ -282,19 +282,19 @@ class Task(Awaitable[Any], LoopIf):
             self._coro.throw(self._exception)
 
     def _do_complete(self, e: StopIteration):
-        self._drain()
         self._set_result(e.value)
         self._set_state(TaskState.COMPLETE)
+        self._set()
 
     def _do_cancel(self, e: CancelledError):
-        self._drain()
         self._set_exception(e)
         self._set_state(TaskState.CANCELLED)
+        self._set()
 
     def _do_except(self, e: Exception):
-        self._drain()
         self._set_exception(e)
         self._set_state(TaskState.EXCEPTED)
+        self._set()
 
     def done(self) -> bool:
         """Return True if the task is done.
