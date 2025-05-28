@@ -121,6 +121,7 @@ Loop
     .. automethod:: deltacycle.Loop.finished
 
 .. autofunction:: deltacycle.get_running_loop
+.. autofunction:: deltacycle.get_current_task
 .. autofunction:: deltacycle.get_loop
 .. autofunction:: deltacycle.set_loop
 
