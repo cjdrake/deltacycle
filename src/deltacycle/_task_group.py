@@ -5,7 +5,7 @@ from types import TracebackType
 from typing import Any
 
 from ._loop_if import LoopIf
-from ._task import Task
+from ._task import Task, TaskState
 
 
 class TaskGroup(LoopIf):
@@ -32,21 +32,41 @@ class TaskGroup(LoopIf):
         self,
         exc_type: type[Exception] | None,
         exc: Exception | None,
-        tb: TracebackType | None,
+        traceback: TracebackType | None,
     ):
-        # TODO(cjdrake): Handle this case
-        assert exc_type is None and exc is None and tb is None
+        # Prune children that are already done
+        children = {c for c in self._children if not c.done()}
 
-        not_done: set[Task] = set()
-
-        for child in self._children:
-            # TODO(cjdrake): Handle complete/cancelled/excepted tasks
-            assert not child.done()
-            not_done.add(child)
-            # When child completes, immediately schedule parent
+        for child in children:
+            # Child completes => Parent resumes
             child._wait(self._parent)
 
-        while not_done:
+        # An exception was raised in the group body
+        if exc:
+            # Cancel all children
+            for child in children:
+                child.cancel()
+            for child in children:
+                await self._loop.switch_coro()
+            # Do NOT suppress the exception
+            return False
+
+        child_excs: list[Exception] = []
+
+        # Run all children
+        while children:
+            # Child 1) returns, 2) is cancelled, or 3) raises exception
             child: Task = await self._loop.switch_coro()
-            not_done.remove(child)
-            # TODO(cjdrake): Handle exceptions
+            children.remove(child)
+
+            # If child raises an exception, cancel remaining siblings
+            if child.state() is TaskState.EXCEPTED:
+                if not child_excs:
+                    for sibling in children:
+                        sibling.cancel()
+                assert child._exception is not None
+                child_excs.append(child._exception)
+
+        # Re-raise child exception
+        if child_excs:
+            raise ExceptionGroup("errors", child_excs)

@@ -266,18 +266,18 @@ class Task(Awaitable[Any], LoopIf):
         else:
             self._coro.throw(self._exception)
 
-    def _do_complete(self, e: StopIteration):
-        self._set_result(e.value)
+    def _do_complete(self, exc: StopIteration):
+        self._set_result(exc.value)
         self._set_state(TaskState.COMPLETE)
         self._set()
 
-    def _do_cancel(self, e: CancelledError):
-        self._set_exception(e)
+    def _do_cancel(self, exc: CancelledError):
+        self._set_exception(exc)
         self._set_state(TaskState.CANCELLED)
         self._set()
 
-    def _do_except(self, e: Exception):
-        self._set_exception(e)
+    def _do_except(self, exc: Exception):
+        self._set_exception(exc)
         self._set_state(TaskState.EXCEPTED)
         self._set()
 
@@ -324,10 +324,10 @@ class Task(Awaitable[Any], LoopIf):
             raise self._exception
         raise InvalidStateError("Task is not done")
 
-    def _set_exception(self, e: Exception):
+    def _set_exception(self, exc: Exception):
         if self.done():
             raise InvalidStateError("Task is already done")
-        self._exception = e
+        self._exception = exc
 
     def exception(self) -> Exception | None:
         """Return the task's exception.
