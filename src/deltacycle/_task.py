@@ -30,7 +30,7 @@ class TaskState(IntEnum):
 
     Transitions::
 
-        INIT -> RUNNING -> COMPLETE
+        INIT -> RUNNING -> RESULTED
                         -> CANCELLED
                         -> EXCEPTED
     """
@@ -42,7 +42,7 @@ class TaskState(IntEnum):
     RUNNING = auto()
 
     # Done: returned a result
-    COMPLETE = auto()
+    RESULTED = auto()
     # Done: cancelled
     CANCELLED = auto()
     # Done: raised an exception
@@ -52,7 +52,7 @@ class TaskState(IntEnum):
 _task_state_transitions = {
     TaskState.INIT: {TaskState.RUNNING},
     TaskState.RUNNING: {
-        TaskState.COMPLETE,
+        TaskState.RESULTED,
         TaskState.CANCELLED,
         TaskState.EXCEPTED,
     },
@@ -266,9 +266,9 @@ class Task(Awaitable[Any], LoopIf):
         else:
             self._coro.throw(self._exception)
 
-    def _do_complete(self, exc: StopIteration):
+    def _do_result(self, exc: StopIteration):
         self._set_result(exc.value)
-        self._set_state(TaskState.COMPLETE)
+        self._set_state(TaskState.RESULTED)
         self._set()
 
     def _do_cancel(self, exc: CancelledError):
@@ -283,7 +283,7 @@ class Task(Awaitable[Any], LoopIf):
 
     _done_states = frozenset(
         [
-            TaskState.COMPLETE,
+            TaskState.RESULTED,
             TaskState.CANCELLED,
             TaskState.EXCEPTED,
         ]
@@ -313,7 +313,7 @@ class Task(Awaitable[Any], LoopIf):
             Exception: If the task raise any other type of exception.
             InvalidStateError: If the task is not done.
         """
-        if self._state is TaskState.COMPLETE:
+        if self._state is TaskState.RESULTED:
             assert self._exception is None
             return self._result
         if self._state is TaskState.CANCELLED:
@@ -339,7 +339,7 @@ class Task(Awaitable[Any], LoopIf):
         Raises:
             If the task was cancelled, re-raise the CancelledError.
         """
-        if self._state is TaskState.COMPLETE:
+        if self._state is TaskState.RESULTED:
             assert self._exception is None
             return self._exception
         if self._state is TaskState.CANCELLED:

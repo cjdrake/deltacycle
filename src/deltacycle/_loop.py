@@ -221,7 +221,7 @@ class Loop:
                 try:
                     task._do_run(value)
                 except StopIteration as e:
-                    task._do_complete(e)
+                    task._do_result(e)
                 except CancelledError as e:
                     task._do_cancel(e)
                 except _FinishError:
@@ -280,7 +280,7 @@ class Loop:
                 try:
                     task._do_run(value)
                 except StopIteration as e:
-                    task._do_complete(e)
+                    task._do_result(e)
                 except CancelledError as e:
                     task._do_cancel(e)
                 except _FinishError:

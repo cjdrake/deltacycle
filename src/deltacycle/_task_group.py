@@ -13,7 +13,82 @@ class TaskGroup(LoopIf):
 
     def __init__(self):
         self._parent = self._loop.task()
+        # Preserve child task order
         self._children: list[Task] = []
+        self._done: list[Task] = []
+        self._excs: list[Exception] = []
+
+    async def __aenter__(self):
+        return self
+
+    def _record(self, child: Task) -> bool:
+        self._done.append(child)
+        if child.state() in {TaskState.RESULTED, TaskState.CANCELLED}:
+            return False
+        if child.state() is TaskState.EXCEPTED:
+            self._excs.append(child._exception)  # type: ignore
+            return True
+        assert False  # pragma: no cover
+
+    async def __aexit__(
+        self,
+        exc_type: type[Exception] | None,
+        exc: Exception | None,
+        traceback: TracebackType | None,
+    ):
+        not_done: set[Task] = set()
+
+        for child in self._children:
+            if child.done():
+                # NOTE: Ignore child exception
+                _ = self._record(child)
+            else:
+                not_done.add(child)
+                child._wait(self._parent)
+
+        # Parent raised an exception
+        if exc:
+            # Cancel all children
+            for child in not_done:
+                child.cancel()
+            while not_done:
+                child: Task = await self._loop.switch_coro()
+                not_done.remove(child)
+                # NOTE: Ignore child exception
+                _ = self._record(child)
+
+            assert set(self._children) == set(self._done)
+
+            # Suppress child exception(s)
+            # Re-raise parent exception
+            return False
+
+        cancelled: set[Task] = set()
+
+        # Parent did NOT raise an exception
+        # Wait for children to complete
+        while not_done:
+            child: Task = await self._loop.switch_coro()
+            not_done.remove(child)
+            x = self._record(child)
+
+            # If children spawn newborns, add them to the waiting set
+            n = len(self._done) + len(not_done)
+            for newborn in self._children[n:]:
+                not_done.add(newborn)
+                newborn._wait(self._parent)
+
+            # If child raised an exception, cancel remaining siblings
+            if x:
+                for sibling in not_done - cancelled:
+                    sibling.cancel()
+                    cancelled.add(sibling)
+
+        assert set(self._children) == set(self._done)
+
+        # Re-raise child exception(s)
+        if self._excs:
+            raise ExceptionGroup("errors", self._excs)
 
     def create_task(
         self,
@@ -24,49 +99,3 @@ class TaskGroup(LoopIf):
         task = self._loop.create_task(coro, name, priority)
         self._children.append(task)
         return task
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[Exception] | None,
-        exc: Exception | None,
-        traceback: TracebackType | None,
-    ):
-        # Prune children that are already done
-        children = {c for c in self._children if not c.done()}
-
-        for child in children:
-            # Child completes => Parent resumes
-            child._wait(self._parent)
-
-        # An exception was raised in the group body
-        if exc:
-            # Cancel all children
-            for child in children:
-                child.cancel()
-            for child in children:
-                await self._loop.switch_coro()
-            # Do NOT suppress the exception
-            return False
-
-        child_excs: list[Exception] = []
-
-        # Run all children
-        while children:
-            # Child 1) returns, 2) is cancelled, or 3) raises exception
-            child: Task = await self._loop.switch_coro()
-            children.remove(child)
-
-            # If child raises an exception, cancel remaining siblings
-            if child.state() is TaskState.EXCEPTED:
-                if not child_excs:
-                    for sibling in children:
-                        sibling.cancel()
-                assert child._exception is not None
-                child_excs.append(child._exception)
-
-        # Re-raise child exception
-        if child_excs:
-            raise ExceptionGroup("errors", child_excs)
