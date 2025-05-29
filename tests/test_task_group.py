@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import Task, TaskGroup, run, sleep
+from deltacycle import Task, TaskGroup, TaskState, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -122,9 +122,9 @@ def test_group_child_except(caplog: LogCaptureFixture):
         assert ts[1].result() == 1
         assert ts[4].result() == 4
 
-        assert ts[5].cancelled()
-        assert ts[6].cancelled()
-        assert ts[7].cancelled()
+        assert ts[5].state() is TaskState.CANCELLED
+        assert ts[6].state() is TaskState.CANCELLED
+        assert ts[7].state() is TaskState.CANCELLED
 
         exc = ts[2].exception()
         assert isinstance(exc, ArithmeticError) and exc.args == (2,)
@@ -167,8 +167,8 @@ def test_group_except(caplog: LogCaptureFixture):
 
                 raise ArithmeticError(42)
 
-        assert ts[0].cancelled()
-        assert ts[1].cancelled()
+        assert ts[0].state() is TaskState.CANCELLED
+        assert ts[1].state() is TaskState.CANCELLED
         assert e.value.args == (42,)
 
         logger.info("exit")

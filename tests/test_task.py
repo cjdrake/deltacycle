@@ -11,6 +11,7 @@ from deltacycle import (
     Event,
     InvalidStateError,
     Task,
+    TaskState,
     create_task,
     get_current_task,
     irun,
@@ -169,7 +170,7 @@ def test_cancel_pending1(caplog: LogCaptureFixture):
         await t3
 
         assert t1.done()
-        assert t1.cancelled()
+        assert t1.state() is TaskState.CANCELLED
 
         # Result should re-raise CancelledError
         with pytest.raises(CancelledError):
@@ -222,7 +223,7 @@ def test_cancel_pending2(caplog: LogCaptureFixture):
         await t3
 
         assert t1.done()
-        assert t1.cancelled()
+        assert t1.state() is TaskState.CANCELLED
 
         # Result should re-raise CancelledError
         with pytest.raises(CancelledError):

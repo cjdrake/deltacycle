@@ -293,10 +293,6 @@ class Task(Awaitable[Any], LoopIf):
             TaskState.EXCEPTED,
         }
 
-    def cancelled(self) -> bool:
-        """Return True if the task was cancelled."""
-        return self._state is TaskState.CANCELLED
-
     def _set_result(self, result: Any):
         if self.done():
             raise InvalidStateError("Task is already done")
