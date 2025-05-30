@@ -128,8 +128,9 @@ class WaitFifo(TaskQueueIf):
         return bool(self._items)
 
     def push(self, item: Task):
-        item._link(self)
-        self._items.append(item)
+        task = item
+        task._link(self)
+        self._items.append(task)
 
     def pop(self) -> Task:
         task = self._items.popleft()
