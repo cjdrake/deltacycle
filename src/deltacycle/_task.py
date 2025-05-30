@@ -204,7 +204,7 @@ class Task(Awaitable[Any], LoopIf):
         # Exception
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, Task, Any]:
+    def __await__(self) -> Generator[None, Any, Task]:
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
