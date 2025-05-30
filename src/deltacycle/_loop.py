@@ -121,8 +121,10 @@ class Loop:
         assert self._task is not None
         return self._task
 
+    _done_states = frozenset([LoopState.COMPLETED, LoopState.FINISHED])
+
     def done(self) -> bool:
-        return self._state in {LoopState.COMPLETED, LoopState.FINISHED}
+        return self._state in self._done_states
 
     def finished(self) -> bool:
         return self._state is LoopState.FINISHED

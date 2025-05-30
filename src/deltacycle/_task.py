@@ -281,13 +281,7 @@ class Task(Awaitable[Any], LoopIf):
         self._set_state(TaskState.EXCEPTED)
         self._set()
 
-    _done_states = frozenset(
-        [
-            TaskState.RESULTED,
-            TaskState.CANCELLED,
-            TaskState.EXCEPTED,
-        ]
-    )
+    _done_states = frozenset([TaskState.RESULTED, TaskState.CANCELLED, TaskState.EXCEPTED])
 
     def done(self) -> bool:
         """Return True if the task is done.
