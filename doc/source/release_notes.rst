@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.8.0
+=============
+
+Got rid of ``Task.cancelled`` method.
+Updated ``TaskGroup`` so it properly cancels tasks spawned by children.
+
+
 Version 0.7.0
 =============
 
