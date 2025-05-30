@@ -3,17 +3,36 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Coroutine, Generator
+from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
-from ._suspend_resume import SuspendResume
 from ._task import CancelledError, PendQueue, Task
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
 
 type Predicate = Callable[[], bool]
+
+
+class _SuspendResume(Awaitable[Any]):
+    """Suspend/Resume current task.
+
+    Use case:
+    1. Current task A suspends itself: RUNNING => WAITING
+    2. Event loop chooses PENDING tasks ..., T
+    3. ... Task T wakes up task A w/ value X: WAITING => PENDING
+    4. Event loop chooses PENDING tasks ..., A: PENDING => RUNNING
+    5. Task A resumes with value X
+
+    The value X can be used to pass information to the task.
+    """
+
+    def __await__(self) -> Generator[None, Any, Any]:
+        # Suspend
+        value = yield
+        # Resume
+        return value
 
 
 class _FinishError(Exception):
@@ -162,7 +181,7 @@ class Loop:
     async def switch_coro(self) -> Any:
         assert self._task is not None
         # Suspend
-        value = await SuspendResume()
+        value = await _SuspendResume()
         # Resume
         return value
 
@@ -440,7 +459,7 @@ async def sleep(delay: int):
     loop = get_running_loop()
     task = loop.task()
     loop.call_later(delay, task)
-    await SuspendResume()
+    await _SuspendResume()
 
 
 async def changed(*vs: Variable) -> Variable:
