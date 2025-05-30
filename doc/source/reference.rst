@@ -50,7 +50,6 @@ Tasks
     .. autoproperty:: priority
     .. automethod:: state
     .. automethod:: done
-    .. automethod:: cancelled
     .. automethod:: result
     .. automethod:: exception
     .. automethod:: cancel
