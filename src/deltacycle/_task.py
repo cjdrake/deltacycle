@@ -108,6 +108,7 @@ class PendQueue(TaskQueueIf):
         else:
             assert False  # pragma: no cover
         self._items.pop(index)
+        task._unlink(self)
 
     def peek(self) -> int:
         return self._items[0][0]
@@ -139,6 +140,7 @@ class WaitFifo(TaskQueueIf):
 
     def drop(self, task: Task):
         self._items.remove(task)
+        task._unlink(self)
 
 
 class WaitTouch(TaskQueueIf):
@@ -158,11 +160,11 @@ class WaitTouch(TaskQueueIf):
 
     def pop(self) -> Task:
         task = self._items.popleft()
-        task._unlink(self)
         return task
 
     def drop(self, task: Task):
         del self._tps[task]
+        task._unlink(self)
 
     def touch(self):
         assert not self._items
@@ -250,10 +252,12 @@ class Task(Awaitable[Any], LoopIf):
         self._refcnts[tq] -= 1
 
     def _renege(self):
-        while self._refcnts:
-            tq, cnt = self._refcnts.popitem()
-            for _ in range(cnt):
+        tqs = set(self._refcnts.keys())
+        while tqs:
+            tq = tqs.pop()
+            while self._refcnts[tq]:
                 tq.drop(self)
+            del self._refcnts[tq]
 
     def _do_run(self, value: Any = None):
         if self._state is TaskState.INIT:

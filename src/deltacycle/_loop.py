@@ -245,13 +245,16 @@ class Loop:
                     task._do_run(value)
                 except StopIteration as e:
                     task._do_result(e)
+                    assert task._refcnts.total() == 0
                 except CancelledError as e:
                     task._do_cancel(e)
+                    assert task._refcnts.total() == 0
                 except _FinishError:
                     self._finish()
                     return
                 except Exception as e:
                     task._do_except(e)
+                    assert task._refcnts.total() == 0
 
             # Update simulation state
             self._update()
@@ -304,13 +307,16 @@ class Loop:
                     task._do_run(value)
                 except StopIteration as e:
                     task._do_result(e)
+                    assert task._refcnts.total() == 0
                 except CancelledError as e:
                     task._do_cancel(e)
+                    assert task._refcnts.total() == 0
                 except _FinishError:
                     self._finish()
                     return
                 except Exception as e:
                     task._do_except(e)
+                    assert task._refcnts.total() == 0
 
             # Update simulation state
             self._update()

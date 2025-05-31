@@ -2,7 +2,6 @@
 
 import logging
 
-import pytest
 from pytest import LogCaptureFixture
 
 from deltacycle import TaskGroup, run, sleep
@@ -12,8 +11,17 @@ from .common import Bool
 logger = logging.getLogger("deltacycle")
 
 
-@pytest.mark.xfail
+EXP2 = {
+    (5, "do_stuff", "first"),
+    (15, "do_stuff", "second"),
+    (25, "do_stuff", "third"),
+    (35, "do_stuff", "fourth"),
+}
+
+
 def test_2(caplog: LogCaptureFixture):
+    caplog.set_level(logging.INFO, logger="deltacycle")
+
     clock = Bool()
 
     async def do_stuff():
@@ -38,3 +46,6 @@ def test_2(caplog: LogCaptureFixture):
             tg.create_task(do_stuff(), name="do_stuff")
 
     run(main(), until=100)
+
+    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
+    assert msgs == EXP2
