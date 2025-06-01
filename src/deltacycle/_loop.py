@@ -495,7 +495,7 @@ async def changed(*vs: Variable) -> Variable:
     return v
 
 
-async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
+async def touched(vps: dict[Variable, Predicate]) -> Variable:
     """Resume execution upon predicated variable change.
 
     Suspend execution of the current task;
@@ -512,10 +512,7 @@ async def touched(vps: dict[Variable, Predicate | None]) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v, p in vps.items():
-        if p is None:
-            v._wait(v.changed, task)
-        else:
-            v._wait(p, task)
+        v._wait(p, task)
     v: Variable = await loop.switch_coro()
     return v
 
