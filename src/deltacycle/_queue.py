@@ -29,7 +29,8 @@ class Queue(Sized, LoopIf):
     def _put(self, item: Any):
         self._items.append(item)
         if self._wait_not_empty:
-            self._loop.call_soon(self._wait_not_empty.pop(), value=self)
+            task = self._wait_not_empty.pop()
+            self._loop.call_soon(task, value=self)
 
     def try_put(self, item: Any) -> bool:
         if self.full():
@@ -48,7 +49,8 @@ class Queue(Sized, LoopIf):
     def _get(self) -> Any:
         item = self._items.popleft()
         if self._wait_not_full:
-            self._loop.call_soon(self._wait_not_full.pop(), value=self)
+            task = self._wait_not_full.pop()
+            self._loop.call_soon(task, value=self)
         return item
 
     def try_get(self) -> tuple[bool, Any]:

@@ -19,7 +19,8 @@ class Event(LoopIf):
 
     def set(self):
         while self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
+            task = self._waiting.pop()
+            self._loop.call_soon(task, value=self)
         self._flag = True
 
     def clear(self):

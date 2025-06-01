@@ -29,7 +29,8 @@ class Semaphore(LoopIf):
     def put(self):
         assert self._cnt >= 0
         if self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
+            task = self._waiting.pop()
+            self._loop.call_soon(task, value=self)
         else:
             self._cnt += 1
 
@@ -65,7 +66,8 @@ class BoundedSemaphore(Semaphore):
     def put(self):
         assert self._cnt >= 0
         if self._waiting:
-            self._loop.call_soon(self._waiting.pop(), value=self)
+            task = self._waiting.pop()
+            self._loop.call_soon(task, value=self)
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")
