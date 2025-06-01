@@ -258,8 +258,8 @@ class Task(Awaitable[Any], LoopIf):
     def _do_run(self, value: Any = None):
         if self._state is TaskState.INIT:
             self._set_state(TaskState.RUNNING)
-        elif self._state is not TaskState.RUNNING:
-            assert False  # pragma: no cover
+        else:
+            assert self._state is TaskState.RUNNING
 
         # Start / Resume coroutine
         if self._exception is None:
