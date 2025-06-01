@@ -369,7 +369,14 @@ def get_current_task() -> Task:
 
 
 def now() -> int:
-    """Return current simulation time."""
+    """Return current simulation time.
+
+    Returns:
+        int time
+
+    Raises:
+        RuntimeError: No loop, or loop is not currently running.
+    """
     loop = get_running_loop()
     return loop.time()
 
