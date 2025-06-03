@@ -95,6 +95,7 @@ class Loop:
     init_time = -1
     start_time = 0
 
+    main_name = "main"
     main_priority = 0
 
     def __init__(self):
@@ -162,9 +163,9 @@ class Loop:
 
     def create_main(self, coro: Coroutine[Any, Any, Any]) -> Task:
         assert self._time == self.init_time
-        main = Task(coro, name="main", priority=self.main_priority)
+        main = Task(coro, name=self.main_name, priority=self.main_priority)
         self._main = main
-        self.call_at(self.start_time, main)
+        self.call_at(self.start_time, main, value=None)
         return main
 
     def create_task(
