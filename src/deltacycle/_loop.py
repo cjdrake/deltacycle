@@ -176,7 +176,7 @@ class Loop:
     ) -> Task:
         assert self._time >= self.start_time
         task = Task(coro, name=name, priority=priority)
-        self.call_soon(task)
+        self.call_soon(task, value=None)
         return task
 
     async def switch_coro(self) -> Any:
