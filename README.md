@@ -1,24 +1,42 @@
 # Delta Cycle
 
 DeltaCycle is a Python library for discrete event simulation (DES).
-Processes are described by `async def` coroutine functions,
-and concurrency is implemented using `async / await` statements.
 
-In DES, the simulation is subdivided into sequential slots.
-Each slot is assigned a monotonically increasing integer value, called "time".
-Multiple events may happen during each time slot.
-Those events will trigger tasks that execute in zero time,
-which may schedule additional events for present or future time slots.
+A simulation has two components: a collection of *variables*,
+and a collection of *processes*.
+Variables describe the instantaneous state of the simulation.
+They may be organized into arbitrary data structures.
+Processes define how that state evolves.
+They are scheduled to execute sequentially.
+
+Process execution is subdivided into sequential slots.
+Slots are assigned a monotonically increasing integer value, called *time*.
+Multiple processes may execute at the same time.
 The term "delta cycle" refers to a zero-delay subdivision of a time slot.
-
-DeltaCycle implements a fixed-priority task scheduling algorithm.
-This allows fine-grain control over the task execution order from simultaneous events.
+It is the clockwork mechanism behind the illusion of concurrency.
 
 [Read the docs!](https://deltacycle.rtfd.org) (WIP)
 
 [![Documentation Status](https://readthedocs.org/projects/deltacycle/badge/?version=latest)](https://deltacycle.readthedocs.io/en/latest/?badge=latest)
 
 ## Features
+
+* Loop: task scheduler
+* Tasks: coroutine wrapper
+* Synchronization Primitives:
+    * Events
+    * Locks
+    * Semaphores
+    * Queues
+* Structured concurrency:
+    * Task groups
+    * Task cancellation
+    * Task dependencies
+    * Exception handling
+* Variables:
+    * Singular
+    * Aggregate
+    * Variable dependencies
 
 ## Example
 
