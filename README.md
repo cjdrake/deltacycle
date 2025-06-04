@@ -4,7 +4,7 @@ DeltaCycle is a Python library for discrete event simulation (DES).
 
 A simulation has two components: a collection of *variables*,
 and a collection of *processes*.
-Variables describe the instantaneous state of the simulation.
+Variables represent the instantaneous state of the simulation.
 They may be organized into arbitrary data structures.
 Processes define how that state evolves.
 They are scheduled to execute sequentially.
