@@ -73,10 +73,6 @@ def test_one_result():
         assert t1.result() == 42
         assert t1.exception() is None
 
-        # Cannot set a result after task is done
-        with pytest.raises(InvalidStateError):
-            t1._set_result(42)
-
     run(main())
 
 

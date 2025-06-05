@@ -274,7 +274,7 @@ class Task(Awaitable[Any], LoopIf):
             self._coro.send(value)
 
     def _do_result(self, exc: StopIteration):
-        self._set_result(exc.value)
+        self._result = exc.value
         self._set_state(TaskState.RESULTED)
         self._set()
 
@@ -297,11 +297,6 @@ class Task(Awaitable[Any], LoopIf):
         2) was cancelled by another task, or 3) raised an exception.
         """
         return self._state in self._done_states
-
-    def _set_result(self, result: Any):
-        if self.done():
-            raise InvalidStateError("Task is already done")
-        self._result = result
 
     def result(self) -> Any:
         """Return the task's result, or raise an exception.
