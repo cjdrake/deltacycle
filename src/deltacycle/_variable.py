@@ -42,6 +42,7 @@ class Variable(Awaitable[Any], LoopIf):
         while self._waiting:
             task = self._waiting.pop()
             task._renege()
+            # Send variable id to parent task
             self._loop.call_soon(task, value=self)
 
         # Add variable to update set

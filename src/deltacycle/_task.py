@@ -222,6 +222,7 @@ class Task(Awaitable[Any], LoopIf):
     def _set(self):
         while self._waiting:
             task = self._waiting.pop()
+            # Send child id to parent task
             self._loop.call_soon(task, value=self)
 
     @property
