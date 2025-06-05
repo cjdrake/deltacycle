@@ -2,6 +2,7 @@
 
 from collections import deque
 from collections.abc import Sized
+from functools import cached_property
 
 from ._loop_if import LoopIf
 from ._task import WaitFifo
@@ -19,13 +20,17 @@ class Queue[T](Sized, LoopIf):
     def __len__(self) -> int:
         return len(self._items)
 
+    @cached_property
+    def _has_maxlen(self) -> bool:
+        return self._maxlen > 0
+
     def empty(self) -> bool:
         """Return True if the queue is empty."""
         return not self._items
 
     def full(self) -> bool:
         """Return True if the queue is full."""
-        return self._maxlen > 0 and len(self._items) == self._maxlen
+        return self._has_maxlen and len(self._items) == self._maxlen
 
     def _put(self, item: T):
         self._items.append(item)
