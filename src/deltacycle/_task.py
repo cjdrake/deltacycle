@@ -176,34 +176,26 @@ class WaitTouch(TaskQueueIf):
 class Task(Awaitable[Any], LoopIf):
     """Coroutine wrapper."""
 
-    _index = 0
-
     def __init__(
         self,
         coro: Coroutine[Any, Any, Any],
-        name: str | None = None,
-        priority: int = 0,
+        name: str,
+        priority,
     ):
         self._state = TaskState.INIT
 
         self._coro = coro
-        if name is None:
-            self._name = f"Task-{self.__class__._index}"
-            self.__class__._index += 1
-        else:
-            self._name = name
+        self._name = name
         self._priority = priority
 
-        # Reference counts for this task
+        # Keep track of all queues containing this task
         self._refcnts: Counter[TaskQueueIf] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
 
-        # Completion
+        # Outputs
         self._result: Any = None
-
-        # Exception
         self._exception: Exception | None = None
 
     def __await__(self) -> Generator[None, Any, Task]:

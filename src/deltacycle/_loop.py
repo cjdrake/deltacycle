@@ -112,6 +112,7 @@ class Loop:
 
         # Currently executing task
         self._task: Task | None = None
+        self._task_index = 0
 
         # Task queue
         self._queue = PendQueue()
@@ -161,12 +162,10 @@ class Loop:
     def call_at(self, when: int, task: Task, value: Any = None):
         self._queue.push((when, task, value))
 
-    def create_main(self, coro: Coroutine[Any, Any, Any]) -> Task:
+    def create_main(self, coro: Coroutine[Any, Any, Any]):
         assert self._time == self.init_time
-        main = Task(coro, name=self.main_name, priority=self.main_priority)
-        self._main = main
-        self.call_at(self.start_time, main, value=None)
-        return main
+        self._main = Task(coro, self.main_name, self.main_priority)
+        self.call_at(self.start_time, self._main, value=None)
 
     def create_task(
         self,
@@ -175,7 +174,10 @@ class Loop:
         priority: int = 0,
     ) -> Task:
         assert self._time >= self.start_time
-        task = Task(coro, name=name, priority=priority)
+        if name is None:
+            name = f"Task-{self._task_index}"
+            self._task_index += 1
+        task = Task(coro, name, priority)
         self.call_soon(task, value=None)
         return task
 
@@ -388,7 +390,7 @@ def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None) -> Loop:
         if coro is None:
             raise ValueError("New loop requires a valid coro arg")
         assert coro is not None
-        _ = loop.create_main(coro)
+        loop.create_main(coro)
     else:
         set_loop(loop)
     return loop
