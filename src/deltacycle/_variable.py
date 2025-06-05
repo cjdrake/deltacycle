@@ -59,36 +59,36 @@ class Variable(Awaitable[Any], LoopIf):
         raise NotImplementedError()  # pragma: no cover
 
 
-class Value(ABC):
+class Value[T](ABC):
     """Variable value."""
 
-    def _get_prev(self) -> Any:
+    def _get_prev(self) -> T:
         raise NotImplementedError()  # pragma: no cover
 
     prev = property(fget=_get_prev)
 
-    def _set_next(self, value: Any) -> None:
+    def _set_next(self, value: T) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     next = property(fset=_set_next)
 
 
-class Singular(Variable, Value):
+class Singular[T](Variable, Value[T]):
     """Model state organized as a single unit."""
 
-    def __init__(self, value: Any):
+    def __init__(self, value: T):
         Variable.__init__(self)
         self._prev = value
         self._next = value
         self._changed: bool = False
 
     # Value
-    def _get_prev(self) -> Any:
+    def _get_prev(self) -> T:
         return self._prev
 
     prev = property(fget=_get_prev)
 
-    def _set_next(self, value: Any):
+    def _set_next(self, value: T):
         self._changed = value != self._next
         self._next = value
 
@@ -111,28 +111,28 @@ class Singular(Variable, Value):
         self._changed = False
 
 
-class Aggregate(Variable):
+class Aggregate[T](Variable):
     """Model state organized as multiple units."""
 
-    def __init__(self, value: Any):
+    def __init__(self, value: T):
         Variable.__init__(self)
-        self._prevs: dict[Hashable, Any] = defaultdict(lambda: value)
-        self._nexts: dict[Hashable, Any] = dict()
+        self._prevs: dict[Hashable, T] = defaultdict(lambda: value)
+        self._nexts: dict[Hashable, T] = dict()
 
     # [key] => Value
-    def __getitem__(self, key: Hashable) -> AggrItem:
+    def __getitem__(self, key: Hashable) -> AggrItem[T]:
         return AggrItem(self, key)
 
-    def _get_prev(self, key: Hashable) -> Any:
+    def _get_prev(self, key: Hashable) -> T:
         return self._prevs[key]
 
-    def _get_next(self, key: Hashable) -> Any:
+    def _get_next(self, key: Hashable) -> T:
         try:
             return self._nexts[key]
         except KeyError:
             return self._prevs[key]
 
-    def _set_next(self, key: Hashable, value: Any):
+    def _set_next(self, key: Hashable, value: T):
         if value != self._get_next(key):
             self._nexts[key] = value
 
@@ -140,7 +140,7 @@ class Aggregate(Variable):
         self._set()
 
     # Variable
-    def _get_value(self) -> AggrValue:
+    def _get_value(self) -> AggrValue[T]:
         return AggrValue(self)
 
     value = property(fget=_get_value)
@@ -154,29 +154,29 @@ class Aggregate(Variable):
             self._prevs[key] = value
 
 
-class AggrItem(Value):
+class AggrItem[T](Value[T]):
     """Wrap Aggregate __getitem__."""
 
-    def __init__(self, aggr: Aggregate, key: Hashable):
+    def __init__(self, aggr: Aggregate[T], key: Hashable):
         self._aggr = aggr
         self._key = key
 
-    def _get_prev(self) -> Any:
+    def _get_prev(self) -> T:
         return self._aggr._get_prev(self._key)
 
     prev = property(fget=_get_prev)
 
-    def _set_next(self, value: Any):
+    def _set_next(self, value: T):
         self._aggr._set_next(self._key, value)
 
     next = property(fset=_set_next)
 
 
-class AggrValue:
+class AggrValue[T]:
     """Wrap Aggregate value."""
 
-    def __init__(self, aggr: Aggregate):
+    def __init__(self, aggr: Aggregate[T]):
         self._aggr = aggr
 
-    def __getitem__(self, key: Hashable) -> Any:
+    def __getitem__(self, key: Hashable) -> T:
         return self._aggr._get_next(key)
