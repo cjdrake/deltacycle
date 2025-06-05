@@ -180,7 +180,7 @@ class Task(Awaitable[Any], LoopIf):
         self,
         coro: Coroutine[Any, Any, Any],
         name: str,
-        priority,
+        priority: int,
     ):
         self._state = TaskState.INIT
 
@@ -198,7 +198,7 @@ class Task(Awaitable[Any], LoopIf):
         self._result: Any = None
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, Any, Task]:
+    def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
             task = self._loop.task()
             self._waiting.push(task)
