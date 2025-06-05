@@ -107,10 +107,6 @@ def test_one_exception():
         else:
             assert False
 
-        # Cannot set an exception after task is done
-        with pytest.raises(InvalidStateError):
-            t1._set_exception(ValueError())
-
     run(main())
     list(irun(main()))
 

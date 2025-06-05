@@ -261,16 +261,17 @@ class Task(Awaitable[Any], LoopIf):
             del self._refcnts[tq]
 
     def _do_run(self, value: Any):
+        # Update state
         if self._state is TaskState.INIT:
             self._set_state(TaskState.RUNNING)
         else:
             assert self._state is TaskState.RUNNING
 
         # Start / Resume coroutine
-        if self._exception is None:
-            self._coro.send(value)
+        if isinstance(value, Exception):
+            self._coro.throw(value)
         else:
-            self._coro.throw(self._exception)
+            self._coro.send(value)
 
     def _do_result(self, exc: StopIteration):
         self._set_result(exc.value)
@@ -278,12 +279,12 @@ class Task(Awaitable[Any], LoopIf):
         self._set()
 
     def _do_cancel(self, exc: CancelledError):
-        self._set_exception(exc)
+        self._exception = exc
         self._set_state(TaskState.CANCELLED)
         self._set()
 
     def _do_except(self, exc: Exception):
-        self._set_exception(exc)
+        self._exception = exc
         self._set_state(TaskState.EXCEPTED)
         self._set()
 
@@ -323,11 +324,6 @@ class Task(Awaitable[Any], LoopIf):
             assert isinstance(self._exception, Exception)
             raise self._exception
         raise InvalidStateError("Task is not done")
-
-    def _set_exception(self, exc: Exception):
-        if self.done():
-            raise InvalidStateError("Task is already done")
-        self._exception = exc
 
     def exception(self) -> Exception | None:
         """Return the task's exception.
@@ -387,7 +383,6 @@ class Task(Awaitable[Any], LoopIf):
         self._renege()
 
         # Reschedule for cancellation
-        self._set_exception(exc)
-        self._loop.call_soon(self, value=None)
+        self._loop.call_soon(self, value=exc)
 
         return True
