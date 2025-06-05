@@ -20,7 +20,7 @@ class Event(LoopIf):
     def set(self):
         while self._waiting:
             task = self._waiting.pop()
-            self._loop.call_soon(task, value=self)
+            self._loop.call_soon(task, value=None)
         self._flag = True
 
     def clear(self):

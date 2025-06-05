@@ -472,7 +472,7 @@ async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
     loop = get_running_loop()
     task = loop.task()
-    loop.call_later(delay, task)
+    loop.call_later(delay, task, value=None)
     await _SuspendResume()
 
 

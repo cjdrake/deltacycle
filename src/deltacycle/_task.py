@@ -387,6 +387,6 @@ class Task(Awaitable[Any], LoopIf):
 
         # Reschedule for cancellation
         self._set_exception(exc)
-        self._loop.call_soon(self)
+        self._loop.call_soon(self, value=None)
 
         return True
