@@ -100,13 +100,14 @@ class PendQueue(TaskQueueIf):
         task._unlink(self)
         return (task, value)
 
-    def drop(self, task: Task):
+    def _find(self, task: Task):
         for i, (_, _, _, t, _) in enumerate(self._items):
             if t is task:
-                index = i
-                break
-        else:
-            assert False  # pragma: no cover
+                return i
+        assert False  # pragma: no cover
+
+    def drop(self, task: Task):
+        index = self._find(task)
         self._items.pop(index)
         task._unlink(self)
 
@@ -174,7 +175,11 @@ class WaitTouch(TaskQueueIf):
 
 
 class Task(Awaitable[Any], LoopIf):
-    """Coroutine wrapper."""
+    """Manage the life cycle of a coroutine.
+
+    Do NOT instantiate a Task directly.
+    Use ``create_task`` function, or (better) ``TaskGroup.create_task`` method.
+    """
 
     def __init__(
         self,
@@ -184,6 +189,7 @@ class Task(Awaitable[Any], LoopIf):
     ):
         self._state = TaskState.INIT
 
+        # Attributes
         self._coro = coro
         self._name = name
         self._priority = priority
@@ -219,14 +225,38 @@ class Task(Awaitable[Any], LoopIf):
 
     @property
     def coro(self) -> Coroutine[Any, Any, Any]:
+        """Wrapped coroutine."""
         return self._coro
 
     @property
     def name(self) -> str:
+        """Task name.
+
+        Primarily for debug; no functional effect.
+        There are no rules or restrictions for valid names.
+        Give tasks unique and recognizable names to help identify them.
+
+        If not provided to the create_task function,
+        a default name of ``Task-{index}`` will be assigned,
+        where ``index`` is a monotonically increasing integer value,
+        starting from 0.
+        """
         return self._name
 
     @property
     def priority(self) -> int:
+        """Task priority.
+
+        Tasks in the same time slot are executed in priority order.
+        Low values execute *before* high values.
+
+        For example,
+        a task scheduled to run at time 42 with priority -1 will execute
+        *before* a task scheduled to run at time 42 with priority +1.
+
+        If not provided to the create_task function,
+        a default priority of zero will be assigned.
+        """
         return self._priority
 
     def _set_state(self, state: TaskState):
@@ -285,8 +315,11 @@ class Task(Awaitable[Any], LoopIf):
     def done(self) -> bool:
         """Return True if the task is done.
 
-        A task that is "done" either 1) completed normally,
-        2) was cancelled by another task, or 3) raised an exception.
+        A task that is "done" either:
+
+        * Completed normally,
+        * Was cancelled by another task, or
+        * Raised an exception.
         """
         return self._state in self._done_states
 
@@ -372,4 +405,5 @@ class Task(Awaitable[Any], LoopIf):
         # Reschedule for cancellation
         self._loop.call_soon(self, value=exc)
 
+        # Success
         return True

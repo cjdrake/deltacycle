@@ -42,9 +42,12 @@ Tasks
 .. autoexception:: deltacycle.CancelledError
 .. autoexception:: deltacycle.InvalidStateError
 
+.. autoclass:: deltacycle.TaskState
+
 .. autoclass:: deltacycle.Task
     :show-inheritance:
 
+    .. automethod:: __await__
     .. autoproperty:: coro
     .. autoproperty:: name
     .. autoproperty:: priority
@@ -53,8 +56,6 @@ Tasks
     .. automethod:: result
     .. automethod:: exception
     .. automethod:: cancel
-
-.. autoclass:: deltacycle.TaskState
 
 .. autoclass:: deltacycle.TaskGroup
     :show-inheritance:
