@@ -7,11 +7,11 @@ and a collection of *processes*.
 Variables represent the instantaneous state of the simulation.
 They may be organized into arbitrary data structures.
 Processes define how that state evolves.
-They are scheduled to execute sequentially.
+They may appear concurrent, but are scheduled sequentially.
 
-Process execution is subdivided into sequential slots.
+Process execution is subdivided into a sequence of slots.
 Slots are assigned a monotonically increasing integer value, called *time*.
-Multiple processes may execute at the same time.
+Multiple processes may execute in the same slot, and therefore at the same time.
 The term "delta cycle" refers to a zero-delay subdivision of a time slot.
 It is the clockwork mechanism behind the illusion of concurrency.
 
