@@ -260,7 +260,7 @@ class Task(Awaitable[Any], LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, value: Any = None):
+    def _do_run(self, value: Any):
         if self._state is TaskState.INIT:
             self._set_state(TaskState.RUNNING)
         else:
