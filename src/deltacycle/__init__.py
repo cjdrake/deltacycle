@@ -51,6 +51,36 @@ logger.addFilter(DeltaCycleFilter())
 
 
 __all__ = [
+    # loop
+    "Loop",
+    "LoopState",
+    "changed",
+    "create_task",
+    "finish",
+    "get_current_task",
+    "get_loop",
+    "get_running_loop",
+    "irun",
+    "now",
+    "run",
+    "set_loop",
+    "sleep",
+    "touched",
+    # event
+    "Event",
+    # queue
+    "Queue",
+    # semaphore
+    "BoundedSemaphore",
+    "Lock",
+    "Semaphore",
+    # task
+    "CancelledError",
+    "InvalidStateError",
+    "Task",
+    "TaskState",
+    # task_group
+    "TaskGroup",
     # variable
     "Variable",
     "Value",
@@ -58,33 +88,4 @@ __all__ = [
     "Aggregate",
     "AggrItem",
     "AggrValue",
-    # task
-    "CancelledError",
-    "InvalidStateError",
-    "Task",
-    "TaskState",
-    "TaskGroup",
-    "create_task",
-    # event
-    "Event",
-    # semaphore
-    "Semaphore",
-    "BoundedSemaphore",
-    "Lock",
-    # queue
-    "Queue",
-    # loop
-    "Loop",
-    "LoopState",
-    "get_running_loop",
-    "get_current_task",
-    "get_loop",
-    "set_loop",
-    "now",
-    "run",
-    "irun",
-    "finish",
-    "sleep",
-    "changed",
-    "touched",
 ]
