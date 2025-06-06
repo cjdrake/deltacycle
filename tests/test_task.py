@@ -255,7 +255,7 @@ def test_cancel_waiting(caplog: LogCaptureFixture):
     async def cf(event: Event):
         logger.info("enter")
         try:
-            await event.wait()
+            await event
         except CancelledError:
             logger.info("cancelled")
         finally:

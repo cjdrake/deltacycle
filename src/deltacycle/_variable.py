@@ -27,11 +27,10 @@ class Variable(Awaitable[Any], LoopIf):
         self._waiting = WaitTouch()
 
     def __await__(self) -> Generator[None, Variable, Variable]:
-        task = self._loop.task()
-        self._waiting.push((self.changed, task))
+        self._wait(self.changed, self._loop.task())
         v: Variable = yield from self._loop.switch_gen()
         assert v is self
-        return v
+        return self
 
     def _wait(self, p: Predicate, task: Task):
         self._waiting.push((p, task))

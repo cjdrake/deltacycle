@@ -17,21 +17,21 @@ async def primary(event: Event):
     # T=10
     logger.info("set")
     event.set()
-    assert event.is_set()
+    assert event
 
     await sleep(10)
 
     # T=20
     logger.info("clear")
     event.clear()
-    assert not event.is_set()
+    assert not event
 
     await sleep(10)
 
     # T=30
     logger.info("set")
     event.set()
-    assert event.is_set()
+    assert event
 
     logger.info("exit")
 
@@ -41,7 +41,7 @@ async def secondary(event: Event):
 
     # Event clear
     logger.info("waiting")
-    await event.wait()
+    await event
 
     # Event set @10
     logger.info("running")
@@ -49,14 +49,14 @@ async def secondary(event: Event):
 
     # Event clear
     logger.info("waiting")
-    await event.wait()
+    await event
 
     # Event set @30
     logger.info("running")
     await sleep(10)
 
     # Event still set: return immediately
-    await event.wait()
+    await event
 
     logger.info("exit")
 

@@ -1,30 +1,38 @@
 """Event synchronization primitive"""
 
+from collections.abc import Awaitable, Generator
+from typing import Any
+
 from ._loop_if import LoopIf
-from ._task import WaitFifo
+from ._task import Task, WaitFifo
 
 
-class Event(LoopIf):
+class Event(Awaitable[Any], LoopIf):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
         self._flag = False
         self._waiting = WaitFifo()
 
-    async def wait(self):
-        if not self._flag:
-            task = self._loop.task()
-            self._waiting.push(task)
-            await self._loop.switch_coro()
+    def __bool__(self) -> bool:
+        return self._flag
 
-    def set(self):
+    def __await__(self) -> Generator[None, None, None]:
+        if not self._flag:
+            self._wait(self._loop.task())
+            yield from self._loop.switch_gen()
+
+    def _wait(self, task: Task):
+        self._waiting.push(task)
+
+    def _set(self):
         while self._waiting:
             task = self._waiting.pop()
             self._loop.call_soon(task, value=None)
+
+    def set(self):
         self._flag = True
+        self._set()
 
     def clear(self):
         self._flag = False
-
-    def is_set(self) -> bool:
-        return self._flag
