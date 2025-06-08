@@ -42,6 +42,7 @@ class Queue[T](Sized, LoopIf):
         """Nonblocking put: Return True if a put attempt is successful."""
         if self.full():
             return False
+
         self._put(item)
         return True
 
@@ -65,7 +66,9 @@ class Queue[T](Sized, LoopIf):
         """Nonblocking get: Return True if a get attempt is successful."""
         if self.empty():
             return False, None
-        return True, self._get()
+
+        item = self._get()
+        return True, item
 
     async def get(self) -> T:
         """Block until an item is available to get."""
