@@ -1,5 +1,7 @@
 """Event synchronization primitive"""
 
+from __future__ import annotations
+
 from collections.abc import Awaitable, Generator
 from typing import Any
 
@@ -17,10 +19,13 @@ class Event(Awaitable[Any], LoopIf):
     def __bool__(self) -> bool:
         return self._flag
 
-    def __await__(self) -> Generator[None, None, None]:
+    def __await__(self) -> Generator[None, Event, Event]:
         if not self._flag:
             self._wait(self._loop.task())
-            yield from self._loop.switch_gen()
+            e: Event = yield from self._loop.switch_gen()
+            assert e is self
+
+        return self
 
     def _wait(self, task: Task):
         self._waiting.push(task)
@@ -28,7 +33,8 @@ class Event(Awaitable[Any], LoopIf):
     def _set(self):
         while self._waiting:
             task = self._waiting.pop()
-            self._loop.call_soon(task, value=None)
+            # Send event id to parent task
+            self._loop.call_soon(task, value=self)
 
     def set(self):
         self._flag = True
