@@ -8,6 +8,30 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.9.0
+=============
+
+Changed ``Event`` API:
+
+* Replace ``Event.wait`` with ``Event.__await``,
+* and ``Event.is_set`` with ``Event.__bool__``.
+
+Previously::
+
+    e = Event()
+    await e.wait()
+    assert e.is_set()
+
+Now::
+
+    e = Event()
+    await e
+    assert e
+
+Lots of little updates and optimizations,
+but nothing else (intentionally) visible to the user.
+
+
 Version 0.8.0
 =============
 

@@ -71,10 +71,10 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Event
     :show-inheritance:
 
-    .. automethod:: deltacycle.Event.wait
+    .. automethod:: deltacycle.Event.__bool__
+    .. automethod:: deltacycle.Event.__await__
     .. automethod:: deltacycle.Event.set
     .. automethod:: deltacycle.Event.clear
-    .. automethod:: deltacycle.Event.is_set
 
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
