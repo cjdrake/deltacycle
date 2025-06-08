@@ -148,8 +148,8 @@ class WaitTouch(TaskQueueIf):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._items: deque[Task] = deque()
         self._tps: dict[Task, Predicate] = dict()
+        self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
         return bool(self._items)
