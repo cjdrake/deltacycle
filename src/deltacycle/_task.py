@@ -161,6 +161,7 @@ class WaitTouch(TaskQueueIf):
 
     def pop(self) -> Task:
         task = self._items.popleft()
+        self.drop(task)
         return task
 
     def drop(self, task: Task):
