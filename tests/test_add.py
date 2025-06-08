@@ -31,15 +31,15 @@ def test_add(caplog: LogCaptureFixture):
     period = 10
 
     # Inputs
-    clk = Bool()
+    clk = Bool(name="clk")
 
-    a = Bool()
-    b = Bool()
-    ci = Bool()
+    a = Bool(name="a")
+    b = Bool(name="b")
+    ci = Bool(name="ci")
 
     # Outputs
-    s = Bool()
-    co = Bool()
+    s = Bool(name="s")
+    co = Bool(name="co")
 
     async def drv_clk():
         clk.next = False
@@ -68,10 +68,10 @@ def test_add(caplog: LogCaptureFixture):
             logger.info("s=%d co=%d", s.prev, co.prev)
 
     async def main():
-        create_task(drv_clk(), priority=0)
-        create_task(drv_inputs(), priority=0)
-        create_task(drv_outputs(), priority=-1)
-        create_task(mon_outputs(), priority=1)
+        create_task(drv_clk(), priority=0, name="drv_clk")
+        create_task(drv_inputs(), priority=0, name="drv_inputs")
+        create_task(drv_outputs(), priority=-1, name="drv_outputs")
+        create_task(mon_outputs(), priority=1, name="mon_outputs")
 
     until = period * len(VALS)
     run(main(), until=until)

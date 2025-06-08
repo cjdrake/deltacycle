@@ -32,18 +32,18 @@ VALS = [
 def test_regfile(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    clk = Bool()
+    clk = Bool(name="clk")
     period = 10
 
-    wr_en = Bool()
-    wr_addr = Int()
-    wr_data = Int()
+    wr_en = Bool(name="wr_en")
+    wr_addr = Int(name="wr_addr")
+    wr_data = Int(name="wr_data")
 
-    rd_addr = Int()
-    rd_data = Int()
+    rd_addr = Int(name="rd_addr")
+    rd_data = Int(name="rd_data")
 
     # State
-    regs = IntMem()
+    regs = IntMem(name="regs")
 
     async def drv_clk():
         clk.next = False

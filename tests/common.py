@@ -10,8 +10,9 @@ logger = logging.getLogger("deltacycle")
 class Bool(Singular):
     """Variable that supports dumping to memory."""
 
-    def __init__(self):
+    def __init__(self, name: str):
         super().__init__(value=bool())
+        self._name = name
 
     def is_posedge(self) -> bool:
         return not self._prev and self._next
@@ -33,10 +34,12 @@ class Bool(Singular):
 
 
 class Int(Singular):
-    def __init__(self):
+    def __init__(self, name: str):
         super().__init__(value=int())
+        self._name = name
 
 
 class IntMem(Aggregate):
-    def __init__(self):
+    def __init__(self, name: str):
         super().__init__(value=int())
+        self._name = name

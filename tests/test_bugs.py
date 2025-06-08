@@ -22,7 +22,7 @@ EXP2 = {
 def test_2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    clock = Bool()
+    clock = Bool(name="clock")
 
     async def do_stuff():
         await clock.posedge()

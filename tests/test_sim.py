@@ -66,10 +66,10 @@ def test_vars_run(caplog: LogCaptureFixture):
     """Test run, halt, run."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    clk = Bool()
-    a = Bool()
-    b = Bool()
-    c = Bool()
+    clk = Bool(name="clk")
+    a = Bool(name="a")
+    b = Bool(name="b")
+    c = Bool(name="c")
 
     async def main():
         create_task(drv_clk(clk), priority=2)
@@ -94,10 +94,10 @@ def test_vars_iter(caplog: LogCaptureFixture):
     """Test iter, iter."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    clk = Bool()
-    a = Bool()
-    b = Bool()
-    c = Bool()
+    clk = Bool(name="clk")
+    a = Bool(name="a")
+    b = Bool(name="b")
+    c = Bool(name="c")
 
     async def main():
         create_task(drv_clk(clk), priority=2)
@@ -127,10 +127,10 @@ def test_vars_run_iter(caplog: LogCaptureFixture):
     """Test run, halt, iter."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    clk = Bool()
-    a = Bool()
-    b = Bool()
-    c = Bool()
+    clk = Bool(name="clk")
+    a = Bool(name="a")
+    b = Bool(name="b")
+    c = Bool(name="c")
 
     async def main():
         create_task(drv_clk(clk), priority=2)
