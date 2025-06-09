@@ -149,7 +149,7 @@ class WaitTouch(TaskQueueIf):
 
     def __init__(self):
         self._tps: dict[Task, Predicate] = dict()
-        self._items: deque[Task] = deque()
+        self._items: set[Task] = set()
 
     def __bool__(self) -> bool:
         return bool(self._items)
@@ -160,7 +160,7 @@ class WaitTouch(TaskQueueIf):
         self._tps[task] = p
 
     def pop(self) -> Task:
-        task = self._items.popleft()
+        task = self._items.pop()
         self.drop(task)
         return task
 
@@ -170,9 +170,7 @@ class WaitTouch(TaskQueueIf):
 
     def touch(self):
         assert not self._items
-        for task, p in self._tps.items():
-            if p():
-                self._items.append(task)
+        self._items.update(t for t, p in self._tps.items() if p())
 
 
 class Task(Awaitable[Any], LoopIf):
