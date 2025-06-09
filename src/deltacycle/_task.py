@@ -262,6 +262,10 @@ class Task(Awaitable[Any], LoopIf):
         """
         return self._priority
 
+    @property
+    def group(self) -> TaskGroup | None:
+        return self._group
+
     def _set_state(self, state: TaskState):
         assert state in _task_state_transitions[self._state]
         logger.debug("%s: %s => %s", self.name, self._state.name, state.name)
@@ -269,10 +273,6 @@ class Task(Awaitable[Any], LoopIf):
 
     def state(self) -> TaskState:
         return self._state
-
-    @property
-    def group(self) -> TaskGroup | None:
-        return self._group
 
     def _link(self, tq: TaskQueueIf):
         self._refcnts[tq] += 1

@@ -51,6 +51,7 @@ Tasks
     .. autoproperty:: coro
     .. autoproperty:: name
     .. autoproperty:: priority
+    .. autoproperty:: group
     .. automethod:: state
     .. automethod:: done
     .. automethod:: result
@@ -122,6 +123,7 @@ Loop
 
 .. autofunction:: deltacycle.get_running_loop
 .. autofunction:: deltacycle.get_current_task
+.. autofunction:: deltacycle.get_current_task_group
 .. autofunction:: deltacycle.get_loop
 .. autofunction:: deltacycle.set_loop
 
