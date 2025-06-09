@@ -8,6 +8,15 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.10.0
+==============
+
+Added a ``Task.group`` property,
+and corresponding ``get_current_task_group`` top-level function.
+This will make it easier to find the active TaskGroup without having to pass it
+as an argument all over the place.
+
+
 Version 0.9.0
 =============
 
