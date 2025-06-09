@@ -1,5 +1,7 @@
 """Task Group"""
 
+from __future__ import annotations
+
 from collections.abc import Coroutine
 from types import TracebackType
 from typing import Any
@@ -18,7 +20,7 @@ class TaskGroup(LoopIf):
         self._done: list[Task] = []
         self._excs: list[Exception] = []
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> TaskGroup:
         return self
 
     def _record(self, child: Task) -> bool:
