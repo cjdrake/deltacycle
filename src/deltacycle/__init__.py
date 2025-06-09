@@ -26,8 +26,7 @@ from ._loop import (
 )
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
-from ._task import CancelledError, InvalidStateError, Task, TaskState
-from ._task_group import TaskGroup
+from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
 from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
 # Customize logging
