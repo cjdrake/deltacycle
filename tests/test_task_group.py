@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import Task, TaskGroup, TaskState, run, sleep
+from deltacycle import Task, TaskGroup, TaskState, get_current_task_group, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -23,7 +23,9 @@ async def cf_x(t: int, r: int):
     raise ArithmeticError(r)
 
 
-async def cf_c(tg: TaskGroup, name: str, t0: int, r0: int, t1: int, r1: int):
+async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int):
+    tg = get_current_task_group()
+    assert tg is not None
     logger.info("enter")
     await sleep(t0)
     tg.create_task(cf_r(t1, r1), name=name)
@@ -234,10 +236,10 @@ def test_group_newborns_except(caplog: LogCaptureFixture):
         with pytest.raises(ExceptionGroup) as e:
             async with TaskGroup() as tg:
                 # Newborns
-                ts.append(tg.create_task(cf_c(tg, "N0", 2, 0, 7, 10), name="C0"))
-                ts.append(tg.create_task(cf_c(tg, "N1", 2, 1, 8, 11), name="C1"))
-                ts.append(tg.create_task(cf_c(tg, "N2", 2, 2, 9, 12), name="C2"))
-                ts.append(tg.create_task(cf_c(tg, "N3", 2, 3, 10, 13), name="C3"))
+                ts.append(tg.create_task(cf_c("N0", 2, 0, 7, 10), name="C0"))
+                ts.append(tg.create_task(cf_c("N1", 2, 1, 8, 11), name="C1"))
+                ts.append(tg.create_task(cf_c("N2", 2, 2, 9, 12), name="C2"))
+                ts.append(tg.create_task(cf_c("N3", 2, 3, 10, 13), name="C3"))
 
                 # These tasks will complete successfully
                 ts.append(tg.create_task(cf_r(5, 4), name="C4"))

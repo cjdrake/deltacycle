@@ -194,6 +194,9 @@ class Task(Awaitable[Any], LoopIf):
         self._name = name
         self._priority = priority
 
+        # Set if created within a group
+        self._group: TaskGroup | None = None
+
         # Keep track of all queues containing this task
         self._refcnts: Counter[TaskQueueIf] = Counter()
 
@@ -266,6 +269,10 @@ class Task(Awaitable[Any], LoopIf):
 
     def state(self) -> TaskState:
         return self._state
+
+    @property
+    def group(self) -> TaskGroup | None:
+        return self._group
 
     def _link(self, tq: TaskQueueIf):
         self._refcnts[tq] += 1
@@ -498,5 +505,6 @@ class TaskGroup(LoopIf):
         priority: int = 0,
     ) -> Task:
         task = self._loop.create_task(coro, name, priority)
+        task._group = self
         self._children.append(task)
         return task

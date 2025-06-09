@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
-from ._task import CancelledError, PendQueue, Task
+from ._task import CancelledError, PendQueue, Task, TaskGroup
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -369,6 +369,19 @@ def get_current_task() -> Task:
     """
     loop = get_running_loop()
     return loop.task()
+
+
+def get_current_task_group() -> TaskGroup | None:
+    """Return currently running task group, or None.
+
+    Returns:
+        TaskGroup instance, or None if task is not part of a group
+
+    Raises:
+        RuntimeError: No loop, or loop is not currently running.
+    """
+    task = get_current_task()
+    return task.group
 
 
 def now() -> int:
