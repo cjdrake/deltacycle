@@ -8,12 +8,13 @@ import logging
 from logging import Filter, LogRecord
 
 from ._event import Event
-from ._loop import (
-    Loop,
-    LoopState,
+from ._loop import Loop, LoopState, finish
+from ._queue import Queue
+from ._semaphore import BoundedSemaphore, Lock, Semaphore
+from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
+from ._top import (
     changed,
     create_task,
-    finish,
     get_current_task,
     get_current_task_group,
     get_loop,
@@ -25,9 +26,6 @@ from ._loop import (
     sleep,
     touched,
 )
-from ._queue import Queue
-from ._semaphore import BoundedSemaphore, Lock, Semaphore
-from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
 from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
 # Customize logging
@@ -54,19 +52,7 @@ __all__ = [
     # loop
     "Loop",
     "LoopState",
-    "changed",
-    "create_task",
     "finish",
-    "get_current_task",
-    "get_current_task_group",
-    "get_loop",
-    "get_running_loop",
-    "irun",
-    "now",
-    "run",
-    "set_loop",
-    "sleep",
-    "touched",
     # event
     "Event",
     # queue
@@ -89,4 +75,17 @@ __all__ = [
     "Aggregate",
     "AggrItem",
     "AggrValue",
+    # top
+    "changed",
+    "create_task",
+    "get_current_task",
+    "get_current_task_group",
+    "get_loop",
+    "get_running_loop",
+    "irun",
+    "now",
+    "run",
+    "set_loop",
+    "sleep",
+    "touched",
 ]

@@ -11,6 +11,6 @@ from functools import cached_property
 class LoopIf(ABC):
     @cached_property
     def _loop(self):
-        from ._loop import get_running_loop
+        from ._top import get_running_loop
 
         return get_running_loop()
