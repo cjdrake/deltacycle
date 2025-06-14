@@ -120,20 +120,19 @@ Loop
     .. automethod:: deltacycle.Loop.task
     .. automethod:: deltacycle.Loop.done
 
+.. autofunction:: deltacycle.finish
+
 .. autofunction:: deltacycle.get_running_loop
-.. autofunction:: deltacycle.get_current_task
-.. autofunction:: deltacycle.get_current_task_group
 .. autofunction:: deltacycle.get_loop
 .. autofunction:: deltacycle.set_loop
+.. autofunction:: deltacycle.get_current_task
+.. autofunction:: deltacycle.get_current_task_group
 
 .. autofunction:: deltacycle.now
 
 .. autofunction:: deltacycle.run
 .. autofunction:: deltacycle.irun
 
-.. autofunction:: deltacycle.finish
-
 .. autofunction:: deltacycle.sleep
 
-.. autofunction:: deltacycle.changed
 .. autofunction:: deltacycle.touched
