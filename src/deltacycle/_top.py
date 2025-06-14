@@ -195,7 +195,8 @@ async def changed(*vs: Variable) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v in vs:
-        v._wait(v.changed, task)
+        v._waiting.push((v.changed, task))
+        loop._task2vars[task].add(v)
     v: Variable = await loop.switch_coro()
     return v
 
@@ -217,6 +218,7 @@ async def touched(vps: dict[Variable, Predicate]) -> Variable:
     loop = get_running_loop()
     task = loop.task()
     for v, p in vps.items():
-        v._wait(p, task)
+        v._waiting.push((p, task))
+        loop._task2vars[task].add(v)
     v: Variable = await loop.switch_coro()
     return v

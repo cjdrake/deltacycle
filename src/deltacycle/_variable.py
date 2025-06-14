@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Generator, Hashable
 from typing import Any
 
 from ._loop_if import LoopIf
-from ._task import Predicate, Task, WaitTouch
+from ._task import WaitTouch
 
 
 class Variable(Awaitable[Any], LoopIf):
@@ -27,20 +27,29 @@ class Variable(Awaitable[Any], LoopIf):
         self._waiting = WaitTouch()
 
     def __await__(self) -> Generator[None, Variable, Variable]:
-        self._wait(self.changed, self._loop.task())
+        task = self._loop.task()
+        self._waiting.push((self.changed, task))
+        self._loop._task2vars[task].add(self)
         v: Variable = yield from self._loop.switch_gen()
         assert v is self
         return self
 
-    def _wait(self, p: Predicate, task: Task):
-        self._waiting.push((p, task))
+    # def _wait(self, p: Predicate, task: Task):
+    #    self._waiting.push((p, task))
 
     def _set(self):
         self._waiting.touch()
 
         while self._waiting:
             task = self._waiting.pop()
-            task._renege()
+
+            # Remove task from Variable waiting queues
+            self._loop._task2vars[task].remove(self)
+            while self._loop._task2vars[task]:
+                v = self._loop._task2vars[task].pop()
+                v._waiting.drop(task)
+            del self._loop._task2vars[task]
+
             # Send variable id to parent task
             self._loop.call_soon(task, value=self)
 

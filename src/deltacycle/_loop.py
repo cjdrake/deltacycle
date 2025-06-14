@@ -1,6 +1,7 @@
 """Event Loop"""
 
 import logging
+from collections import defaultdict
 from collections.abc import Awaitable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
@@ -102,6 +103,9 @@ class Loop:
 
         # Task queue
         self._queue = PendQueue()
+
+        # Task => Variable mapping table
+        self._task2vars: defaultdict[Task, set[Variable]] = defaultdict(set)
 
         # Model variables
         self._touched: set[Variable] = set()
