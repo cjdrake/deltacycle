@@ -135,9 +135,6 @@ class Loop:
     def done(self) -> bool:
         return self._state in self._done_states
 
-    def finished(self) -> bool:
-        return self._state is LoopState.FINISHED
-
     # Scheduling methods
     def call_soon(self, task: Task, value: Any = None):
         self._queue.push((self._time, task, value))

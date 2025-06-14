@@ -153,7 +153,6 @@ def test_finish2(caplog: LogCaptureFixture):
     assert loop is not None
     assert loop.state() is LoopState.FINISHED
     assert loop.done()
-    assert loop.finished()
 
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1

@@ -119,7 +119,6 @@ Loop
     .. autoproperty:: deltacycle.Loop.main
     .. automethod:: deltacycle.Loop.task
     .. automethod:: deltacycle.Loop.done
-    .. automethod:: deltacycle.Loop.finished
 
 .. autofunction:: deltacycle.get_running_loop
 .. autofunction:: deltacycle.get_current_task
