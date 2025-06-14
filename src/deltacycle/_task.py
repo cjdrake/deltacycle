@@ -145,7 +145,7 @@ class WaitFifo(TaskQueueIf):
         task._unlink(self)
 
 
-class WaitTouch(TaskQueueIf):
+class WaitSet(TaskQueueIf):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -169,7 +169,7 @@ class WaitTouch(TaskQueueIf):
         del self._tps[task]
         task._unlink(self)
 
-    def touch(self):
+    def set(self):
         assert not self._items
         self._items.update(t for t, p in self._tps.items() if p())
 
