@@ -180,27 +180,6 @@ async def sleep(delay: int):
     await loop.switch_coro()
 
 
-async def changed(*vs: Variable) -> Variable:
-    """Resume execution upon variable change.
-
-    Suspend execution of the current task;
-    Resume when any variable in the sensitivity list changes.
-
-    Args:
-        vs: Tuple of Variables, a sensitivity list.
-
-    Returns:
-        The Variable instance that triggered the task to resume.
-    """
-    loop = get_running_loop()
-    task = loop.task()
-    for v in vs:
-        v._waiting.push((v.changed, task))
-        loop._task2vars[task].add(v)
-    v: Variable = await loop.switch_coro()
-    return v
-
-
 async def touched(vps: dict[Variable, Predicate]) -> Variable:
     """Resume execution upon predicated variable change.
 

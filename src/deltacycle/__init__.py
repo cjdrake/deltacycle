@@ -13,7 +13,6 @@ from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
 from ._top import (
-    changed,
     create_task,
     get_current_task,
     get_current_task_group,
@@ -76,7 +75,6 @@ __all__ = [
     "AggrItem",
     "AggrValue",
     # top
-    "changed",
     "create_task",
     "get_current_task",
     "get_current_task_group",

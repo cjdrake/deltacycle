@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import changed, create_task, run, sleep, touched
+from deltacycle import create_task, run, sleep, touched
 
 from .common import Bool, Int, IntMem
 
@@ -80,8 +80,9 @@ def test_regfile(caplog: LogCaptureFixture):
             regs[wr_addr.prev].next = wr_data.prev
 
     async def rd_port():
+        vps = {regs: regs.changed, rd_addr: rd_addr.changed}
         while True:
-            await changed(regs, rd_addr)
+            await touched(vps)
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():

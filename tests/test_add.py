@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import changed, create_task, run, sleep
+from deltacycle import create_task, run, sleep, touched
 
 from .common import Bool
 
@@ -55,8 +55,9 @@ def test_add(caplog: LogCaptureFixture):
             await clk.posedge()
 
     async def drv_outputs():
+        vps = {a: a.changed, b: b.changed, ci: ci.changed}
         while True:
-            await changed(a, b, ci)
+            await touched(vps)
             g = a.value & b.value
             p = a.value | b.value
             s.next = a.value ^ b.value ^ ci.value
