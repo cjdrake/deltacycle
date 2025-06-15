@@ -135,4 +135,5 @@ Loop
 
 .. autofunction:: deltacycle.sleep
 
+.. autofunction:: deltacycle.any_event
 .. autofunction:: deltacycle.touched

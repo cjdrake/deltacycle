@@ -3,6 +3,7 @@
 from collections.abc import Coroutine, Generator
 from typing import Any
 
+from ._event import Event
 from ._loop import Loop, LoopState
 from ._task import Predicate, Task, TaskGroup
 from ._variable import Variable
@@ -178,6 +179,26 @@ async def sleep(delay: int):
     task = loop.task()
     loop.call_later(delay, task, value=None)
     await loop.switch_coro()
+
+
+async def any_event(*events: Event) -> Event:
+    """Resume execution after first event.
+
+    Suspend execution of the current task;
+    Resume after any event in the sensitivity list,
+
+    Args:
+        events: Tuple of Event, a sensitivity list.
+
+    Returns:
+        The Event instance that triggered the task to resume.
+    """
+    loop = get_running_loop()
+    task = loop.task()
+    for e in events:
+        e._wait(task)
+    e: Event = await loop.switch_coro()
+    return e
 
 
 async def touched(vps: dict[Variable, Predicate]) -> Variable:

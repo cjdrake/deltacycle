@@ -21,7 +21,8 @@ class Event(Awaitable[Any], LoopIf):
 
     def __await__(self) -> Generator[None, Event, Event]:
         if not self._flag:
-            self._wait(self._loop.task())
+            task = self._loop.task()
+            self._wait(task)
             e: Event = yield from self._loop.switch_gen()
             assert e is self
 
@@ -29,10 +30,19 @@ class Event(Awaitable[Any], LoopIf):
 
     def _wait(self, task: Task):
         self._waiting.push(task)
+        self._loop._task2events[task].add(self)
 
     def _set(self):
         while self._waiting:
             task = self._waiting.pop()
+
+            # Remove task from Event waiting queues
+            self._loop._task2events[task].remove(self)
+            while self._loop._task2events[task]:
+                v = self._loop._task2events[task].pop()
+                v._waiting.drop(task)
+            del self._loop._task2events[task]
+
             # Send event id to parent task
             self._loop.call_soon(task, value=self)
 

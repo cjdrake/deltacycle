@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Event, create_task, now, run, sleep
+from deltacycle import Event, any_event, create_task, get_running_loop, now, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -128,5 +128,28 @@ def test_serial():
         assert e is e1 and now() == 20
         e: Event = await e2
         assert e is e2 and now() == 30
+
+    run(main())
+
+
+def test_any():
+    async def sleep_set(t: int, e: Event):
+        await sleep(t)
+        e.set()
+
+    async def main():
+        e10 = Event()
+        e20 = Event()
+        e30 = Event()
+
+        create_task(sleep_set(10, e10), name="e10")
+        create_task(sleep_set(20, e20), name="e20")
+        create_task(sleep_set(30, e30), name="e30")
+
+        e = await any_event(e10, e20, e30)
+        assert e is e10
+
+        loop = get_running_loop()
+        assert not loop._task2events
 
     run(main())

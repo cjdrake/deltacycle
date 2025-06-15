@@ -13,6 +13,7 @@ from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
 from ._top import (
+    any_event,
     create_task,
     get_current_task,
     get_current_task_group,
@@ -85,5 +86,6 @@ __all__ = [
     "run",
     "set_loop",
     "sleep",
+    "any_event",
     "touched",
 ]

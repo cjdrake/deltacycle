@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Coroutine, Generator
 from enum import IntEnum, auto
 from typing import Any
 
+from ._event import Event
 from ._task import CancelledError, PendQueue, Task
 from ._variable import Variable
 
@@ -103,6 +104,9 @@ class Loop:
 
         # Task queue
         self._queue = PendQueue()
+
+        # Task => Event mapping table
+        self._task2events: defaultdict[Task, set[Event]] = defaultdict(set)
 
         # Task => Variable mapping table
         self._task2vars: defaultdict[Task, set[Variable]] = defaultdict(set)
