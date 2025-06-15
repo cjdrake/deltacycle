@@ -203,6 +203,9 @@ class Task(Awaitable[Any], LoopIf):
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
 
+        # Flag to avoid multiple cancellation
+        self._cancelling = False
+
         # Outputs
         self._result: Any = None
         self._exception: Exception | None = None
@@ -308,6 +311,7 @@ class Task(Awaitable[Any], LoopIf):
         self._set()
 
     def _do_cancel(self, exc: CancelledError):
+        self._cancelling = False
         self._exception = exc
         self._set_state(TaskState.CANCELLED)
         self._set()
@@ -396,7 +400,7 @@ class Task(Awaitable[Any], LoopIf):
             CancelledError: If the task cancels itself
         """
         # Already done; do nothing
-        if self.done():
+        if self._cancelling or self.done():
             return False
 
         args = () if msg is None else (msg,)
@@ -410,6 +414,7 @@ class Task(Awaitable[Any], LoopIf):
         self._renege()
 
         # Reschedule for cancellation
+        self._cancelling = True
         self._loop.call_soon(self, value=exc)
 
         # Success
