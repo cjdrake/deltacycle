@@ -81,6 +81,8 @@ EXP2 = {
     # Main
     (0, "main", "enter"),
     (10, "main", "exit"),
+    # Weirdo
+    (0, "X0", "enter"),
     # Coro 0 - completes
     (0, "C0", "enter"),
     (5, "C0", "exit"),
@@ -114,6 +116,12 @@ def test_group_child_except(caplog: LogCaptureFixture):
                 # Handle weird case of done child
                 await tg.create_task(sleep(0))
 
+                # Another weird case of done child that raised an exception
+                try:
+                    await tg.create_task(cf_x(0, 69), name="X0")
+                except ArithmeticError:
+                    pass
+
                 # These tasks will complete successfully
                 ts.append(tg.create_task(cf_r(5, 0), name="C0"))
                 ts.append(tg.create_task(cf_r(10, 1), name="C1"))
@@ -141,7 +149,6 @@ def test_group_child_except(caplog: LogCaptureFixture):
         exc = ts[3].exception()
         assert isinstance(exc, ArithmeticError) and exc.args == (3,)
 
-        assert e.value.args[0] == "errors"
         excs = e.value.args[1]
         assert [type(exc) for exc in excs] == [ArithmeticError, ArithmeticError]
         assert [exc.args for exc in excs] == [(2,), (3,)]
@@ -266,7 +273,6 @@ def test_group_newborns_except(caplog: LogCaptureFixture):
         exc = ts[7].exception()
         assert isinstance(exc, ArithmeticError) and exc.args == (7,)
 
-        assert e.value.args[0] == "errors"
         excs = e.value.args[1]
         assert [type(exc) for exc in excs] == [ArithmeticError, ArithmeticError]
         assert [exc.args for exc in excs] == [(6,), (7,)]
