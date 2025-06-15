@@ -201,7 +201,7 @@ async def any_event(*events: Event) -> Event:
     return e
 
 
-async def touched(vps: dict[Variable, Predicate]) -> Variable:
+async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     """Resume execution upon predicated variable change.
 
     Suspend execution of the current task;

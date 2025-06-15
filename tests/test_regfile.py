@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import create_task, run, sleep, touched
+from deltacycle import any_var, create_task, run, sleep
 
 from .common import Bool, Int, IntMem
 
@@ -76,13 +76,13 @@ def test_regfile(caplog: LogCaptureFixture):
             return clk.is_posedge() and wr_en.prev
 
         while True:
-            await touched({clk: clk_pred})
+            await any_var({clk: clk_pred})
             regs[wr_addr.prev].next = wr_data.prev
 
     async def rd_port():
         vps = {regs: regs.changed, rd_addr: rd_addr.changed}
         while True:
-            await touched(vps)
+            await any_var(vps)
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():

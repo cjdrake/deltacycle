@@ -14,6 +14,7 @@ from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
 from ._top import (
     any_event,
+    any_var,
     create_task,
     get_current_task,
     get_current_task_group,
@@ -24,7 +25,6 @@ from ._top import (
     run,
     set_loop,
     sleep,
-    touched,
 )
 from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
@@ -87,5 +87,5 @@ __all__ = [
     "set_loop",
     "sleep",
     "any_event",
-    "touched",
+    "any_var",
 ]
