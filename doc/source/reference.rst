@@ -132,9 +132,8 @@ Loop
 .. autofunction:: deltacycle.get_loop
 .. autofunction:: deltacycle.set_loop
 
-.. autofunction:: deltacycle.now
-
 .. autofunction:: deltacycle.run
 .. autofunction:: deltacycle.irun
 
+.. autofunction:: deltacycle.now
 .. autofunction:: deltacycle.sleep

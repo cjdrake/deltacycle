@@ -53,8 +53,16 @@ __all__ = [
     "Loop",
     "LoopState",
     "finish",
+    "get_running_loop",
+    "get_loop",
+    "set_loop",
+    "run",
+    "irun",
+    "now",
+    "sleep",
     # event
     "Event",
+    "any_event",
     # queue
     "Queue",
     # semaphore
@@ -66,8 +74,10 @@ __all__ = [
     "InvalidStateError",
     "Task",
     "TaskState",
-    # task_group
     "TaskGroup",
+    "create_task",
+    "get_current_task",
+    "get_current_task_group",
     # variable
     "Variable",
     "Value",
@@ -75,17 +85,5 @@ __all__ = [
     "Aggregate",
     "AggrItem",
     "AggrValue",
-    # top
-    "create_task",
-    "get_current_task",
-    "get_current_task_group",
-    "get_loop",
-    "get_running_loop",
-    "irun",
-    "now",
-    "run",
-    "set_loop",
-    "sleep",
-    "any_event",
     "any_var",
 ]
