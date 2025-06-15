@@ -35,6 +35,8 @@ Variables
 
 .. autoclass:: deltacycle.AggrValue
 
+.. autofunction:: deltacycle.any_var
+
 
 Tasks
 =====
@@ -64,6 +66,8 @@ Tasks
     .. automethod:: deltacycle.TaskGroup.create_task
 
 .. autofunction:: deltacycle.create_task
+.. autofunction:: deltacycle.get_current_task
+.. autofunction:: deltacycle.get_current_task_group
 
 
 Synchronization Primitives
@@ -76,6 +80,8 @@ Synchronization Primitives
     .. automethod:: deltacycle.Event.__await__
     .. automethod:: deltacycle.Event.set
     .. automethod:: deltacycle.Event.clear
+
+.. autofunction:: deltacycle.any_event
 
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
@@ -125,8 +131,6 @@ Loop
 .. autofunction:: deltacycle.get_running_loop
 .. autofunction:: deltacycle.get_loop
 .. autofunction:: deltacycle.set_loop
-.. autofunction:: deltacycle.get_current_task
-.. autofunction:: deltacycle.get_current_task_group
 
 .. autofunction:: deltacycle.now
 
@@ -134,6 +138,3 @@ Loop
 .. autofunction:: deltacycle.irun
 
 .. autofunction:: deltacycle.sleep
-
-.. autofunction:: deltacycle.any_event
-.. autofunction:: deltacycle.any_var
