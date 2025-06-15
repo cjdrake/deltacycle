@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Generator, Hashable
 from typing import Any
 
 from ._loop_if import LoopIf
-from ._task import WaitSet
+from ._task import Predicate, Task, WaitSet
 
 
 class Variable(Awaitable[Any], LoopIf):
@@ -28,14 +28,14 @@ class Variable(Awaitable[Any], LoopIf):
 
     def __await__(self) -> Generator[None, Variable, Variable]:
         task = self._loop.task()
-        self._waiting.push((self.changed, task))
-        self._loop._task2vars[task].add(self)
+        self._wait(self.changed, task)
         v: Variable = yield from self._loop.switch_gen()
         assert v is self
         return self
 
-    # def _wait(self, p: Predicate, task: Task):
-    #    self._waiting.push((p, task))
+    def _wait(self, p: Predicate, task: Task):
+        self._waiting.push((p, task))
+        self._loop._task2vars[task].add(self)
 
     def _set(self):
         self._waiting.set()
