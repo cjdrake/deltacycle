@@ -8,6 +8,15 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.11.0
+==============
+
+* Got rid of ``Loop.finished`` method.
+* Got rid of ``changed`` function.
+* Added new ``any_event(e1, e2, ...)`` function.
+* Renamed ``touched`` to ``any_var``.
+
+
 Version 0.10.0
 ==============
 
