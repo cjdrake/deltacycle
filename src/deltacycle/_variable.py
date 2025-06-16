@@ -106,7 +106,7 @@ class Singular[T](Variable, Value[T]):
     next = property(fset=_set_next)
 
     # Variable
-    def _get_value(self):
+    def _get_value(self) -> T:
         return self._next
 
     value = property(fget=_get_value)
