@@ -309,17 +309,20 @@ class Task(Awaitable[Any], LoopIf):
         self._result = exc.value
         self._set_state(TaskState.RESULTED)
         self._set()
+        assert self._refcnts.total() == 0
 
     def _do_cancel(self, exc: CancelledError):
         self._cancelling = False
         self._exception = exc
         self._set_state(TaskState.CANCELLED)
         self._set()
+        assert self._refcnts.total() == 0
 
     def _do_except(self, exc: Exception):
         self._exception = exc
         self._set_state(TaskState.EXCEPTED)
         self._set()
+        assert self._refcnts.total() == 0
 
     _done_states = frozenset([TaskState.RESULTED, TaskState.CANCELLED, TaskState.EXCEPTED])
 
