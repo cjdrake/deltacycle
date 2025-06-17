@@ -430,8 +430,9 @@ class TaskGroup(LoopIf):
     def __init__(self):
         self._parent = self._loop.task()
 
-        # Tasks created, but not yet awaited
-        self._created: set[Task] = set()
+        # Tasks started in the with block
+        self._setup_done = False
+        self._setup_tasks: set[Task] = set()
 
         # Tasks in running/waiting/cancelling/pending state
         self._awaited: set[Task] = set()
@@ -445,8 +446,14 @@ class TaskGroup(LoopIf):
         exc: Exception | None,
         traceback: TracebackType | None,
     ):
+        self._setup_done = True
+
         # Start newly created tasks; ignore exceptions handled by parent
-        _ = self._start_new()
+        while self._setup_tasks:
+            child = self._setup_tasks.pop()
+            if not child.done():
+                self._awaited.add(child)
+                child._wait(self._parent)
 
         # Parent raised an exception:
         # Cancel children; suppress exceptions
@@ -455,9 +462,6 @@ class TaskGroup(LoopIf):
             while self._awaited:
                 child: Task = await self._loop.switch_coro()
                 self._awaited.remove(child)
-                _ = self._check_done(child)
-                # No opportunity to spawn new children
-                assert not self._created
 
             # Re-raise parent exception
             return False
@@ -468,38 +472,18 @@ class TaskGroup(LoopIf):
         while self._awaited:
             child: Task = await self._loop.switch_coro()
             self._awaited.remove(child)
-            excs = self._check_done(child) + self._start_new()
-            if excs:
+            if child.state() is TaskState.EXCEPTED:
+                assert child._exception is not None
+                child_excs.append(child._exception)
                 self._cancel_awaited()
-            child_excs.extend(excs)
 
         # Re-raise child exceptions
         if child_excs:
             raise ExceptionGroup("Child task(s) raised exception(s)", child_excs)
 
-    def _start_new(self) -> list[Exception]:
-        child_excs: list[Exception] = []
-        while self._created:
-            child = self._created.pop()
-            if child.done():
-                excs = self._check_done(child)
-                child_excs.extend(excs)
-            else:
-                self._awaited.add(child)
-                child._wait(self._parent)
-        return child_excs
-
     def _cancel_awaited(self):
         for child in self._awaited:
             child.cancel()
-
-    def _check_done(self, child: Task) -> list[Exception]:
-        if child.state() in {TaskState.RESULTED, TaskState.CANCELLED}:
-            return []
-        if child.state() is TaskState.EXCEPTED:
-            assert child._exception is not None
-            return [child._exception]
-        assert False  # pragma: no cover
 
     def create_task(
         self,
@@ -507,7 +491,11 @@ class TaskGroup(LoopIf):
         name: str | None = None,
         priority: int = 0,
     ) -> Task:
-        task = self._loop.create_task(coro, name, priority)
-        task._group = self
-        self._created.add(task)
-        return task
+        child = self._loop.create_task(coro, name, priority)
+        child._group = self
+        if self._setup_done:
+            self._awaited.add(child)
+            child._wait(self._parent)
+        else:
+            self._setup_tasks.add(child)
+        return child
