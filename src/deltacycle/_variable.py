@@ -70,15 +70,15 @@ class Variable(Awaitable[Any], LoopIf):
 class Value[T](ABC):
     """Variable value."""
 
-    def _get_prev(self) -> T:
+    def get_prev(self) -> T:
         raise NotImplementedError()  # pragma: no cover
 
-    prev = property(fget=_get_prev)
+    prev = property(fget=get_prev)
 
-    def _set_next(self, value: T) -> None:
+    def set_next(self, value: T) -> None:
         raise NotImplementedError()  # pragma: no cover
 
-    next = property(fset=_set_next)
+    next = property(fset=set_next)
 
 
 class Singular[T](Variable, Value[T]):
@@ -91,25 +91,25 @@ class Singular[T](Variable, Value[T]):
         self._changed: bool = False
 
     # Value
-    def _get_prev(self) -> T:
+    def get_prev(self) -> T:
         return self._prev
 
-    prev = property(fget=_get_prev)
+    prev = property(fget=get_prev)
 
-    def _set_next(self, value: T):
+    def set_next(self, value: T):
         self._changed = value != self._next
         self._next = value
 
         # Notify the event loop
         self._set()
 
-    next = property(fset=_set_next)
+    next = property(fset=set_next)
 
     # Variable
-    def _get_value(self) -> T:
+    def get_value(self) -> T:
         return self._next
 
-    value = property(fget=_get_value)
+    value = property(fget=get_value)
 
     def changed(self) -> bool:
         return self._changed
@@ -131,27 +131,27 @@ class Aggregate[T](Variable):
     def __getitem__(self, key: Hashable) -> AggrItem[T]:
         return AggrItem(self, key)
 
-    def _get_prev(self, key: Hashable) -> T:
+    def get_prev(self, key: Hashable) -> T:
         return self._prevs[key]
 
-    def _get_next(self, key: Hashable) -> T:
+    def get_next(self, key: Hashable) -> T:
         try:
             return self._nexts[key]
         except KeyError:
             return self._prevs[key]
 
-    def _set_next(self, key: Hashable, value: T):
-        if value != self._get_next(key):
+    def set_next(self, key: Hashable, value: T):
+        if value != self.get_next(key):
             self._nexts[key] = value
 
         # Notify the event loop
         self._set()
 
     # Variable
-    def _get_value(self) -> AggrValue[T]:
+    def get_value(self) -> AggrValue[T]:
         return AggrValue(self)
 
-    value = property(fget=_get_value)
+    value = property(fget=get_value)
 
     def changed(self) -> bool:
         return bool(self._nexts)
@@ -169,15 +169,15 @@ class AggrItem[T](Value[T]):
         self._aggr = aggr
         self._key = key
 
-    def _get_prev(self) -> T:
-        return self._aggr._get_prev(self._key)
+    def get_prev(self) -> T:
+        return self._aggr.get_prev(self._key)
 
-    prev = property(fget=_get_prev)
+    prev = property(fget=get_prev)
 
-    def _set_next(self, value: T):
-        self._aggr._set_next(self._key, value)
+    def set_next(self, value: T):
+        self._aggr.set_next(self._key, value)
 
-    next = property(fset=_set_next)
+    next = property(fset=set_next)
 
 
 class AggrValue[T]:
@@ -187,4 +187,4 @@ class AggrValue[T]:
         self._aggr = aggr
 
     def __getitem__(self, key: Hashable) -> T:
-        return self._aggr._get_next(key)
+        return self._aggr.get_next(key)

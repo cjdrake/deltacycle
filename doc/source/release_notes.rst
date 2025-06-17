@@ -8,6 +8,17 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.12.0
+==============
+
+Change a few ``Variable`` method names from ``_protected`` to public:
+
+* ``_get_prev`` => ``get_prev``
+* ``_set_next`` => ``set_next``
+* ``_get_value`` => ``get_value``
+* ``_get_next`` => ``get_next``
+
+
 Version 0.11.0
 ==============
 

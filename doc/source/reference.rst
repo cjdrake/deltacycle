@@ -19,7 +19,9 @@ Variables
 .. autoclass:: deltacycle.Value
     :show-inheritance:
 
+    .. automethod:: get_prev
     .. autoproperty:: prev
+    .. automethod:: set_next
     .. autoproperty:: next
 
 .. autoclass:: deltacycle.Singular
@@ -28,7 +30,9 @@ Variables
 .. autoclass:: deltacycle.Aggregate
     :show-inheritance:
 
-    .. automethod:: deltacycle.Aggregate.__getitem__
+    .. automethod:: __getitem__
+    .. automethod:: get_prev
+    .. automethod:: set_next
 
 .. autoclass:: deltacycle.AggrItem
     :show-inheritance:

@@ -213,7 +213,7 @@ class Task(Awaitable[Any], LoopIf):
     def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
             task = self._loop.task()
-            self._waiting.push(task)
+            self._wait(task)
             t: Task = yield from self._loop.switch_gen()
             assert t is self
 
