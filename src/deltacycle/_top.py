@@ -198,6 +198,7 @@ async def any_event(*events: Event) -> Event:
         for e in events:
             e._wait(task)
         fst = await loop.switch_coro()
+        assert isinstance(fst, Event)
 
     return fst
 
