@@ -182,10 +182,22 @@ async def any_event(*events: Event) -> Event:
     """
     loop = get_running_loop()
     task = loop.task()
+
+    # Search for first set event
+    fst = None
     for e in events:
-        e._wait(task)
-    e: Event = await loop.switch_coro()
-    return e
+        if e:
+            fst = e
+            break
+
+    # No events set yet
+    if fst is None:
+        # Await first event to be set
+        for e in events:
+            e._wait(task)
+        fst = await loop.switch_coro()
+
+    return fst
 
 
 async def any_var(vps: dict[Variable, Predicate]) -> Variable:
