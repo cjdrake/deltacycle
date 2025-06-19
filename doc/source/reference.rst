@@ -27,17 +27,22 @@ Variables
 .. autoclass:: deltacycle.Singular
     :show-inheritance:
 
+    .. automethod:: get_value
+
 .. autoclass:: deltacycle.Aggregate
     :show-inheritance:
 
     .. automethod:: __getitem__
     .. automethod:: get_prev
     .. automethod:: set_next
+    .. automethod:: get_value
 
 .. autoclass:: deltacycle.AggrItem
     :show-inheritance:
 
 .. autoclass:: deltacycle.AggrValue
+
+    .. automethod:: __getitem__
 
 .. autofunction:: deltacycle.any_var
 
