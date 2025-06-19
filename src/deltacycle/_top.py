@@ -76,13 +76,15 @@ def now() -> int:
 
 def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None) -> Loop:
     if loop is None:
-        set_loop(loop := Loop())
+        loop = Loop()
+        set_loop(loop)
         if coro is None:
             raise ValueError("New loop requires a valid coro arg")
         assert coro is not None
         loop.create_main(coro)
     else:
         set_loop(loop)
+
     return loop
 
 
