@@ -5,7 +5,7 @@ from typing import Any
 
 from ._event import Event
 from ._loop import Loop, LoopState
-from ._task import Predicate, Task, TaskGroup
+from ._task import Predicate, Task
 from ._variable import Variable
 
 _loop: Loop | None = None
@@ -49,19 +49,6 @@ def get_current_task() -> Task:
     """
     loop = get_running_loop()
     return loop.task()
-
-
-def get_current_task_group() -> TaskGroup | None:
-    """Return currently running task group, or None.
-
-    Returns:
-        TaskGroup instance, or None if task is not part of a group
-
-    Raises:
-        RuntimeError: No loop, or loop is not currently running.
-    """
-    task = get_current_task()
-    return task.group
 
 
 def create_task(

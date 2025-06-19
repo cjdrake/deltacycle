@@ -71,7 +71,6 @@ Tasks
 
 .. autofunction:: deltacycle.create_task
 .. autofunction:: deltacycle.get_current_task
-.. autofunction:: deltacycle.get_current_task_group
 
 
 Synchronization Primitives

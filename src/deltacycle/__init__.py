@@ -17,7 +17,6 @@ from ._top import (
     any_var,
     create_task,
     get_current_task,
-    get_current_task_group,
     get_loop,
     get_running_loop,
     irun,
@@ -77,7 +76,6 @@ __all__ = [
     "TaskGroup",
     "create_task",
     "get_current_task",
-    "get_current_task_group",
     # variable
     "Variable",
     "Value",

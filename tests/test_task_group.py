@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import Task, TaskGroup, TaskState, get_current_task_group, run, sleep
+from deltacycle import Task, TaskGroup, TaskState, get_current_task, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -24,11 +24,11 @@ async def cf_x(t: int, r: int):
 
 
 async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int):
-    tg = get_current_task_group()
-    assert tg is not None
+    task = get_current_task()
+    assert task.group is not None
     logger.info("enter")
     await sleep(t0)
-    tg.create_task(cf_r(t1, r1), name=name)
+    task.group.create_task(cf_r(t1, r1), name=name)
     logger.info("exit")
     return r0
 
