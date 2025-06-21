@@ -2,7 +2,7 @@
 
 import logging
 from collections import defaultdict
-from collections.abc import Awaitable, Coroutine, Generator
+from collections.abc import Awaitable, Coroutine, Generator, Iterable
 from enum import IntEnum, auto
 from typing import Any
 
@@ -65,7 +65,7 @@ _loop_state_transitions = {
 }
 
 
-class Loop:
+class Loop(Iterable):
     """Simulation event loop.
 
     Responsible for:
@@ -196,6 +196,8 @@ class Loop:
 
     def _finish(self):
         self._queue.clear()
+        self._task2events.clear()
+        self._task2vars.clear()
         self._touched.clear()
         self._set_state(LoopState.FINISHED)
 
