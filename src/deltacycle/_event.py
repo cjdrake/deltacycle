@@ -28,6 +28,9 @@ class Event(Awaitable[Any], LoopIf):
 
         return self
 
+    def __or__(self, other: Event) -> EventList:
+        return EventList(self, other)
+
     def _wait(self, task: Task):
         self._waiting.push(task)
         self._loop._task2events[task].add(self)
@@ -52,3 +55,30 @@ class Event(Awaitable[Any], LoopIf):
 
     def clear(self):
         self._flag = False
+
+
+class EventList(Awaitable[Any], LoopIf):
+    def __init__(self, *events: Event):
+        self._events = events
+
+    def __await__(self) -> Generator[None, Event, Event]:
+        task = self._loop.task()
+
+        fst = None
+        for e in self._events:
+            if e:
+                fst = e
+                break
+
+        # No events set yet
+        if fst is None:
+            # Await first event to be set
+            for e in self._events:
+                e._wait(task)
+            fst = yield from self._loop.switch_gen()
+            assert isinstance(fst, Event)
+
+        return fst
+
+    def __or__(self, other: Event) -> EventList:
+        return EventList(*self._events, other)

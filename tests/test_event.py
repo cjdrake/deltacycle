@@ -179,3 +179,52 @@ def test_any_one_set():
         assert not loop._task2events
 
     run(main())
+
+
+def test_list_any_list():
+    async def sleep_set(t: int, e: Event):
+        await sleep(t)
+        e.set()
+
+    async def main():
+        e10 = Event()
+        e20 = Event()
+        e30 = Event()
+
+        create_task(sleep_set(10, e10), name="e10")
+        create_task(sleep_set(20, e20), name="e20")
+        create_task(sleep_set(30, e30), name="e30")
+
+        e = await (e10 | e20 | e30)
+        assert e is e10
+
+        loop = get_running_loop()
+        assert not loop._task2events
+
+    run(main())
+
+
+def test_list_any_one_set():
+    async def sleep_set(t: int, e: Event):
+        await sleep(t)
+        e.set()
+
+    async def main():
+        e10 = Event()
+        e20 = Event()
+        e30 = Event()
+
+        e20.set()
+
+        create_task(sleep_set(10, e10), name="e10")
+        create_task(sleep_set(20, e20), name="e20")
+        create_task(sleep_set(30, e30), name="e30")
+
+        e = await (e10 | e20 | e30)
+        assert e is e20
+        assert now() == 0
+
+        loop = get_running_loop()
+        assert not loop._task2events
+
+    run(main())

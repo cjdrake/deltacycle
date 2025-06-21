@@ -7,7 +7,7 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 import logging
 from logging import Filter, LogRecord
 
-from ._event import Event
+from ._event import Event, EventList
 from ._loop import Loop, LoopState, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
@@ -61,6 +61,7 @@ __all__ = [
     "sleep",
     # event
     "Event",
+    "EventList",
     "any_event",
     # queue
     "Queue",
