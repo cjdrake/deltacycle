@@ -39,8 +39,8 @@ class Event(Awaitable[Any], LoopIf):
             # Remove task from Event waiting queues
             self._loop._task2events[task].remove(self)
             while self._loop._task2events[task]:
-                v = self._loop._task2events[task].pop()
-                v._waiting.drop(task)
+                e = self._loop._task2events[task].pop()
+                e._waiting.drop(task)
             del self._loop._task2events[task]
 
             # Send event id to parent task
