@@ -101,7 +101,7 @@ class PendQueue(TaskQueueIf):
         task._unlink(self)
         return (task, value)
 
-    def _find(self, task: Task):
+    def _find(self, task: Task) -> int:
         for i, (_, _, _, t, _) in enumerate(self._items):
             if t is task:
                 return i
