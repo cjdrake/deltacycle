@@ -56,8 +56,6 @@ class Variable(Awaitable[Any], LoopIf):
         # Add variable to update set
         self._loop.touch(self)
 
-    value = property(fget=lambda self: NotImplemented)
-
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""
         raise NotImplementedError()  # pragma: no cover
