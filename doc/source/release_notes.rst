@@ -8,6 +8,20 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.13.0
+==============
+
+Added an ``EventList`` class,
+to enable waiting for the first event to fire using ``e1 | e2 | ...`` syntax.
+
+For example::
+
+    # Previously
+    >>> e = any_event(e1, e2, ...)
+    # New syntax
+    >>> e = await (e0 | e1 | ...)
+
+
 Version 0.12.0
 ==============
 
