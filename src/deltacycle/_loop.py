@@ -65,7 +65,7 @@ _loop_state_transitions = {
 }
 
 
-class Loop(Iterable):
+class Loop(Iterable[int]):
     """Simulation event loop.
 
     Responsible for:
