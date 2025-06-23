@@ -11,7 +11,7 @@ from ._event import Event, EventList
 from ._loop import Loop, LoopState, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
-from ._task import CancelledError, InvalidStateError, Task, TaskGroup, TaskState
+from ._task import CancelledError, InvalidStateError, Predicate, Task, TaskGroup, TaskState
 from ._top import (
     any_event,
     any_var,
@@ -72,6 +72,7 @@ __all__ = [
     # task
     "CancelledError",
     "InvalidStateError",
+    "Predicate",
     "Task",
     "TaskState",
     "TaskGroup",
