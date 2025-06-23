@@ -7,7 +7,7 @@ from deltacycle import Aggregate, Singular, any_var
 logger = logging.getLogger("deltacycle")
 
 
-class Bool(Singular):
+class Bool(Singular[bool]):
     """Variable that supports dumping to memory."""
 
     def __init__(self, name: str):
@@ -33,13 +33,13 @@ class Bool(Singular):
         await any_var({self: self.is_edge})
 
 
-class Int(Singular):
+class Int(Singular[int]):
     def __init__(self, name: str):
         super().__init__(value=int())
         self._name = name
 
 
-class IntMem(Aggregate):
+class IntMem(Aggregate[int]):
     def __init__(self, name: str):
         super().__init__(value=int())
         self._name = name
