@@ -52,7 +52,7 @@ Tasks
 =====
 
 .. autoexception:: deltacycle.CancelledError
-.. autoexception:: deltacycle.InvalidStateError
+.. autoexception:: deltacycle.TaskStateError
 
 .. autoclass:: deltacycle.TaskState
 

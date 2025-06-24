@@ -26,7 +26,7 @@ class CancelledError(Exception):
     """Task has been cancelled."""
 
 
-class InvalidStateError(Exception):
+class TaskStateError(Exception):
     """Task has an invalid state."""
 
 
@@ -353,7 +353,7 @@ class Task(Awaitable[Any], LoopIf):
         Raises:
             CancelledError: If the task was cancelled.
             Exception: If the task raise any other type of exception.
-            InvalidStateError: If the task is not done.
+            TaskStateError: If the task is not done.
         """
         if self._state is TaskState.RESULTED:
             assert self._exception is None
@@ -364,7 +364,7 @@ class Task(Awaitable[Any], LoopIf):
         if self._state is TaskState.EXCEPTED:
             assert isinstance(self._exception, Exception)
             raise self._exception
-        raise InvalidStateError("Task is not done")
+        raise TaskStateError("Task is not done")
 
     def exception(self) -> Exception | None:
         """Return the task's exception.
@@ -385,7 +385,7 @@ class Task(Awaitable[Any], LoopIf):
         if self._state is TaskState.EXCEPTED:
             assert isinstance(self._exception, Exception)
             return self._exception
-        raise InvalidStateError("Task is not done")
+        raise TaskStateError("Task is not done")
 
     def cancel(self, msg: str | None = None) -> bool:
         """Schedule task for cancellation.

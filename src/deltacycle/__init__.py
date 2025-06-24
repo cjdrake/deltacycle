@@ -13,13 +13,13 @@ from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
     CancelledError,
-    InvalidStateError,
     Predicate,
     Task,
     TaskCoro,
     TaskGen,
     TaskGroup,
     TaskState,
+    TaskStateError,
 )
 from ._top import (
     any_event,
@@ -84,7 +84,7 @@ __all__ = [
     "TaskCoro",
     "TaskGen",
     "CancelledError",
-    "InvalidStateError",
+    "TaskStateError",
     "TaskState",
     "Task",
     "TaskGroup",
