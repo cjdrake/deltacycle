@@ -10,6 +10,8 @@ from typing import Any
 from ._loop_if import LoopIf
 from ._task import Predicate, Task, WaitSet
 
+type VarGen = Generator[None, Variable, Variable]
+
 
 class Variable(Awaitable[Any], LoopIf):
     """Model component.
@@ -26,7 +28,7 @@ class Variable(Awaitable[Any], LoopIf):
     def __init__(self):
         self._waiting = WaitSet()
 
-    def __await__(self) -> Generator[None, Variable, Variable]:
+    def __await__(self) -> VarGen:
         task = self._loop.task()
         self._wait(self.changed, task)
         v: Variable = yield from self._loop.switch_gen()

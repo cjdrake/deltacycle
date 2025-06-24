@@ -17,6 +17,10 @@ logger = logging.getLogger("deltacycle")
 
 type Predicate = Callable[[], bool]
 
+# TODO(cjdrake): Restrict SendType?
+type TaskCoro = Coroutine[None, Any, Any]
+type TaskGen = Generator[None, Task, Any]
+
 
 class CancelledError(Exception):
     """Task has been cancelled."""
@@ -183,7 +187,7 @@ class Task(Awaitable[Any], LoopIf):
 
     def __init__(
         self,
-        coro: Coroutine[Any, Any, Any],
+        coro: TaskCoro,
         name: str,
         priority: int,
     ):
@@ -210,7 +214,7 @@ class Task(Awaitable[Any], LoopIf):
         self._result: Any = None
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, Task, Any]:
+    def __await__(self) -> TaskGen:
         if not self.done():
             task = self._loop.task()
             self._wait(task)
@@ -230,7 +234,7 @@ class Task(Awaitable[Any], LoopIf):
             self._loop.call_soon(task, value=self)
 
     @property
-    def coro(self) -> Coroutine[Any, Any, Any]:
+    def coro(self) -> TaskCoro:
         """Wrapped coroutine."""
         return self._coro
 
@@ -301,9 +305,12 @@ class Task(Awaitable[Any], LoopIf):
 
         # Start / Resume coroutine
         if isinstance(value, Exception):
-            self._coro.throw(value)
+            y = self._coro.throw(value)
         else:
-            self._coro.send(value)
+            y = self._coro.send(value)
+
+        # TaskCoro YieldType=None
+        assert y is None
 
     def _do_result(self, exc: StopIteration):
         self._result = exc.value
@@ -487,7 +494,7 @@ class TaskGroup(LoopIf):
 
     def create_task(
         self,
-        coro: Coroutine[Any, Any, Any],
+        coro: TaskCoro,
         name: str | None = None,
         priority: int = 0,
     ) -> Task:

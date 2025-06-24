@@ -2,12 +2,12 @@
 
 import logging
 from collections import defaultdict
-from collections.abc import Awaitable, Coroutine, Generator, Iterable
+from collections.abc import Awaitable, Generator, Iterable
 from enum import IntEnum, auto
 from typing import Any
 
 from ._event import Event
-from ._task import CancelledError, PendQueue, Task
+from ._task import CancelledError, PendQueue, Task, TaskCoro
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -153,14 +153,14 @@ class Loop(Iterable[int]):
     def call_at(self, when: int, task: Task, value: Any = None):
         self._queue.push((when, task, value))
 
-    def create_main(self, coro: Coroutine[Any, Any, Any]):
+    def create_main(self, coro: TaskCoro):
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
         self.call_at(self.start_time, self._main, value=None)
 
     def create_task(
         self,
-        coro: Coroutine[Any, Any, Any],
+        coro: TaskCoro,
         name: str | None = None,
         priority: int = 0,
     ) -> Task:

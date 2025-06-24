@@ -8,6 +8,8 @@ from typing import Any
 from ._loop_if import LoopIf
 from ._task import Task, WaitFifo
 
+type EventGen = Generator[None, Event, Event]
+
 
 class Event(Awaitable[Any], LoopIf):
     """Notify multiple tasks that some event has happened."""
@@ -19,7 +21,7 @@ class Event(Awaitable[Any], LoopIf):
     def __bool__(self) -> bool:
         return self._flag
 
-    def __await__(self) -> Generator[None, Event, Event]:
+    def __await__(self) -> EventGen:
         if not self._flag:
             task = self._loop.task()
             self._wait(task)
@@ -61,7 +63,7 @@ class EventList(Awaitable[Any], LoopIf):
     def __init__(self, *events: Event):
         self._events = events
 
-    def __await__(self) -> Generator[None, Event, Event]:
+    def __await__(self) -> EventGen:
         task = self._loop.task()
 
         fst = None

@@ -1,12 +1,15 @@
 """Top-level functions."""
 
-from collections.abc import Coroutine, Generator
+from collections.abc import Generator
 from typing import Any
 
 from ._event import Event
 from ._loop import Loop, LoopState
-from ._task import Predicate, Task
+from ._task import Predicate, Task, TaskCoro
 from ._variable import Variable
+
+# yields time: int; returns main.result()
+type LoopGen = Generator[int, None, Any]
 
 _loop: Loop | None = None
 
@@ -52,7 +55,7 @@ def get_current_task() -> Task:
 
 
 def create_task(
-    coro: Coroutine[Any, Any, Any],
+    coro: TaskCoro,
     name: str | None = None,
     priority: int = 0,
 ) -> Task:
@@ -74,7 +77,7 @@ def now() -> int:
     return loop.time()
 
 
-def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None) -> Loop:
+def _run_pre(coro: TaskCoro | None, loop: Loop | None) -> Loop:
     if loop is None:
         loop = Loop()
         set_loop(loop)
@@ -89,7 +92,7 @@ def _run_pre(coro: Coroutine[Any, Any, Any] | None, loop: Loop | None) -> Loop:
 
 
 def run(
-    coro: Coroutine[Any, Any, Any] | None = None,
+    coro: TaskCoro | None = None,
     loop: Loop | None = None,
     ticks: int | None = None,
     until: int | None = None,
@@ -127,10 +130,7 @@ def run(
         return loop.main.result()
 
 
-def irun(
-    coro: Coroutine[Any, Any, Any] | None = None,
-    loop: Loop | None = None,
-) -> Generator[int, None, Any]:
+def irun(coro: TaskCoro | None = None, loop: Loop | None = None) -> LoopGen:
     """Iterate a simulation.
 
     Iterated simulations do not have a run limit.

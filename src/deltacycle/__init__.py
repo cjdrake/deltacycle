@@ -7,11 +7,20 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 import logging
 from logging import Filter, LogRecord
 
-from ._event import Event, EventList
+from ._event import Event, EventGen, EventList
 from ._loop import Loop, LoopState, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
-from ._task import CancelledError, InvalidStateError, Predicate, Task, TaskGroup, TaskState
+from ._task import (
+    CancelledError,
+    InvalidStateError,
+    Predicate,
+    Task,
+    TaskCoro,
+    TaskGen,
+    TaskGroup,
+    TaskState,
+)
 from ._top import (
     any_event,
     any_var,
@@ -25,7 +34,7 @@ from ._top import (
     set_loop,
     sleep,
 )
-from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
+from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, VarGen, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)
@@ -49,8 +58,8 @@ logger.addFilter(DeltaCycleFilter())
 
 __all__ = [
     # loop
-    "Loop",
     "LoopState",
+    "Loop",
     "finish",
     "get_running_loop",
     "get_loop",
@@ -60,25 +69,29 @@ __all__ = [
     "now",
     "sleep",
     # event
+    "EventGen",
     "Event",
     "EventList",
     "any_event",
     # queue
     "Queue",
     # semaphore
+    "Semaphore",
     "BoundedSemaphore",
     "Lock",
-    "Semaphore",
     # task
+    "Predicate",
+    "TaskCoro",
+    "TaskGen",
     "CancelledError",
     "InvalidStateError",
-    "Predicate",
-    "Task",
     "TaskState",
+    "Task",
     "TaskGroup",
     "create_task",
     "get_current_task",
     # variable
+    "VarGen",
     "Variable",
     "Value",
     "Singular",
