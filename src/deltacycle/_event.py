@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Generator
-from typing import Any
 
 from ._loop_if import LoopIf
 from ._task import Task, WaitFifo
@@ -59,7 +58,7 @@ class Event(Awaitable["Event"], LoopIf):
         self._flag = False
 
 
-class EventList(Awaitable[Any], LoopIf):
+class EventList(Awaitable[Event], LoopIf):
     def __init__(self, *events: Event):
         self._events = events
 
