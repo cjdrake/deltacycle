@@ -5,7 +5,6 @@ from __future__ import annotations
 from abc import ABC
 from collections import defaultdict
 from collections.abc import Awaitable, Generator, Hashable
-from typing import Any
 
 from ._loop_if import LoopIf
 from ._task import Predicate, Task, WaitSet
