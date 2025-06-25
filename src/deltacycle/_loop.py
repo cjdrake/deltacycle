@@ -26,6 +26,7 @@ class _SuspendResume(Awaitable[Any]):
     The value X can be used to pass information to the task.
     """
 
+    # TODO(cjdrake): Restrict SendType/ReturnType?
     def __await__(self) -> Generator[None, Any, Any]:
         # Suspend
         value = yield
@@ -172,6 +173,7 @@ class Loop(Iterable[int]):
         self.call_soon(task, value=None)
         return task
 
+    # TODO(cjdrake): Restrict ReturnType?
     async def switch_coro(self) -> Any:
         assert self._task is not None
         # Suspend
@@ -179,6 +181,7 @@ class Loop(Iterable[int]):
         # Resume
         return value
 
+    # TODO(cjdrake): Restrict SendType/ReturnType?
     def switch_gen(self) -> Generator[None, Any, Any]:
         assert self._task is not None
         # Suspend
