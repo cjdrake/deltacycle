@@ -11,7 +11,7 @@ from ._task import Task, WaitFifo
 type EventGen = Generator[None, Event, Event]
 
 
-class Event(Awaitable[Any], LoopIf):
+class Event(Awaitable["Event"], LoopIf):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):

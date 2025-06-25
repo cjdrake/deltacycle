@@ -13,7 +13,7 @@ from ._task import Predicate, Task, WaitSet
 type VarGen = Generator[None, Variable, Variable]
 
 
-class Variable(Awaitable[Any], LoopIf):
+class Variable(Awaitable["Variable"], LoopIf):
     """Model component.
 
     Children::
