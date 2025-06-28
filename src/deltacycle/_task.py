@@ -30,6 +30,14 @@ class TaskStateError(Exception):
     """Task has an invalid state."""
 
 
+class TaskCommand(IntEnum):
+    """Task Run Command."""
+
+    START = auto()
+    SEND = auto()
+    THROW = auto()
+
+
 class TaskState(IntEnum):
     """Task State
 
@@ -55,7 +63,10 @@ class TaskState(IntEnum):
 
 
 _task_state_transitions = {
-    TaskState.INIT: {TaskState.RUNNING},
+    TaskState.INIT: {
+        TaskState.RUNNING,
+        TaskState.CANCELLED,
+    },
     TaskState.RUNNING: {
         TaskState.RESULTED,
         TaskState.CANCELLED,
@@ -231,7 +242,7 @@ class Task(Awaitable[Any], LoopIf):
         while self._waiting:
             task = self._waiting.pop()
             # Send child id to parent task
-            self._loop.call_soon(task, value=self)
+            self._loop.call_soon(task, value=(TaskCommand.SEND, self))
 
     @property
     def coro(self) -> TaskCoro:
@@ -296,18 +307,18 @@ class Task(Awaitable[Any], LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, value: Any):
-        # Update state
-        if self._state is TaskState.INIT:
-            self._set_state(TaskState.RUNNING)
-        else:
-            assert self._state is TaskState.RUNNING
-
-        # Start / Resume coroutine
-        if isinstance(value, Exception):
-            y = self._coro.throw(value)
-        else:
-            y = self._coro.send(value)
+    def _do_run(self, *args):
+        match args:
+            case (TaskCommand.START,):
+                self._set_state(TaskState.RUNNING)
+                y = self._coro.send(None)
+            case (TaskCommand.SEND, value):
+                y = self._coro.send(value)
+            case (TaskCommand.THROW, exc):
+                self._cancelling = False
+                y = self._coro.throw(exc)
+            case _:  # pragma: no cover
+                assert False
 
         # TaskCoro YieldType=None
         assert y is None
@@ -319,7 +330,6 @@ class Task(Awaitable[Any], LoopIf):
         assert self._refcnts.total() == 0
 
     def _do_cancel(self, exc: CancelledError):
-        self._cancelling = False
         self._exception = exc
         self._set_state(TaskState.CANCELLED)
         self._set()
@@ -425,7 +435,7 @@ class Task(Awaitable[Any], LoopIf):
 
         # Reschedule for cancellation
         self._cancelling = True
-        self._loop.call_soon(self, value=exc)
+        self._loop.call_soon(self, value=(TaskCommand.THROW, exc))
 
         # Success
         return True

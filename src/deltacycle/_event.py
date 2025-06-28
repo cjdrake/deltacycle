@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Generator
 
 from ._loop_if import LoopIf
-from ._task import Task, WaitFifo
+from ._task import Task, TaskCommand, WaitFifo
 
 type EventGen = Generator[None, Event, Event]
 
@@ -48,7 +48,7 @@ class Event(Awaitable["Event"], LoopIf):
             del self._loop._task2events[task]
 
             # Send event id to parent task
-            self._loop.call_soon(task, value=self)
+            self._loop.call_soon(task, value=(TaskCommand.SEND, self))
 
     def set(self):
         self._flag = True

@@ -5,7 +5,7 @@ from typing import Any
 
 from ._event import Event
 from ._loop import Loop, LoopState
-from ._task import Predicate, Task, TaskCoro
+from ._task import Predicate, Task, TaskCommand, TaskCoro
 from ._variable import Variable
 
 # yields time: int; returns main.result()
@@ -166,7 +166,7 @@ async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
     loop = get_running_loop()
     task = loop.task()
-    loop.call_later(delay, task, value=None)
+    loop.call_later(delay, task, value=(TaskCommand.SEND, None))
     await loop.switch_coro()
 
 

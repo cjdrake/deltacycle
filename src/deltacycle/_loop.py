@@ -7,7 +7,7 @@ from enum import IntEnum, auto
 from typing import Any
 
 from ._event import Event
-from ._task import CancelledError, PendQueue, Task, TaskCoro
+from ._task import CancelledError, PendQueue, Task, TaskCommand, TaskCoro
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -157,7 +157,7 @@ class Loop(Iterable[int]):
     def create_main(self, coro: TaskCoro):
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
-        self.call_at(self.start_time, self._main, value=None)
+        self.call_at(self.start_time, self._main, value=(TaskCommand.START,))
 
     def create_task(
         self,
@@ -170,7 +170,7 @@ class Loop(Iterable[int]):
             name = f"Task-{self._task_index}"
             self._task_index += 1
         task = Task(coro, name, priority)
-        self.call_soon(task, value=None)
+        self.call_soon(task, value=(TaskCommand.START,))
         return task
 
     # TODO(cjdrake): Restrict ReturnType?
@@ -238,19 +238,19 @@ class Loop(Iterable[int]):
             self._time = time
 
             # Execute time slot
-            for task, value in self._iter_time_slot(time):
+            for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(value)
-                except StopIteration as e:
-                    task._do_result(e)
-                except CancelledError as e:
-                    task._do_cancel(e)
+                    task._do_run(*args)
+                except StopIteration as exc:
+                    task._do_result(exc)
+                except CancelledError as exc:
+                    task._do_cancel(exc)
                 except _FinishError:
                     self._finish()
                     return
-                except Exception as e:
-                    task._do_except(e)
+                except Exception as exc:
+                    task._do_except(exc)
 
             # Update simulation state
             self._update()
@@ -297,19 +297,19 @@ class Loop(Iterable[int]):
             self._time = time
 
             # Execute time slot
-            for task, value in self._iter_time_slot(time):
+            for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(value)
-                except StopIteration as e:
-                    task._do_result(e)
-                except CancelledError as e:
-                    task._do_cancel(e)
+                    task._do_run(*args)
+                except StopIteration as exc:
+                    task._do_result(exc)
+                except CancelledError as exc:
+                    task._do_cancel(exc)
                 except _FinishError:
                     self._finish()
                     return
-                except Exception as e:
-                    task._do_except(e)
+                except Exception as exc:
+                    task._do_except(exc)
 
             # Update simulation state
             self._update()

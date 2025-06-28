@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import override
 
 from ._loop_if import LoopIf
-from ._task import WaitFifo
+from ._task import TaskCommand, WaitFifo
 
 
 class Semaphore(LoopIf):
@@ -35,7 +35,7 @@ class Semaphore(LoopIf):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._loop.call_soon(task, value=None)
+            self._loop.call_soon(task, value=(TaskCommand.SEND, None))
         else:
             self._cnt += 1
 
@@ -72,7 +72,7 @@ class BoundedSemaphore(Semaphore):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._loop.call_soon(task, value=None)
+            self._loop.call_soon(task, value=(TaskCommand.SEND, None))
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")
