@@ -35,7 +35,7 @@ class TaskCommand(IntEnum):
 
     START = auto()
     SEND = auto()
-    THROW = auto()
+    CANCEL = auto()
 
 
 class TaskState(IntEnum):
@@ -307,16 +307,16 @@ class Task(Awaitable[Any], LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, *args):
-        match args:
-            case (TaskCommand.START,):
+    def _do_run(self, cmd: TaskCommand, arg):
+        match cmd:
+            case TaskCommand.START:
                 self._set_state(TaskState.RUNNING)
                 y = self._coro.send(None)
-            case (TaskCommand.SEND, value):
-                y = self._coro.send(value)
-            case (TaskCommand.THROW, exc):
+            case TaskCommand.SEND:
+                y = self._coro.send(arg)
+            case TaskCommand.CANCEL:
                 self._cancelling = False
-                y = self._coro.throw(exc)
+                y = self._coro.throw(arg)
             case _:  # pragma: no cover
                 assert False
 
@@ -434,7 +434,7 @@ class Task(Awaitable[Any], LoopIf):
 
         # Reschedule for cancellation
         self._cancelling = True
-        self._loop.call_soon(self, value=(TaskCommand.THROW, exc))
+        self._loop.call_soon(self, value=(TaskCommand.CANCEL, exc))
 
         # Success
         return True

@@ -157,7 +157,7 @@ class Loop(Iterable[int]):
     def create_main(self, coro: TaskCoro):
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
-        self.call_at(self.start_time, self._main, value=(TaskCommand.START,))
+        self.call_at(self.start_time, self._main, value=(TaskCommand.START, None))
 
     def create_task(
         self,
@@ -170,7 +170,7 @@ class Loop(Iterable[int]):
             name = f"Task-{self._task_index}"
             self._task_index += 1
         task = Task(coro, name, priority)
-        self.call_soon(task, value=(TaskCommand.START,))
+        self.call_soon(task, value=(TaskCommand.START, None))
         return task
 
     # TODO(cjdrake): Restrict ReturnType?
@@ -238,10 +238,10 @@ class Loop(Iterable[int]):
             self._time = time
 
             # Execute time slot
-            for task, args in self._iter_time_slot(time):
+            for task, (cmd, arg) in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(*args)
+                    task._do_run(cmd, arg)
                 except StopIteration as exc:
                     task._do_result(exc)
                 except CancelledError as exc:
@@ -297,10 +297,10 @@ class Loop(Iterable[int]):
             self._time = time
 
             # Execute time slot
-            for task, args in self._iter_time_slot(time):
+            for task, (cmd, arg) in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(*args)
+                    task._do_run(cmd, arg)
                 except StopIteration as exc:
                     task._do_result(exc)
                 except CancelledError as exc:
