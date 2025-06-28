@@ -397,7 +397,7 @@ class Task(Awaitable[Any], LoopIf):
             return self._exception
         raise TaskStateError("Task is not done")
 
-    def cancel(self, msg: str | None = None) -> bool:
+    def cancel(self, *args) -> bool:
         """Schedule task for cancellation.
 
         If a task is already done: return False.
@@ -423,7 +423,6 @@ class Task(Awaitable[Any], LoopIf):
         if self._cancelling or self.done():
             return False
 
-        args = () if msg is None else (msg,)
         exc = CancelledError(*args)
 
         # Task is cancelling itself. Weird, but legal.
