@@ -411,7 +411,7 @@ class Task(Awaitable[Any], LoopIf):
         If a task is running, immediately raise CancelledError.
 
         Args:
-            msg: Optional str message passed to CancelledError instance
+            args: Arguments passed to CancelledError instance
 
         Returns:
             bool success indicator
