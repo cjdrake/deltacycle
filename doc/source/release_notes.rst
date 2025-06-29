@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.14.0
+==============
+
+Renamed ``InvalidStateError`` to ``TaskStateError``.
+Otherwise, mostly type cleanup.
+
+
 Version 0.13.0
 ==============
 
