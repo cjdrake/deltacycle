@@ -145,13 +145,13 @@ class Loop(Iterable[int]):
         return self._state in self._done_states
 
     # Scheduling methods
-    def call_soon(self, task: Task, value: Any = None):
+    def call_soon(self, task: Task, value: Any):
         self._queue.push((self._time, task, value))
 
-    def call_later(self, delay: int, task: Task, value: Any = None):
+    def call_later(self, delay: int, task: Task, value: Any):
         self._queue.push((self._time + delay, task, value))
 
-    def call_at(self, when: int, task: Task, value: Any = None):
+    def call_at(self, when: int, task: Task, value: Any):
         self._queue.push((when, task, value))
 
     def create_main(self, coro: TaskCoro):
