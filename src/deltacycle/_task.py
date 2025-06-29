@@ -307,7 +307,7 @@ class Task(Awaitable[Any], LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, cmd: TaskCommand, arg):
+    def _do_run(self, cmd: TaskCommand, arg: Any):
         match cmd:
             case TaskCommand.START:
                 self._set_state(TaskState.RUNNING)
@@ -397,7 +397,7 @@ class Task(Awaitable[Any], LoopIf):
             return self._exception
         raise TaskStateError("Task is not done")
 
-    def cancel(self, *args) -> bool:
+    def cancel(self, *args: Any) -> bool:
         """Schedule task for cancellation.
 
         If a task is already done: return False.

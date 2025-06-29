@@ -10,6 +10,8 @@ from ._event import Event
 from ._task import CancelledError, PendQueue, Task, TaskCommand, TaskCoro
 from ._variable import Variable
 
+type CallValue = tuple[TaskCommand, Task | Event | Variable | CancelledError | None]
+
 logger = logging.getLogger("deltacycle")
 
 
@@ -145,13 +147,13 @@ class Loop(Iterable[int]):
         return self._state in self._done_states
 
     # Scheduling methods
-    def call_soon(self, task: Task, value: Any):
+    def call_soon(self, task: Task, value: CallValue):
         self._queue.push((self._time, task, value))
 
-    def call_later(self, delay: int, task: Task, value: Any):
+    def call_later(self, delay: int, task: Task, value: CallValue):
         self._queue.push((self._time + delay, task, value))
 
-    def call_at(self, when: int, task: Task, value: Any):
+    def call_at(self, when: int, task: Task, value: CallValue):
         self._queue.push((when, task, value))
 
     def create_main(self, coro: TaskCoro):
@@ -204,7 +206,7 @@ class Loop(Iterable[int]):
         self._touched.clear()
         self._set_state(LoopState.FINISHED)
 
-    def _iter_time_slot(self, time: int) -> Generator[tuple[Task, Any], None, None]:
+    def _iter_time_slot(self, time: int) -> Generator[tuple[Task, CallValue], None, None]:
         """Iterate through all tasks in a time slot.
 
         The first task has already been peeked.
