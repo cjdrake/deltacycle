@@ -34,7 +34,7 @@ class TaskCommand(IntEnum):
     """Task Run Command."""
 
     START = auto()
-    SEND = auto()
+    RESUME = auto()
     CANCEL = auto()
 
 
@@ -242,7 +242,7 @@ class Task(Awaitable[Any], LoopIf):
         while self._waiting:
             task = self._waiting.pop()
             # Send child id to parent task
-            self._loop.call_soon(task, value=(TaskCommand.SEND, self))
+            self._loop.call_soon(task, value=(TaskCommand.RESUME, self))
 
     @property
     def coro(self) -> TaskCoro:
@@ -312,7 +312,7 @@ class Task(Awaitable[Any], LoopIf):
             case TaskCommand.START:
                 self._set_state(TaskState.RUNNING)
                 y = self._coro.send(None)
-            case TaskCommand.SEND:
+            case TaskCommand.RESUME:
                 y = self._coro.send(arg)
             case TaskCommand.CANCEL:
                 self._cancelling = False

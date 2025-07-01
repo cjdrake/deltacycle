@@ -48,7 +48,7 @@ class Event(Awaitable["Event"], LoopIf):
             del self._loop._task2events[task]
 
             # Send event id to parent task
-            self._loop.call_soon(task, value=(TaskCommand.SEND, self))
+            self._loop.call_soon(task, value=(TaskCommand.RESUME, self))
 
     def set(self):
         self._flag = True

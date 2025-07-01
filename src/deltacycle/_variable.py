@@ -52,7 +52,7 @@ class Variable(Awaitable["Variable"], LoopIf):
             del self._loop._task2vars[task]
 
             # Send variable id to parent task
-            self._loop.call_soon(task, value=(TaskCommand.SEND, self))
+            self._loop.call_soon(task, value=(TaskCommand.RESUME, self))
 
         # Add variable to update set
         self._loop.touch(self)
