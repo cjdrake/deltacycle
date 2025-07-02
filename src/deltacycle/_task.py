@@ -43,7 +43,7 @@ class TaskState(IntEnum):
 
     Transitions::
 
-        INIT -> RUNNING -> RESULTED
+        INIT -> RUNNING -> RETURNED
                         -> EXCEPTED
     """
 
@@ -54,7 +54,7 @@ class TaskState(IntEnum):
     RUNNING = auto()
 
     # Done: returned a result
-    RESULTED = auto()
+    RETURNED = auto()
     # Done: raised an exception
     EXCEPTED = auto()
 
@@ -65,7 +65,7 @@ _task_state_transitions = {
         TaskState.EXCEPTED,
     },
     TaskState.RUNNING: {
-        TaskState.RESULTED,
+        TaskState.RETURNED,
         TaskState.EXCEPTED,
     },
 }
@@ -321,7 +321,7 @@ class Task(Awaitable[Any], LoopIf):
 
     def _do_result(self, exc: StopIteration):
         self._result = exc.value
-        self._set_state(TaskState.RESULTED)
+        self._set_state(TaskState.RETURNED)
         self._set()
         assert self._refcnts.total() == 0
 
@@ -331,7 +331,7 @@ class Task(Awaitable[Any], LoopIf):
         self._set()
         assert self._refcnts.total() == 0
 
-    _done_states = frozenset([TaskState.RESULTED, TaskState.EXCEPTED])
+    _done_states = frozenset([TaskState.RETURNED, TaskState.EXCEPTED])
 
     def done(self) -> bool:
         """Return True if the task is done.
@@ -354,7 +354,7 @@ class Task(Awaitable[Any], LoopIf):
             Exception: If the task raise any other type of exception.
             TaskStateError: If the task is not done.
         """
-        if self._state is TaskState.RESULTED:
+        if self._state is TaskState.RETURNED:
             assert self._exception is None
             return self._result
         if self._state is TaskState.EXCEPTED:
@@ -372,7 +372,7 @@ class Task(Awaitable[Any], LoopIf):
         Raises:
             TaskStateError: If the task is not done.
         """
-        if self._state is TaskState.RESULTED:
+        if self._state is TaskState.RETURNED:
             assert self._exception is None
             return self._exception
         if self._state is TaskState.EXCEPTED:
