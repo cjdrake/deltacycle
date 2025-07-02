@@ -246,8 +246,6 @@ class Loop(Iterable[int]):
                     task._do_run(cmd, arg)
                 except StopIteration as exc:
                     task._do_result(exc)
-                except CancelledError as exc:
-                    task._do_cancel(exc)
                 except _FinishError:
                     self._finish()
                     return
@@ -305,8 +303,6 @@ class Loop(Iterable[int]):
                     task._do_run(cmd, arg)
                 except StopIteration as exc:
                     task._do_result(exc)
-                except CancelledError as exc:
-                    task._do_cancel(exc)
                 except _FinishError:
                     self._finish()
                     return

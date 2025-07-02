@@ -44,7 +44,6 @@ class TaskState(IntEnum):
     Transitions::
 
         INIT -> RUNNING -> RESULTED
-                        -> CANCELLED
                         -> EXCEPTED
     """
 
@@ -56,8 +55,6 @@ class TaskState(IntEnum):
 
     # Done: returned a result
     RESULTED = auto()
-    # Done: cancelled
-    CANCELLED = auto()
     # Done: raised an exception
     EXCEPTED = auto()
 
@@ -65,11 +62,10 @@ class TaskState(IntEnum):
 _task_state_transitions = {
     TaskState.INIT: {
         TaskState.RUNNING,
-        TaskState.CANCELLED,
+        TaskState.EXCEPTED,
     },
     TaskState.RUNNING: {
         TaskState.RESULTED,
-        TaskState.CANCELLED,
         TaskState.EXCEPTED,
     },
 }
@@ -329,19 +325,13 @@ class Task(Awaitable[Any], LoopIf):
         self._set()
         assert self._refcnts.total() == 0
 
-    def _do_cancel(self, exc: CancelledError):
-        self._exception = exc
-        self._set_state(TaskState.CANCELLED)
-        self._set()
-        assert self._refcnts.total() == 0
-
     def _do_except(self, exc: Exception):
         self._exception = exc
         self._set_state(TaskState.EXCEPTED)
         self._set()
         assert self._refcnts.total() == 0
 
-    _done_states = frozenset([TaskState.RESULTED, TaskState.CANCELLED, TaskState.EXCEPTED])
+    _done_states = frozenset([TaskState.RESULTED, TaskState.EXCEPTED])
 
     def done(self) -> bool:
         """Return True if the task is done.
@@ -361,18 +351,14 @@ class Task(Awaitable[Any], LoopIf):
             If the task ran to completion, return its result.
 
         Raises:
-            CancelledError: If the task was cancelled.
             Exception: If the task raise any other type of exception.
             TaskStateError: If the task is not done.
         """
         if self._state is TaskState.RESULTED:
             assert self._exception is None
             return self._result
-        if self._state is TaskState.CANCELLED:
-            assert isinstance(self._exception, CancelledError)
-            raise self._exception
         if self._state is TaskState.EXCEPTED:
-            assert isinstance(self._exception, Exception)
+            assert self._result is None and self._exception is not None
             raise self._exception
         raise TaskStateError("Task is not done")
 
@@ -384,16 +370,13 @@ class Task(Awaitable[Any], LoopIf):
             Otherwise, return None.
 
         Raises:
-            If the task was cancelled, re-raise the CancelledError.
+            TaskStateError: If the task is not done.
         """
         if self._state is TaskState.RESULTED:
             assert self._exception is None
             return self._exception
-        if self._state is TaskState.CANCELLED:
-            assert isinstance(self._exception, CancelledError)
-            raise self._exception
         if self._state is TaskState.EXCEPTED:
-            assert isinstance(self._exception, Exception)
+            assert self._result is None and self._exception is not None
             return self._exception
         raise TaskStateError("Task is not done")
 
@@ -474,7 +457,8 @@ class TaskGroup(LoopIf):
         # Parent raised an exception:
         # Cancel children; suppress exceptions
         if exc:
-            self._cancel_awaited()
+            for child in self._awaited:
+                child.cancel()
             while self._awaited:
                 child: Task = await self._loop.switch_coro()
                 self._awaited.remove(child)
@@ -485,21 +469,20 @@ class TaskGroup(LoopIf):
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
         child_excs: list[Exception] = []
+        cancelled: set[Task] = set()
         while self._awaited:
             child: Task = await self._loop.switch_coro()
             self._awaited.remove(child)
-            if child.state() is TaskState.EXCEPTED:
-                assert child._exception is not None
-                child_excs.append(child._exception)
-                self._cancel_awaited()
+            if child in cancelled:
+                continue
+            exc = child.exception()
+            if exc is not None:
+                child_excs.append(exc)
+                cancelled.update(c for c in self._awaited if c.cancel())
 
         # Re-raise child exceptions
         if child_excs:
             raise ExceptionGroup("Child task(s) raised exception(s)", child_excs)
-
-    def _cancel_awaited(self):
-        for child in self._awaited:
-            child.cancel()
 
     def create_task(
         self,

@@ -153,8 +153,9 @@ def test_cancel_pending1(caplog: LogCaptureFixture):
 
         try:
             await t1
-        except CancelledError:
+        except CancelledError as exc:
             logger.info("except")
+            assert t1.exception() is exc
         finally:
             logger.info("finally")
 
@@ -162,14 +163,11 @@ def test_cancel_pending1(caplog: LogCaptureFixture):
         await t3
 
         assert t1.done()
-        assert t1.state() is TaskState.CANCELLED
+        assert t1.state() is TaskState.EXCEPTED
 
         # Result should re-raise CancelledError
         with pytest.raises(CancelledError):
             t1.result()
-        # So should exception
-        with pytest.raises(CancelledError):
-            t1.exception()
 
         # Cannot cancel done task
         assert not t1.cancel()
@@ -206,8 +204,9 @@ def test_cancel_pending2(caplog: LogCaptureFixture):
 
         try:
             await t1
-        except CancelledError:
+        except CancelledError as exc:
             logger.info("except")
+            assert t1.exception() is exc
         finally:
             logger.info("finally")
 
@@ -215,14 +214,11 @@ def test_cancel_pending2(caplog: LogCaptureFixture):
         await t3
 
         assert t1.done()
-        assert t1.state() is TaskState.CANCELLED
+        assert t1.state() is TaskState.EXCEPTED
 
         # Result should re-raise CancelledError
         with pytest.raises(CancelledError):
             t1.result()
-        # So should exception
-        with pytest.raises(CancelledError):
-            t1.exception()
 
         # Cannot cancel done task
         assert not t1.cancel()
