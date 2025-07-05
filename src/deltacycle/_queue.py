@@ -1,14 +1,13 @@
 """Queue synchronization primitive."""
 
 from collections import deque
-from collections.abc import Sized
 from functools import cached_property
 
 from ._loop_if import LoopIf
 from ._task import TaskCommand, WaitFifo
 
 
-class Queue[T](Sized, LoopIf):
+class Queue[T](LoopIf):
     """First-in, First-out (FIFO) queue."""
 
     def __init__(self, maxlen: int = 0):
