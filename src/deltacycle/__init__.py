@@ -19,7 +19,6 @@ from ._task import (
     TaskGen,
     TaskGroup,
     TaskState,
-    TaskStateError,
 )
 from ._top import (
     any_event,
@@ -84,7 +83,6 @@ __all__ = [
     "TaskCoro",
     "TaskGen",
     "Interrupt",
-    "TaskStateError",
     "TaskState",
     "Task",
     "TaskGroup",

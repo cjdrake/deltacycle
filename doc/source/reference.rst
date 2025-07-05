@@ -51,7 +51,6 @@ Variables
 Tasks
 =====
 
-.. autoexception:: deltacycle.TaskStateError
 .. autoexception:: deltacycle.Interrupt
 
 .. autoclass:: deltacycle.TaskState

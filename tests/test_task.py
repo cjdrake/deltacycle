@@ -11,7 +11,6 @@ from deltacycle import (
     Interrupt,
     Task,
     TaskState,
-    TaskStateError,
     create_task,
     get_current_task,
     irun,
@@ -61,9 +60,9 @@ def test_one_result():
         t1 = create_task(cf())
 
         # Result/Exception not ready yet
-        with pytest.raises(TaskStateError):
+        with pytest.raises(RuntimeError):
             t1.result()
-        with pytest.raises(TaskStateError):
+        with pytest.raises(RuntimeError):
             t1.exception()
 
         r = await t1
@@ -85,9 +84,9 @@ def test_one_exception():
         t1 = create_task(cf())
 
         # Result/Exception not ready yet
-        with pytest.raises(TaskStateError):
+        with pytest.raises(RuntimeError):
             t1.result()
-        with pytest.raises(TaskStateError):
+        with pytest.raises(RuntimeError):
             t1.exception()
 
         try:

@@ -22,10 +22,6 @@ type TaskCoro = Coroutine[None, Any, Any]
 type TaskGen = Generator[None, Task, Any]
 
 
-class TaskStateError(Exception):
-    """Task has an invalid state."""
-
-
 class Interrupt(Exception):
     """Interrupt task."""
 
@@ -352,7 +348,7 @@ class Task(LoopIf):
 
         Raises:
             Exception: If the task raise any other type of exception.
-            TaskStateError: If the task is not done.
+            RuntimeError: If the task is not done.
         """
         if self._state is TaskState.RETURNED:
             assert self._exception is None
@@ -360,7 +356,7 @@ class Task(LoopIf):
         if self._state is TaskState.EXCEPTED:
             assert self._result is None and self._exception is not None
             raise self._exception
-        raise TaskStateError("Task is not done")
+        raise RuntimeError("Task is not done")
 
     def exception(self) -> Exception | None:
         """Return the task's exception.
@@ -370,7 +366,7 @@ class Task(LoopIf):
             Otherwise, return None.
 
         Raises:
-            TaskStateError: If the task is not done.
+            RuntimeError: If the task is not done.
         """
         if self._state is TaskState.RETURNED:
             assert self._exception is None
@@ -378,7 +374,7 @@ class Task(LoopIf):
         if self._state is TaskState.EXCEPTED:
             assert self._result is None and self._exception is not None
             return self._exception
-        raise TaskStateError("Task is not done")
+        raise RuntimeError("Task is not done")
 
     def interrupt(self, *args: Any) -> bool:
         """Interrupt task.
