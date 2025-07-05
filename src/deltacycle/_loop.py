@@ -2,7 +2,7 @@
 
 import logging
 from collections import defaultdict
-from collections.abc import Awaitable, Generator, Iterable
+from collections.abc import Awaitable, Generator
 from enum import IntEnum, auto
 from typing import Any
 
@@ -68,7 +68,7 @@ _loop_state_transitions = {
 }
 
 
-class Loop(Iterable[int]):
+class Loop:
     """Simulation event loop.
 
     Responsible for:
