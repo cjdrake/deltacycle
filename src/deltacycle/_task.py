@@ -39,20 +39,26 @@ class TaskState(IntEnum):
 
     Transitions::
 
-        INIT -> RUNNING -> RETURNED
+                   +----------+
+                   |          |
+                   v          |
+        INIT -> RUNNING -> PENDING
+                        -> RETURNED
                         -> EXCEPTED
     """
 
     # Initialized
-    INIT = auto()
+    INIT = 0b000
 
     # Currently running
-    RUNNING = auto()
+    RUNNING = 0b010
+    # Suspended
+    PENDING = 0b011
 
     # Done: returned a result
-    RETURNED = auto()
+    RETURNED = 0b100
     # Done: raised an exception
-    EXCEPTED = auto()
+    EXCEPTED = 0b101
 
 
 _task_state_transitions = {
@@ -61,6 +67,12 @@ _task_state_transitions = {
         TaskState.EXCEPTED,
     },
     TaskState.RUNNING: {
+        TaskState.PENDING,
+        TaskState.RETURNED,
+        TaskState.EXCEPTED,
+    },
+    TaskState.PENDING: {
+        TaskState.RUNNING,
         TaskState.RETURNED,
         TaskState.EXCEPTED,
     },

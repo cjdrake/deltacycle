@@ -7,7 +7,7 @@ from enum import IntEnum, auto
 from typing import Any
 
 from ._event import Event
-from ._task import Interrupt, PendQueue, Task, TaskCommand, TaskCoro
+from ._task import Interrupt, PendQueue, Task, TaskCommand, TaskCoro, TaskState
 from ._variable import Variable
 
 type CallValue = tuple[TaskCommand, Task | Event | Variable | Interrupt | None]
@@ -179,16 +179,20 @@ class Loop:
     async def switch_coro(self) -> Any:
         assert self._task is not None
         # Suspend
+        self._task._set_state(TaskState.PENDING)
         value = await _SuspendResume()
         # Resume
+        self._task._set_state(TaskState.RUNNING)
         return value
 
     # TODO(cjdrake): Restrict SendType/ReturnType?
     def switch_gen(self) -> Generator[None, Any, Any]:
         assert self._task is not None
         # Suspend
+        self._task._set_state(TaskState.PENDING)
         value = yield
         # Resume
+        self._task._set_state(TaskState.RUNNING)
         return value
 
     def touch(self, v: Variable):
