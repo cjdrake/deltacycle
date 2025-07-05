@@ -51,8 +51,8 @@ Variables
 Tasks
 =====
 
-.. autoexception:: deltacycle.CancelledError
 .. autoexception:: deltacycle.TaskStateError
+.. autoexception:: deltacycle.Interrupt
 
 .. autoclass:: deltacycle.TaskState
 
@@ -68,7 +68,7 @@ Tasks
     .. automethod:: done
     .. automethod:: result
     .. automethod:: exception
-    .. automethod:: cancel
+    .. automethod:: interrupt
 
 .. autoclass:: deltacycle.TaskGroup
     :show-inheritance:

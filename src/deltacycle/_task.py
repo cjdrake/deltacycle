@@ -22,12 +22,12 @@ type TaskCoro = Coroutine[None, Any, Any]
 type TaskGen = Generator[None, Task, Any]
 
 
-class CancelledError(Exception):
-    """Task has been cancelled."""
-
-
 class TaskStateError(Exception):
     """Task has an invalid state."""
+
+
+class Interrupt(Exception):
+    """Interrupt task."""
 
 
 class TaskCommand(IntEnum):
@@ -35,7 +35,7 @@ class TaskCommand(IntEnum):
 
     START = auto()
     RESUME = auto()
-    CANCEL = auto()
+    INTERRUPT = auto()
 
 
 class TaskState(IntEnum):
@@ -214,8 +214,8 @@ class Task(LoopIf):
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
 
-        # Flag to avoid multiple cancellation
-        self._cancelling = False
+        # Flag to avoid multiple interrupts
+        self._interrupting = False
 
         # Outputs
         self._result: Any = None
@@ -310,8 +310,8 @@ class Task(LoopIf):
                 y = self._coro.send(None)
             case TaskCommand.RESUME:
                 y = self._coro.send(arg)
-            case TaskCommand.CANCEL:
-                self._cancelling = False
+            case TaskCommand.INTERRUPT:
+                self._interrupting = False
                 y = self._coro.throw(arg)
             case _:  # pragma: no cover
                 assert False
@@ -339,7 +339,7 @@ class Task(LoopIf):
         A task that is "done" either:
 
         * Completed normally,
-        * Was cancelled by another task, or
+        * Was interrupted by another task, or
         * Raised an exception.
         """
         return self._state in self._done_states
@@ -380,44 +380,44 @@ class Task(LoopIf):
             return self._exception
         raise TaskStateError("Task is not done")
 
-    def cancel(self, *args: Any) -> bool:
-        """Schedule task for cancellation.
+    def interrupt(self, *args: Any) -> bool:
+        """Interrupt task.
 
         If a task is already done: return False.
 
-        If a task is pending or waiting:
+        If a task is pending:
 
         1. Renege from all queues
-        2. Reschedule to raise CancelledError in the current time slot
+        2. Reschedule to raise Interrupt in the current time slot
         3. Return True
 
-        If a task is running, immediately raise CancelledError.
+        If a task is running, immediately raise Interrupt.
 
         Args:
-            args: Arguments passed to CancelledError instance
+            args: Arguments passed to Interrupt instance
 
         Returns:
             bool success indicator
 
         Raises:
-            CancelledError: If the task cancels itself
+            Interrupt: If the task interrupts itself
         """
         # Already done; do nothing
-        if self._cancelling or self.done():
+        if self._interrupting or self.done():
             return False
 
-        exc = CancelledError(*args)
+        exc = Interrupt(*args)
 
-        # Task is cancelling itself. Weird, but legal.
+        # Task is interrupting itself. Weird, but legal.
         if self is self._loop.task():
             raise exc
 
         # Pending/Waiting tasks must first renege from queues
         self._renege()
 
-        # Reschedule for cancellation
-        self._cancelling = True
-        self._loop.call_soon(self, value=(TaskCommand.CANCEL, exc))
+        # Reschedule interrupt
+        self._interrupting = True
+        self._loop.call_soon(self, value=(TaskCommand.INTERRUPT, exc))
 
         # Success
         return True
@@ -433,7 +433,7 @@ class TaskGroup(LoopIf):
         self._setup_done = False
         self._setup_tasks: set[Task] = set()
 
-        # Tasks in running/waiting/cancelling/pending state
+        # Tasks in running/pending/interrupting state
         self._awaited: set[Task] = set()
 
     async def __aenter__(self) -> TaskGroup:
@@ -455,10 +455,10 @@ class TaskGroup(LoopIf):
                 child._wait(self._parent)
 
         # Parent raised an exception:
-        # Cancel children; suppress exceptions
+        # Interrupt children; suppress exceptions
         if exc:
             for child in self._awaited:
-                child.cancel()
+                child.interrupt()
             while self._awaited:
                 child: Task = await self._loop.switch_coro()
                 self._awaited.remove(child)
@@ -469,16 +469,16 @@ class TaskGroup(LoopIf):
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
         child_excs: list[Exception] = []
-        cancelled: set[Task] = set()
+        interrupted: set[Task] = set()
         while self._awaited:
             child: Task = await self._loop.switch_coro()
             self._awaited.remove(child)
-            if child in cancelled:
+            if child in interrupted:
                 continue
             exc = child.exception()
             if exc is not None:
                 child_excs.append(exc)
-                cancelled.update(c for c in self._awaited if c.cancel())
+                interrupted.update(c for c in self._awaited if c.interrupt())
 
         # Re-raise child exceptions
         if child_excs:

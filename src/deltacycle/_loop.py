@@ -7,10 +7,10 @@ from enum import IntEnum, auto
 from typing import Any
 
 from ._event import Event
-from ._task import CancelledError, PendQueue, Task, TaskCommand, TaskCoro
+from ._task import Interrupt, PendQueue, Task, TaskCommand, TaskCoro
 from ._variable import Variable
 
-type CallValue = tuple[TaskCommand, Task | Event | Variable | CancelledError | None]
+type CallValue = tuple[TaskCommand, Task | Event | Variable | Interrupt | None]
 
 logger = logging.getLogger("deltacycle")
 

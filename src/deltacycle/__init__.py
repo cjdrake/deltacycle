@@ -12,7 +12,7 @@ from ._loop import Loop, LoopState, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
-    CancelledError,
+    Interrupt,
     Predicate,
     Task,
     TaskCoro,
@@ -83,7 +83,7 @@ __all__ = [
     "Predicate",
     "TaskCoro",
     "TaskGen",
-    "CancelledError",
+    "Interrupt",
     "TaskStateError",
     "TaskState",
     "Task",

@@ -96,7 +96,7 @@ EXP2 = {
     # Coro 4 - completes
     (0, "C4", "enter"),
     (10, "C4", "exit"),
-    # Coro 5,6,7 - cancelled
+    # Coro 5,6,7 - interrupted
     (0, "C5", "enter"),
     (0, "C6", "enter"),
     (0, "C7", "enter"),
@@ -104,7 +104,7 @@ EXP2 = {
 
 
 def test_group_child_except(caplog: LogCaptureFixture):
-    """One child raises an exception, others are cancelled."""
+    """One child raises an exception, others are interrupted."""
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
@@ -129,9 +129,9 @@ def test_group_child_except(caplog: LogCaptureFixture):
                 ts.append(tg.create_task(cf_x(10, 2), name="C2"))
                 ts.append(tg.create_task(cf_x(10, 3), name="C3"))
                 # This task will also complete successfully
-                # (It completes before cancellation takes effect)
+                # (It completes before interrupt takes effect)
                 ts.append(tg.create_task(cf_r(10, 4), name="C4"))
-                # These tasks will be cancelled
+                # These tasks will be interrupted
                 ts.append(tg.create_task(cf_r(11, 5), name="C5"))
                 ts.append(tg.create_task(cf_r(13, 6), name="C6"))
                 ts.append(tg.create_task(cf_r(15, 7), name="C7"))
@@ -213,7 +213,7 @@ EXP4 = {
     (9, "N0", "exit"),
     (2, "N1", "enter"),
     (10, "N1", "exit"),
-    # Newborn 2 - cancelled
+    # Newborn 2 - interrupted
     (2, "N2", "enter"),
     (2, "N3", "enter"),
     # Coro 4,5 - completes
@@ -227,7 +227,7 @@ EXP4 = {
     # Coro 8 - completes
     (10, "C8", "exit"),
     (0, "C8", "enter"),
-    # Coros 9,10 - cancelled
+    # Coros 9,10 - interrupted
     (0, "C9", "enter"),
     (0, "C10", "enter"),
 }
@@ -255,9 +255,9 @@ def test_group_newborns_except(caplog: LogCaptureFixture):
                 ts.append(tg.create_task(cf_x(10, 6), name="C6"))
                 ts.append(tg.create_task(cf_x(10, 7), name="C7"))
                 # This task will also complete successfully
-                # (It completes before cancellation takes effect)
+                # (It completes before interrupt takes effect)
                 ts.append(tg.create_task(cf_r(10, 8), name="C8"))
-                # These tasks will be cancelled
+                # These tasks will be interrupted
                 ts.append(tg.create_task(cf_r(11, 9), name="C9"))
                 ts.append(tg.create_task(cf_r(12, 10), name="C10"))
 

@@ -7,8 +7,8 @@ import pytest
 from pytest import LogCaptureFixture
 
 from deltacycle import (
-    CancelledError,
     Event,
+    Interrupt,
     Task,
     TaskState,
     TaskStateError,
@@ -110,7 +110,7 @@ def test_one_exception():
 EXP1 = {
     # main
     (0, "main", "enter"),
-    (5, "main", "cancels C1"),
+    (5, "main", "interrupts C1"),
     (5, "main", "except"),
     (5, "main", "finally"),
     # C1
@@ -126,14 +126,14 @@ EXP1 = {
 }
 
 
-def test_cancel_pending1(caplog: LogCaptureFixture):
+def test_interrupt_pending1(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(n: int):
         logger.info("enter")
         try:
             await sleep(n)
-        except CancelledError:
+        except Interrupt:
             logger.info("except")
             raise
         finally:
@@ -148,12 +148,12 @@ def test_cancel_pending1(caplog: LogCaptureFixture):
 
         await sleep(5)
 
-        logger.info("cancels C1")
-        t1.cancel()
+        logger.info("interrupts C1")
+        t1.interrupt()
 
         try:
             await t1
-        except CancelledError as exc:
+        except Interrupt as exc:
             logger.info("except")
             assert t1.exception() is exc
         finally:
@@ -165,26 +165,26 @@ def test_cancel_pending1(caplog: LogCaptureFixture):
         assert t1.done()
         assert t1.state() is TaskState.EXCEPTED
 
-        # Result should re-raise CancelledError
-        with pytest.raises(CancelledError):
+        # Result should re-raise Interrupt
+        with pytest.raises(Interrupt):
             t1.result()
 
-        # Cannot cancel done task
-        assert not t1.cancel()
+        # Cannot interrupt done task
+        assert not t1.interrupt()
 
     run(main())
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 
 
-def test_cancel_pending2(caplog: LogCaptureFixture):
+def test_interrupt_pending2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(n: int):
         logger.info("enter")
         try:
             await sleep(n)
-        except CancelledError:
+        except Interrupt:
             logger.info("except")
             raise
         finally:
@@ -199,12 +199,12 @@ def test_cancel_pending2(caplog: LogCaptureFixture):
 
         await sleep(5)
 
-        logger.info("cancels C1")
-        t1.cancel()
+        logger.info("interrupts C1")
+        t1.interrupt()
 
         try:
             await t1
-        except CancelledError as exc:
+        except Interrupt as exc:
             logger.info("except")
             assert t1.exception() is exc
         finally:
@@ -216,12 +216,12 @@ def test_cancel_pending2(caplog: LogCaptureFixture):
         assert t1.done()
         assert t1.state() is TaskState.EXCEPTED
 
-        # Result should re-raise CancelledError
-        with pytest.raises(CancelledError):
+        # Result should re-raise Interrupt
+        with pytest.raises(Interrupt):
             t1.result()
 
-        # Cannot cancel done task
-        assert not t1.cancel()
+        # Cannot interrupt done task
+        assert not t1.interrupt()
 
     list(irun(main()))
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
@@ -234,7 +234,7 @@ EXP2 = {
     (20, "main", "exit"),
     # C1
     (0, "C1", "enter"),
-    (10, "C1", "cancelled"),
+    (10, "C1", "interrupted"),
     (10, "C1", "finally"),
     # C2
     (0, "C2", "enter"),
@@ -245,15 +245,15 @@ EXP2 = {
 }
 
 
-def test_cancel_waiting(caplog: LogCaptureFixture):
+def test_interrupt_waiting(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def cf(event: Event):
         logger.info("enter")
         try:
             await event
-        except CancelledError:
-            logger.info("cancelled")
+        except Interrupt:
+            logger.info("interrupted")
         finally:
             logger.info("finally")
 
@@ -266,7 +266,7 @@ def test_cancel_waiting(caplog: LogCaptureFixture):
 
         await sleep(10)
 
-        t1.cancel()
+        t1.interrupt()
 
         await sleep(10)
 
@@ -284,29 +284,29 @@ def test_cancel_waiting(caplog: LogCaptureFixture):
 
 EXP3 = {
     (0, "Task started"),
-    (1, "Main caught CancelledError from task"),
-    (1, "Task cancelling itself"),
+    (1, "Main caught Interrupt from task"),
+    (1, "Task interrupting itself"),
 }
 
 
-def test_cancel_running(caplog: LogCaptureFixture):
+def test_interrupt_running(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    async def self_cancelling_task():
+    async def self_interrupting_task():
         logger.info("Task started")
         await sleep(1)
         task = get_current_task()
-        logger.info("Task cancelling itself")
-        task.cancel()  # Cancel self
+        logger.info("Task interrupting itself")
+        task.interrupt()  # Interrupt self
         await sleep(1)  # This won't execute
         logger.info("This won't print")
 
     async def main():
-        task = create_task(self_cancelling_task())
+        task = create_task(self_interrupting_task())
         try:
             await task
-        except CancelledError:
-            logger.info("Main caught CancelledError from task")
+        except Interrupt:
+            logger.info("Main caught Interrupt from task")
 
     run(main())
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
