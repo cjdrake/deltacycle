@@ -2,7 +2,7 @@
 
 import logging
 from collections import defaultdict
-from collections.abc import Awaitable, Generator
+from collections.abc import Generator
 from enum import IntEnum, auto
 from typing import Any
 
@@ -15,7 +15,7 @@ type CallValue = tuple[TaskCommand, Task | Event | Variable | CancelledError | N
 logger = logging.getLogger("deltacycle")
 
 
-class _SuspendResume(Awaitable[Any]):
+class _SuspendResume:
     """Suspend/Resume current task.
 
     Use case:

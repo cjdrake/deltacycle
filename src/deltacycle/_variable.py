@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import defaultdict
-from collections.abc import Awaitable, Generator, Hashable
+from collections.abc import Generator, Hashable
 
 from ._loop_if import LoopIf
 from ._task import Predicate, Task, TaskCommand, WaitSet
@@ -12,7 +12,7 @@ from ._task import Predicate, Task, TaskCommand, WaitSet
 type VarGen = Generator[None, Variable, Variable]
 
 
-class Variable(Awaitable["Variable"], LoopIf):
+class Variable(LoopIf):
     """Model component.
 
     Children::

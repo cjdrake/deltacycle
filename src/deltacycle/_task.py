@@ -6,7 +6,7 @@ import heapq
 import logging
 from abc import ABC
 from collections import Counter, deque
-from collections.abc import Awaitable, Callable, Coroutine, Generator
+from collections.abc import Callable, Coroutine, Generator
 from enum import IntEnum, auto
 from types import TracebackType
 from typing import Any
@@ -185,7 +185,7 @@ class WaitSet(TaskQueueIf):
         self._items.update(t for t, p in self._tps.items() if p())
 
 
-class Task(Awaitable[Any], LoopIf):
+class Task(LoopIf):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.

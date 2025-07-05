@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Generator
+from collections.abc import Generator
 
 from ._loop_if import LoopIf
 from ._task import Task, TaskCommand, WaitFifo
@@ -10,7 +10,7 @@ from ._task import Task, TaskCommand, WaitFifo
 type EventGen = Generator[None, Event, Event]
 
 
-class Event(Awaitable["Event"], LoopIf):
+class Event(LoopIf):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
@@ -58,7 +58,7 @@ class Event(Awaitable["Event"], LoopIf):
         self._flag = False
 
 
-class EventList(Awaitable[Event], LoopIf):
+class EventList(LoopIf):
     def __init__(self, *events: Event):
         self._events = events
 
