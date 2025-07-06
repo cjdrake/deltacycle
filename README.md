@@ -30,7 +30,7 @@ It is the clockwork mechanism behind the illusion of concurrency.
     * Queues
 * Structured concurrency:
     * Task groups
-    * Task cancellation
+    * Task interrupts
     * Task dependencies
     * Exception handling
 * Variables:
