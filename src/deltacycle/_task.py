@@ -329,9 +329,9 @@ class Task(LoopIf):
             case (self.Command.INTERRUPT, irq):
                 self._signal = False
                 y = self._coro.throw(irq)
-            case (self.Command.KILL, krq):
+            case (self.Command.KILL, kill):
                 self._signal = False
-                y = self._coro.throw(krq)
+                y = self._coro.throw(kill)
             case _:  # pragma: no cover
                 assert False
 
