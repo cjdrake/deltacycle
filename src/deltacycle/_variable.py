@@ -28,7 +28,7 @@ class Variable(LoopIf):
     def __await__(self) -> Generator[None, Variable, Variable]:
         task = self._loop.task()
         self._wait(self.changed, task)
-        v: Variable = yield from self._loop.switch_gen()
+        v = yield from self._loop.switch_gen()
         assert v is self
         return self
 

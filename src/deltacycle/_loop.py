@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 from collections.abc import Generator
 from enum import IntEnum
-from typing import Any
 
 from ._event import Event
 from ._task import PendQueue, Signal, Task, TaskCommand, TaskCoro, TaskState
@@ -190,8 +189,7 @@ class Loop:
         # Resume
         return value
 
-    # TODO(cjdrake): Restrict SendType/ReturnType?
-    def switch_gen(self) -> Generator[None, Any, Any]:
+    def switch_gen(self) -> Generator[None, AW, AW]:
         assert self._task is not None
         # Suspend
         self._task._set_state(TaskState.PENDING)

@@ -242,7 +242,8 @@ class Task(LoopIf):
         if not self.done():
             task = self._loop.task()
             self._wait(task)
-            t: Task = yield from self._loop.switch_gen()
+            t = yield from self._loop.switch_gen()
+            assert isinstance(t, Task)
             assert t is self
 
         # Resume

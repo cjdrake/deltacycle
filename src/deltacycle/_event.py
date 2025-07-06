@@ -22,7 +22,7 @@ class Event(LoopIf):
         if not self._flag:
             task = self._loop.task()
             self._wait(task)
-            e: Event = yield from self._loop.switch_gen()
+            e = yield from self._loop.switch_gen()
             assert e is self
 
         return self

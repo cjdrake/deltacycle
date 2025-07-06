@@ -164,7 +164,8 @@ async def sleep(delay: int):
     loop = get_running_loop()
     task = loop.task()
     loop.call_later(delay, task, value=(TaskCommand.RESUME,))
-    await loop.switch_coro()
+    y = await loop.switch_coro()
+    assert y is None
 
 
 async def any_event(*events: Event) -> Event:
