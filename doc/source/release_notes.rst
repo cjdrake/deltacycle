@@ -8,6 +8,16 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.15.0
+==============
+
+* Renamed ``TaskState.RESULTED`` to ``TaskState.RETURNED``.
+* Added a ``TaskState.PENDING`` state.
+* Renamed ``Task.cancel`` to ``Task.interrupt``.
+* ``TaskGroup`` children are now killed instead of cancelled/interrupted.
+* Added a new ``Signal`` base class for ``Interrupt`` and ``_Kill`` (undocumented).
+
+
 Version 0.14.0
 ==============
 
