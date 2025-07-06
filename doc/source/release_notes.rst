@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.16.0
+==============
+
+Moved ``LoopState`` class into ``Loop``, now called ``Loop.State``.
+Moved ``TaskState`` class into ``Task``, now called ``Task.State``.
+
+
 Version 0.15.0
 ==============
 

@@ -56,8 +56,7 @@ class Loop:
     _index = 0
 
     class State(IntEnum):
-        """Loop State
-
+        """
         Transitions::
 
             INIT -> RUNNING -> COMPLETED

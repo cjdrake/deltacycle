@@ -161,8 +161,7 @@ class Task(LoopIf):
         KILL = 0b11
 
     class State(IntEnum):
-        """Task State
-
+        """
         Transitions::
 
                     PENDING
