@@ -36,7 +36,7 @@ class _SuspendResume:
         return value
 
 
-class _FinishError(Exception):
+class _Finish(Exception):
     """Force the simulation to stop."""
 
 
@@ -253,7 +253,7 @@ class Loop:
                 self._task = task
                 try:
                     task._do_run(args)
-                except _FinishError:
+                except _Finish:
                     self._finish()
                     return
                 except StopIteration as exc:
@@ -288,7 +288,7 @@ class Loop:
                 self._task = task
                 try:
                     task._do_run(args)
-                except _FinishError:
+                except _Finish:
                     self._finish()
                     return
                 except StopIteration as exc:
@@ -332,4 +332,4 @@ def finish():
 
     Clear all loop data, and transition state to FINISHED.
     """
-    raise _FinishError()
+    raise _Finish()
