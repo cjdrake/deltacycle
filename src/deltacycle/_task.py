@@ -500,7 +500,8 @@ class TaskGroup(LoopIf):
             for child in self._awaited:
                 child._kill()
             while self._awaited:
-                child: Task = await self._loop.switch_coro()
+                child = await self._loop.switch_coro()
+                assert isinstance(child, Task)
                 self._awaited.remove(child)
 
             # Re-raise parent exception
@@ -511,7 +512,8 @@ class TaskGroup(LoopIf):
         child_excs: list[Exception] = []
         killed: set[Task] = set()
         while self._awaited:
-            child: Task = await self._loop.switch_coro()
+            child = await self._loop.switch_coro()
+            assert isinstance(child, Task)
             self._awaited.remove(child)
             if child in killed:
                 continue

@@ -51,7 +51,8 @@ class Semaphore(LoopIf):
         if self._cnt == 0:
             task = self._loop.task()
             self._waiting.push(task)
-            await self._loop.switch_coro()
+            y = await self._loop.switch_coro()
+            assert y is None
         else:
             self._cnt -= 1
 

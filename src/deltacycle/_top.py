@@ -221,5 +221,6 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     task = loop.task()
     for v, p in vps.items():
         v._wait(p, task)
-    v: Variable = await loop.switch_coro()
+    v = await loop.switch_coro()
+    assert isinstance(v, Variable)
     return v

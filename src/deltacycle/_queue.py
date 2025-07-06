@@ -50,7 +50,8 @@ class Queue[T](LoopIf):
         if self.full():
             task = self._loop.task()
             self._wait_not_full.push(task)
-            await self._loop.switch_coro()
+            y = await self._loop.switch_coro()
+            assert y is None
 
         self._put(item)
 
@@ -74,6 +75,7 @@ class Queue[T](LoopIf):
         if self.empty():
             task = self._loop.task()
             self._wait_not_empty.push(task)
-            await self._loop.switch_coro()
+            y = await self._loop.switch_coro()
+            assert y is None
 
         return self._get()
