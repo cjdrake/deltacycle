@@ -51,7 +51,10 @@ Variables
 Tasks
 =====
 
+.. autoexception:: deltacycle.Signal
+
 .. autoexception:: deltacycle.Interrupt
+    :show-inheritance:
 
 .. autoclass:: deltacycle.TaskState
 

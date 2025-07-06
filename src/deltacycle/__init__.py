@@ -14,6 +14,7 @@ from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
     Interrupt,
     Predicate,
+    Signal,
     Task,
     TaskCoro,
     TaskGen,
@@ -82,6 +83,7 @@ __all__ = [
     "Predicate",
     "TaskCoro",
     "TaskGen",
+    "Signal",
     "Interrupt",
     "TaskState",
     "Task",
