@@ -3,7 +3,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Generator
-from enum import IntEnum, auto
+from enum import IntEnum
 from typing import Any
 
 from ._event import Event
@@ -50,16 +50,16 @@ class LoopState(IntEnum):
     """
 
     # Initialized
-    INIT = auto()
+    INIT = 0b00
 
     # Currently running
-    RUNNING = auto()
+    RUNNING = 0b01
 
     # All tasks completed
-    COMPLETED = auto()
+    COMPLETED = 0b10
 
     # finish() called
-    FINISHED = auto()
+    FINISHED = 0b11
 
 
 _loop_state_transitions = {
