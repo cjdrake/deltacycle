@@ -318,6 +318,9 @@ class Loop:
             # Run until a number of ticks in the future
             case int(), None:
                 limit = max(self.start_time, self._time) + ticks
+            case int(), int():
+                limit = max(self.start_time, self._time) + ticks
+                limit = min(limit, until)
             case _:
                 s = "Expected either ticks or until to be int | None"
                 raise TypeError(s)

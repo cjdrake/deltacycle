@@ -68,8 +68,16 @@ def test_limits(caplog: LogCaptureFixture):
     run(loop=loop, until=201)
     assert loop.time() == 200
 
+    # Both ticks & until: first limit to hit
+    run(loop=loop, ticks=101, until=302)
+    assert loop.time() == 300
+    run(loop=loop, ticks=102, until=401)
+    assert loop.time() == 400
+
     with pytest.raises(TypeError):
-        run(loop=loop, ticks=42, until=42)
+        run(loop=loop, ticks=101.0, until=501)  # pyright: ignore[reportArgumentType]
+    with pytest.raises(TypeError):
+        run(loop=loop, ticks=101, until=501.0)  # pyright: ignore[reportArgumentType]
 
 
 def test_nocoro():
