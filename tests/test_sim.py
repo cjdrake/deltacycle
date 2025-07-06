@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Loop, create_task, get_running_loop, irun, run, sleep
+from deltacycle import Kernel, create_task, get_running_kernel, irun, run, sleep
 
 from .common import Bool
 
@@ -81,10 +81,10 @@ def test_vars_run(caplog: LogCaptureFixture):
     # Relative run limit
     run(main(), ticks=25)
 
-    loop = get_running_loop()
+    kernel = get_running_kernel()
 
     # Absolute run limit
-    run(loop=loop, until=50)
+    run(kernel=kernel, until=50)
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP
@@ -110,14 +110,14 @@ def test_vars_iter(caplog: LogCaptureFixture):
         if t >= 25:
             break
 
-    loop = get_running_loop()
-    assert loop.state() is Loop.State.RUNNING
+    kernel = get_running_kernel()
+    assert kernel.state() is Kernel.State.RUNNING
 
-    for t in irun(loop=loop):
+    for t in irun(kernel=kernel):
         if t >= 50:
             break
 
-    assert loop.state() is Loop.State.RUNNING
+    assert kernel.state() is Kernel.State.RUNNING
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP
@@ -142,13 +142,13 @@ def test_vars_run_iter(caplog: LogCaptureFixture):
     # Relative run limit
     run(main(), ticks=25)
 
-    loop = get_running_loop()
+    kernel = get_running_kernel()
 
-    for t in irun(loop=loop):
+    for t in irun(kernel=kernel):
         if t >= 50:
             break
 
-    assert loop.state() is Loop.State.RUNNING
+    assert kernel.state() is Kernel.State.RUNNING
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP

@@ -6,11 +6,11 @@ from abc import ABC
 from collections import defaultdict
 from collections.abc import Generator, Hashable
 
-from ._loop_if import LoopIf
+from ._kernel_if import KernelIf
 from ._task import Predicate, Task, WaitSet
 
 
-class Variable(LoopIf):
+class Variable(KernelIf):
     """Model component.
 
     Children::
@@ -26,15 +26,15 @@ class Variable(LoopIf):
         self._waiting = WaitSet()
 
     def __await__(self) -> Generator[None, Variable, Variable]:
-        task = self._loop.task()
+        task = self._kernel.task()
         self._wait(self.changed, task)
-        v = yield from self._loop.switch_gen()
+        v = yield from self._kernel.switch_gen()
         assert v is self
         return self
 
     def _wait(self, p: Predicate, task: Task):
         self._waiting.push((p, task))
-        self._loop._task2vars[task].add(self)
+        self._kernel._task2vars[task].add(self)
 
     def _set(self):
         self._waiting.set()
@@ -43,24 +43,24 @@ class Variable(LoopIf):
             task = self._waiting.pop()
 
             # Remove task from Variable waiting queues
-            self._loop._task2vars[task].remove(self)
-            while self._loop._task2vars[task]:
-                v = self._loop._task2vars[task].pop()
+            self._kernel._task2vars[task].remove(self)
+            while self._kernel._task2vars[task]:
+                v = self._kernel._task2vars[task].pop()
                 v._waiting.drop(task)
-            del self._loop._task2vars[task]
+            del self._kernel._task2vars[task]
 
             # Send variable id to parent task
-            self._loop.call_soon(task, value=(Task.Command.RESUME, self))
+            self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
 
         # Add variable to update set
-        self._loop.touch(self)
+        self._kernel.touch(self)
 
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""
         raise NotImplementedError()  # pragma: no cover
 
     def update(self) -> None:
-        """Loop callback."""
+        """Kernel callback."""
         raise NotImplementedError()  # pragma: no cover
 
 
@@ -97,7 +97,7 @@ class Singular[T](Variable, Value[T]):
         self._changed = value != self._next
         self._next = value
 
-        # Notify the event loop
+        # Notify the kernel
         self._set()
 
     next = property(fset=set_next)
@@ -141,7 +141,7 @@ class Aggregate[T](Variable):
         if value != self.get_next(key):
             self._nexts[key] = value
 
-        # Notify the event loop
+        # Notify the kernel
         self._set()
 
     # Variable

@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Event, any_event, create_task, get_running_loop, now, run, sleep
+from deltacycle import Event, any_event, create_task, get_running_kernel, now, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -149,8 +149,8 @@ def test_any():
         e = await any_event(e10, e20, e30)
         assert e is e10
 
-        loop = get_running_loop()
-        assert not loop._task2events
+        kernel = get_running_kernel()
+        assert not kernel._task2events
 
     run(main())
 
@@ -175,8 +175,8 @@ def test_any_one_set():
         assert e is e20
         assert now() == 0
 
-        loop = get_running_loop()
-        assert not loop._task2events
+        kernel = get_running_kernel()
+        assert not kernel._task2events
 
     run(main())
 
@@ -198,8 +198,8 @@ def test_list_any_list():
         e = await (e10 | e20 | e30)
         assert e is e10
 
-        loop = get_running_loop()
-        assert not loop._task2events
+        kernel = get_running_kernel()
+        assert not kernel._task2events
 
     run(main())
 
@@ -224,7 +224,7 @@ def test_list_any_one_set():
         assert e is e20
         assert now() == 0
 
-        loop = get_running_loop()
-        assert not loop._task2events
+        kernel = get_running_kernel()
+        assert not kernel._task2events
 
     run(main())

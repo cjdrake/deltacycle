@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from ._loop_if import LoopIf
+from ._kernel_if import KernelIf
 from ._task import Task, WaitFifo
 
 
-class Event(LoopIf):
+class Event(KernelIf):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
@@ -20,9 +20,9 @@ class Event(LoopIf):
 
     def __await__(self) -> Generator[None, Event, Event]:
         if not self._flag:
-            task = self._loop.task()
+            task = self._kernel.task()
             self._wait(task)
-            e = yield from self._loop.switch_gen()
+            e = yield from self._kernel.switch_gen()
             assert e is self
 
         return self
@@ -32,21 +32,21 @@ class Event(LoopIf):
 
     def _wait(self, task: Task):
         self._waiting.push(task)
-        self._loop._task2events[task].add(self)
+        self._kernel._task2events[task].add(self)
 
     def _set(self):
         while self._waiting:
             task = self._waiting.pop()
 
             # Remove task from Event waiting queues
-            self._loop._task2events[task].remove(self)
-            while self._loop._task2events[task]:
-                e = self._loop._task2events[task].pop()
+            self._kernel._task2events[task].remove(self)
+            while self._kernel._task2events[task]:
+                e = self._kernel._task2events[task].pop()
                 e._waiting.drop(task)
-            del self._loop._task2events[task]
+            del self._kernel._task2events[task]
 
             # Send event id to parent task
-            self._loop.call_soon(task, value=(Task.Command.RESUME, self))
+            self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
 
     def set(self):
         self._flag = True
@@ -56,12 +56,12 @@ class Event(LoopIf):
         self._flag = False
 
 
-class EventList(LoopIf):
+class EventList(KernelIf):
     def __init__(self, *events: Event):
         self._events = events
 
     def __await__(self) -> Generator[None, Event, Event]:
-        task = self._loop.task()
+        task = self._kernel.task()
 
         fst = None
         for e in self._events:
@@ -74,7 +74,7 @@ class EventList(LoopIf):
             # Await first event to be set
             for e in self._events:
                 e._wait(task)
-            fst = yield from self._loop.switch_gen()
+            fst = yield from self._kernel.switch_gen()
             assert isinstance(fst, Event)
 
         return fst

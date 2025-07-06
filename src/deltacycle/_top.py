@@ -4,38 +4,38 @@ from collections.abc import Generator
 from typing import Any
 
 from ._event import Event
-from ._loop import Loop
+from ._kernel import Kernel
 from ._task import Predicate, Task, TaskCoro
 from ._variable import Variable
 
-_loop: Loop | None = None
+_kernel: Kernel | None = None
 
 
-def get_running_loop() -> Loop:
-    """Return currently running loop.
+def get_running_kernel() -> Kernel:
+    """Return currently running kernel.
 
     Returns:
-        Loop instance
+        Kernel instance
 
     Raises:
-        RuntimeError: No loop, or loop is not currently running.
+        RuntimeError: No kernel, or kernel is not currently running.
     """
-    if _loop is None:
-        raise RuntimeError("No loop")
-    if _loop.state() is not Loop.State.RUNNING:
-        raise RuntimeError("Loop not RUNNING")
-    return _loop
+    if _kernel is None:
+        raise RuntimeError("No kernel")
+    if _kernel.state() is not Kernel.State.RUNNING:
+        raise RuntimeError("Kernel not RUNNING")
+    return _kernel
 
 
-def get_loop() -> Loop | None:
-    """Get the current event loop."""
-    return _loop
+def get_kernel() -> Kernel | None:
+    """Get the current kernel."""
+    return _kernel
 
 
-def set_loop(loop: Loop | None = None):
-    """Set the current event loop."""
-    global _loop  # noqa: PLW0603
-    _loop = loop
+def set_kernel(kernel: Kernel | None = None):
+    """Set the current kernel."""
+    global _kernel  # noqa: PLW0603
+    _kernel = kernel
 
 
 def get_current_task() -> Task:
@@ -45,10 +45,10 @@ def get_current_task() -> Task:
         Task instance
 
     Raises:
-        RuntimeError: No loop, or loop is not currently running.
+        RuntimeError: No kernel, or kernel is not currently running.
     """
-    loop = get_running_loop()
-    return loop.task()
+    kernel = get_running_kernel()
+    return kernel.task()
 
 
 def create_task(
@@ -57,8 +57,8 @@ def create_task(
     priority: int = 0,
 ) -> Task:
     """Create a task, and schedule it to start soon."""
-    loop = get_running_loop()
-    return loop.create_task(coro, name, priority)
+    kernel = get_running_kernel()
+    return kernel.create_task(coro, name, priority)
 
 
 def now() -> int:
@@ -68,29 +68,29 @@ def now() -> int:
         int time
 
     Raises:
-        RuntimeError: No loop, or loop is not currently running.
+        RuntimeError: No kernel, or kernel is not currently running.
     """
-    loop = get_running_loop()
-    return loop.time()
+    kernel = get_running_kernel()
+    return kernel.time()
 
 
-def _run_pre(coro: TaskCoro | None, loop: Loop | None) -> Loop:
-    if loop is None:
-        loop = Loop()
-        set_loop(loop)
+def _run_pre(coro: TaskCoro | None, kernel: Kernel | None) -> Kernel:
+    if kernel is None:
+        kernel = Kernel()
+        set_kernel(kernel)
         if coro is None:
-            raise ValueError("New loop requires a valid coro arg")
+            raise ValueError("New kernel requires a valid coro arg")
         assert coro is not None
-        loop.create_main(coro)
+        kernel.create_main(coro)
     else:
-        set_loop(loop)
+        set_kernel(kernel)
 
-    return loop
+    return kernel
 
 
 def run(
     coro: TaskCoro | None = None,
-    loop: Loop | None = None,
+    kernel: Kernel | None = None,
     ticks: int | None = None,
     until: int | None = None,
 ) -> Any:
@@ -102,10 +102,10 @@ def run(
 
     Args:
         coro: Optional main coroutine.
-            Required if creating a new loop.
-            Ignored if using an existing loop.
-        loop: Optional Loop instance.
-            If not provided, a new loop will be created.
+            Required if creating a new kernel.
+            Ignored if using an existing kernel.
+        kernel: Optional Kernel instance.
+            If not provided, a new kernel will be created.
         ticks: Optional relative run limit.
             If provided, run for *ticks* simulation time steps.
         until: Optional absolute run limit.
@@ -116,18 +116,18 @@ def run(
         Otherwise, return ``None``.
 
     Raises:
-        ValueError: Creating a new loop, but no coro provided.
+        ValueError: Creating a new kernel, but no coro provided.
         TypeError: ticks and until args conflict.
-        RuntimeError: The loop is in an invalid state.
+        RuntimeError: The kernel is in an invalid state.
     """
-    loop = _run_pre(coro, loop)
-    loop(ticks, until)
+    kernel = _run_pre(coro, kernel)
+    kernel(ticks, until)
 
-    if loop.main.done():
-        return loop.main.result()
+    if kernel.main.done():
+        return kernel.main.result()
 
 
-def irun(coro: TaskCoro | None = None, loop: Loop | None = None) -> Generator[int, None, Any]:
+def irun(coro: TaskCoro | None = None, kernel: Kernel | None = None) -> Generator[int, None, Any]:
     """Iterate a simulation.
 
     Iterated simulations do not have a run limit.
@@ -136,10 +136,10 @@ def irun(coro: TaskCoro | None = None, loop: Loop | None = None) -> Generator[in
 
     Args:
         coro: Optional main coroutine.
-            Required if creating a new loop.
-            Ignored if using an existing loop.
-        loop: Optional Loop instance.
-            If not provided, a new loop will be created.
+            Required if creating a new kernel.
+            Ignored if using an existing kernel.
+        kernel: Optional Kernel instance.
+            If not provided, a new kernel will be created.
 
     Yields:
         int time immediately *before* the next time slot executes.
@@ -148,23 +148,23 @@ def irun(coro: TaskCoro | None = None, loop: Loop | None = None) -> Generator[in
         main coroutine result.
 
     Raises:
-        ValueError: Creating a new loop, but no coro provided.
+        ValueError: Creating a new kernel, but no coro provided.
         TypeError: ticks and until args conflict.
-        RuntimeError: The loop is in an invalid state.
+        RuntimeError: The kernel is in an invalid state.
     """
-    loop = _run_pre(coro, loop)
-    yield from loop
+    kernel = _run_pre(coro, kernel)
+    yield from kernel
 
-    assert loop.main.done()
-    return loop.main.result()
+    assert kernel.main.done()
+    return kernel.main.result()
 
 
 async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
-    loop = get_running_loop()
-    task = loop.task()
-    loop.call_later(delay, task, value=(Task.Command.RESUME,))
-    y = await loop.switch_coro()
+    kernel = get_running_kernel()
+    task = kernel.task()
+    kernel.call_later(delay, task, value=(Task.Command.RESUME,))
+    y = await kernel.switch_coro()
     assert y is None
 
 
@@ -180,8 +180,8 @@ async def any_event(*events: Event) -> Event:
     Returns:
         The Event instance that triggered the task to resume.
     """
-    loop = get_running_loop()
-    task = loop.task()
+    kernel = get_running_kernel()
+    task = kernel.task()
 
     # Search for first set event
     fst = None
@@ -195,7 +195,7 @@ async def any_event(*events: Event) -> Event:
         # Await first event to be set
         for e in events:
             e._wait(task)
-        fst = await loop.switch_coro()
+        fst = await kernel.switch_coro()
         assert isinstance(fst, Event)
 
     return fst
@@ -215,10 +215,10 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     Returns:
         The Variable instance that triggered the task to resume.
     """
-    loop = get_running_loop()
-    task = loop.task()
+    kernel = get_running_kernel()
+    task = kernel.task()
     for v, p in vps.items():
         v._wait(p, task)
-    v = await loop.switch_coro()
+    v = await kernel.switch_coro()
     assert isinstance(v, Variable)
     return v

@@ -3,11 +3,11 @@
 from collections import deque
 from functools import cached_property
 
-from ._loop_if import LoopIf
+from ._kernel_if import KernelIf
 from ._task import Task, WaitFifo
 
 
-class Queue[T](LoopIf):
+class Queue[T](KernelIf):
     """First-in, First-out (FIFO) queue."""
 
     def __init__(self, maxlen: int = 0):
@@ -35,7 +35,7 @@ class Queue[T](LoopIf):
         self._items.append(item)
         if self._wait_not_empty:
             task = self._wait_not_empty.pop()
-            self._loop.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
 
     def try_put(self, item: T) -> bool:
         """Nonblocking put: Return True if a put attempt is successful."""
@@ -48,9 +48,9 @@ class Queue[T](LoopIf):
     async def put(self, item: T):
         """Block until there is space to put the item."""
         if self.full():
-            task = self._loop.task()
+            task = self._kernel.task()
             self._wait_not_full.push(task)
-            y = await self._loop.switch_coro()
+            y = await self._kernel.switch_coro()
             assert y is None
 
         self._put(item)
@@ -59,7 +59,7 @@ class Queue[T](LoopIf):
         item = self._items.popleft()
         if self._wait_not_full:
             task = self._wait_not_full.pop()
-            self._loop.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
         return item
 
     def try_get(self) -> tuple[bool, T | None]:
@@ -73,9 +73,9 @@ class Queue[T](LoopIf):
     async def get(self) -> T:
         """Block until an item is available to get."""
         if self.empty():
-            task = self._loop.task()
+            task = self._kernel.task()
             self._wait_not_empty.push(task)
-            y = await self._loop.switch_coro()
+            y = await self._kernel.switch_coro()
             assert y is None
 
         return self._get()

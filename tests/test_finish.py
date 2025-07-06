@@ -1,10 +1,10 @@
-"""Test deltacycle._loop.finish"""
+"""Test deltacycle._kernel.finish"""
 
 import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Loop, create_task, finish, get_loop, irun, run, sleep
+from deltacycle import Kernel, create_task, finish, get_kernel, irun, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -128,9 +128,9 @@ def test_finish1(caplog: LogCaptureFixture):
     # Subsequent calls to run() have no effect
     run(main())
 
-    loop = get_loop()
-    assert loop is not None
-    assert loop.state() is Loop.State.FINISHED
+    kernel = get_kernel()
+    assert kernel is not None
+    assert kernel.state() is Kernel.State.FINISHED
 
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
@@ -149,10 +149,10 @@ def test_finish2(caplog: LogCaptureFixture):
     # Subsequent calls to run() have no effect
     list(irun(main()))
 
-    loop = get_loop()
-    assert loop is not None
-    assert loop.state() is Loop.State.FINISHED
-    assert loop.done()
+    kernel = get_kernel()
+    assert kernel is not None
+    assert kernel.state() is Kernel.State.FINISHED
+    assert kernel.done()
 
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1

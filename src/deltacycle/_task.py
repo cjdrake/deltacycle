@@ -11,7 +11,7 @@ from enum import IntEnum
 from types import TracebackType
 from typing import Any
 
-from ._loop_if import LoopIf
+from ._kernel_if import KernelIf
 
 logger = logging.getLogger("deltacycle")
 
@@ -147,7 +147,7 @@ class WaitSet(TaskQueueIf):
         self._items.update(t for t, p in self._tps.items() if p())
 
 
-class Task(LoopIf):
+class Task(KernelIf):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -231,9 +231,9 @@ class Task(LoopIf):
 
     def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
-            task = self._loop.task()
+            task = self._kernel.task()
             self._wait(task)
-            t = yield from self._loop.switch_gen()
+            t = yield from self._kernel.switch_gen()
             assert isinstance(t, Task)
             assert t is self
 
@@ -247,7 +247,7 @@ class Task(LoopIf):
         while self._waiting:
             task = self._waiting.pop()
             # Send child id to parent task
-            self._loop.call_soon(task, value=(self.Command.RESUME, self))
+            self._kernel.call_soon(task, value=(self.Command.RESUME, self))
 
     @property
     def coro(self) -> TaskCoro:
@@ -425,7 +425,7 @@ class Task(LoopIf):
         irq = Interrupt(*args)
 
         # Task is interrupting itself. Weird, but legal.
-        if self is self._loop.task():
+        if self is self._kernel.task():
             raise irq
 
         # Pending tasks must first renege from queues
@@ -433,7 +433,7 @@ class Task(LoopIf):
 
         # Reschedule
         self._signal = True
-        self._loop.call_soon(self, value=(self.Command.INTERRUPT, irq))
+        self._kernel.call_soon(self, value=(self.Command.INTERRUPT, irq))
 
         # Success
         return True
@@ -444,24 +444,24 @@ class Task(LoopIf):
             return False
 
         # Task cannot kill itself
-        assert self is not self._loop.task()
+        assert self is not self._kernel.task()
 
         # Pending tasks must first renege from queues
         self._renege()
 
         # Reschedule
         self._signal = True
-        self._loop.call_soon(self, value=(self.Command.KILL, _Kill()))
+        self._kernel.call_soon(self, value=(self.Command.KILL, _Kill()))
 
         # Success
         return True
 
 
-class TaskGroup(LoopIf):
+class TaskGroup(KernelIf):
     """Group of tasks."""
 
     def __init__(self):
-        self._parent = self._loop.task()
+        self._parent = self._kernel.task()
 
         # Tasks started in the with block
         self._setup_done = False
@@ -494,7 +494,7 @@ class TaskGroup(LoopIf):
             for child in self._awaited:
                 child._kill()
             while self._awaited:
-                child = await self._loop.switch_coro()
+                child = await self._kernel.switch_coro()
                 assert isinstance(child, Task)
                 self._awaited.remove(child)
 
@@ -506,7 +506,7 @@ class TaskGroup(LoopIf):
         child_excs: list[Exception] = []
         killed: set[Task] = set()
         while self._awaited:
-            child = await self._loop.switch_coro()
+            child = await self._kernel.switch_coro()
             assert isinstance(child, Task)
             self._awaited.remove(child)
             if child in killed:
@@ -526,7 +526,7 @@ class TaskGroup(LoopIf):
         name: str | None = None,
         priority: int = 0,
     ) -> Task:
-        child = self._loop.create_task(coro, name, priority)
+        child = self._kernel.create_task(coro, name, priority)
         child.group = self
         if self._setup_done:
             self._awaited.add(child)

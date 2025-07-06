@@ -1,4 +1,4 @@
-"""Event Loop"""
+"""Execution Kernel"""
 
 import logging
 from collections import defaultdict
@@ -21,9 +21,9 @@ class _SuspendResume:
 
     Use case:
     1. Current task A suspends itself: RUNNING => WAITING
-    2. Event loop chooses PENDING tasks ..., T
+    2. Kernel chooses PENDING tasks ..., T
     3. ... Task T wakes up task A w/ value X: WAITING => PENDING
-    4. Event loop chooses PENDING tasks ..., A: PENDING => RUNNING
+    4. Kernel chooses PENDING tasks ..., A: PENDING => RUNNING
     5. Task A resumes with value X
 
     The value X can be used to pass information to the task.
@@ -40,8 +40,8 @@ class _Finish(Exception):
     """Force the simulation to stop."""
 
 
-class Loop:
-    """Simulation event loop.
+class Kernel:
+    """Simulation Kernel.
 
     Responsible for:
 
@@ -94,7 +94,7 @@ class Loop:
     main_priority = 0
 
     def __init__(self):
-        self._name = f"Loop-{self.__class__._index}"
+        self._name = f"Kernel-{self.__class__._index}"
         self.__class__._index += 1
 
         self._state = self.State.INIT
@@ -205,7 +205,7 @@ class Loop:
         if self._state is self.State.INIT:
             self._set_state(self.State.RUNNING)
         elif self._state is not self.State.RUNNING:
-            s = f"Loop has invalid state: {self._state.name}"
+            s = f"Kernel has invalid state: {self._state.name}"
             raise RuntimeError(s)
 
     def _iter_time_slot(self, time: int) -> Generator[tuple[Task, CallValue], None, None]:
@@ -326,6 +326,6 @@ class Loop:
 def finish():
     """Halt all incomplete coroutines, and immediately exit simulation.
 
-    Clear all loop data, and transition state to FINISHED.
+    Clear all kernel data, and transition state to FINISHED.
     """
     raise _Finish()

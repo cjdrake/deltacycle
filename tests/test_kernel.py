@@ -1,11 +1,11 @@
-"""Test basic loop functionality"""
+"""Test basic kernel functionality"""
 
 import logging
 
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import get_loop, get_running_loop, irun, run, set_loop, sleep
+from deltacycle import get_kernel, get_running_kernel, irun, run, set_kernel, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -45,39 +45,39 @@ def test_cannot_run(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     run(main(100))
-    loop = get_loop()
+    kernel = get_kernel()
 
-    # Loop is already in COMPLETED state
+    # Kernel is already in COMPLETED state
     with pytest.raises(RuntimeError):
-        run(loop=loop)
+        run(kernel=kernel)
 
     with pytest.raises(RuntimeError):
-        list(irun(loop=loop))
+        list(irun(kernel=kernel))
 
 
 def test_limits(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     run(main(1000), ticks=51)
-    loop = get_running_loop()
-    assert loop.time() == 50
+    kernel = get_running_kernel()
+    assert kernel.time() == 50
 
-    run(loop=loop, ticks=51)
-    assert loop.time() == 100
+    run(kernel=kernel, ticks=51)
+    assert kernel.time() == 100
 
-    run(loop=loop, until=201)
-    assert loop.time() == 200
+    run(kernel=kernel, until=201)
+    assert kernel.time() == 200
 
     # Both ticks & until: first limit to hit
-    run(loop=loop, ticks=101, until=302)
-    assert loop.time() == 300
-    run(loop=loop, ticks=102, until=401)
-    assert loop.time() == 400
+    run(kernel=kernel, ticks=101, until=302)
+    assert kernel.time() == 300
+    run(kernel=kernel, ticks=102, until=401)
+    assert kernel.time() == 400
 
     with pytest.raises(TypeError):
-        run(loop=loop, ticks=101.0, until=501)  # pyright: ignore[reportArgumentType]
+        run(kernel=kernel, ticks=101.0, until=501)  # pyright: ignore[reportArgumentType]
     with pytest.raises(TypeError):
-        run(loop=loop, ticks=101, until=501.0)  # pyright: ignore[reportArgumentType]
+        run(kernel=kernel, ticks=101, until=501.0)  # pyright: ignore[reportArgumentType]
 
 
 def test_nocoro():
@@ -87,13 +87,13 @@ def test_nocoro():
         list(irun())
 
 
-def test_get_running_loop():
-    # No loop
-    set_loop()
+def test_get_running_kernel():
+    # No kernel
+    set_kernel()
     with pytest.raises(RuntimeError):
-        get_running_loop()
+        get_running_kernel()
 
-    # Loop is not running
+    # Kernel is not running
     run(main(42))
     with pytest.raises(RuntimeError):
-        get_running_loop()
+        get_running_kernel()

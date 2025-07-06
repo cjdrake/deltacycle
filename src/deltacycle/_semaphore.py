@@ -3,11 +3,11 @@
 from types import TracebackType
 from typing import override
 
-from ._loop_if import LoopIf
+from ._kernel_if import KernelIf
 from ._task import Task, WaitFifo
 
 
-class Semaphore(LoopIf):
+class Semaphore(KernelIf):
     """Semaphore to synchronize tasks.
 
     Permits number of put() > resource count.
@@ -35,7 +35,7 @@ class Semaphore(LoopIf):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._loop.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
         else:
             self._cnt += 1
 
@@ -49,9 +49,9 @@ class Semaphore(LoopIf):
     async def get(self):
         assert self._cnt >= 0
         if self._cnt == 0:
-            task = self._loop.task()
+            task = self._kernel.task()
             self._waiting.push(task)
-            y = await self._loop.switch_coro()
+            y = await self._kernel.switch_coro()
             assert y is None
         else:
             self._cnt -= 1
@@ -73,7 +73,7 @@ class BoundedSemaphore(Semaphore):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._loop.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")

@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import Loop, get_loop, run, sleep
+from deltacycle import Kernel, get_kernel, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -33,12 +33,12 @@ def test_hello(caplog: LogCaptureFixture):
     ret = run(hello())
     assert ret == 42
 
-    loop = get_loop()
-    assert loop is not None
-    assert loop.state() is Loop.State.COMPLETED
+    kernel = get_kernel()
+    assert kernel is not None
+    assert kernel.state() is Kernel.State.COMPLETED
 
     with pytest.raises(RuntimeError):
-        run(loop=loop)
+        run(kernel=kernel)
 
     msgs = [(r.time, r.getMessage()) for r in caplog.records]
     assert msgs == EXP

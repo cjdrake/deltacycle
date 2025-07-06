@@ -126,24 +126,24 @@ Queues
     .. automethod:: get
 
 
-Loop
-====
+Kernel
+======
 
-.. autoclass:: deltacycle.Loop.State
+.. autoclass:: deltacycle.Kernel.State
 
-.. autoclass:: deltacycle.Loop
+.. autoclass:: deltacycle.Kernel
 
-    .. automethod:: deltacycle.Loop.state
-    .. automethod:: deltacycle.Loop.time
-    .. autoproperty:: deltacycle.Loop.main
-    .. automethod:: deltacycle.Loop.task
-    .. automethod:: deltacycle.Loop.done
+    .. automethod:: deltacycle.Kernel.state
+    .. automethod:: deltacycle.Kernel.time
+    .. autoproperty:: deltacycle.Kernel.main
+    .. automethod:: deltacycle.Kernel.task
+    .. automethod:: deltacycle.Kernel.done
 
 .. autofunction:: deltacycle.finish
 
-.. autofunction:: deltacycle.get_running_loop
-.. autofunction:: deltacycle.get_loop
-.. autofunction:: deltacycle.set_loop
+.. autofunction:: deltacycle.get_running_kernel
+.. autofunction:: deltacycle.get_kernel
+.. autofunction:: deltacycle.set_kernel
 
 .. autofunction:: deltacycle.run
 .. autofunction:: deltacycle.irun
