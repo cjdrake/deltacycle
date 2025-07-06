@@ -311,16 +311,18 @@ class Task(LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, cmd: TaskCommand, arg: Any):
-        match cmd:
-            case TaskCommand.START:
+    def _do_run(self, args):
+        match args:
+            case (TaskCommand.START,):
                 self._set_state(TaskState.RUNNING)
                 y = self._coro.send(None)
-            case TaskCommand.RESUME:
-                y = self._coro.send(arg)
-            case TaskCommand.INTERRUPT:
+            case (TaskCommand.RESUME,):
+                y = self._coro.send(None)
+            case (TaskCommand.RESUME, aw):
+                y = self._coro.send(aw)
+            case (TaskCommand.INTERRUPT, irq):
                 self._interrupting = False
-                y = self._coro.throw(arg)
+                y = self._coro.throw(irq)
             case _:  # pragma: no cover
                 assert False
 
@@ -414,18 +416,18 @@ class Task(LoopIf):
         if self._interrupting or self.done():
             return False
 
-        exc = Interrupt(*args)
+        irq = Interrupt(*args)
 
         # Task is interrupting itself. Weird, but legal.
         if self is self._loop.task():
-            raise exc
+            raise irq
 
         # Pending/Waiting tasks must first renege from queues
         self._renege()
 
         # Reschedule interrupt
         self._interrupting = True
-        self._loop.call_soon(self, value=(TaskCommand.INTERRUPT, exc))
+        self._loop.call_soon(self, value=(TaskCommand.INTERRUPT, irq))
 
         # Success
         return True

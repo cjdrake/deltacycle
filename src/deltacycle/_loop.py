@@ -10,7 +10,9 @@ from ._event import Event
 from ._task import Interrupt, PendQueue, Task, TaskCommand, TaskCoro, TaskState
 from ._variable import Variable
 
-type CallValue = tuple[TaskCommand, Task | Event | Variable | Interrupt | None]
+type CallValue = (
+    tuple[TaskCommand] | tuple[TaskCommand, Task | Event | Variable] | tuple[TaskCommand, Interrupt]
+)
 
 logger = logging.getLogger("deltacycle")
 
@@ -159,7 +161,7 @@ class Loop:
     def create_main(self, coro: TaskCoro):
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
-        self.call_at(self.start_time, self._main, value=(TaskCommand.START, None))
+        self.call_at(self.start_time, self._main, value=(TaskCommand.START,))
 
     def create_task(
         self,
@@ -172,7 +174,7 @@ class Loop:
             name = f"Task-{self._task_index}"
             self._task_index += 1
         task = Task(coro, name, priority)
-        self.call_soon(task, value=(TaskCommand.START, None))
+        self.call_soon(task, value=(TaskCommand.START,))
         return task
 
     # TODO(cjdrake): Restrict ReturnType?
@@ -247,10 +249,10 @@ class Loop:
             self._time = time
 
             # Execute time slot
-            for task, (cmd, arg) in self._iter_time_slot(time):
+            for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(cmd, arg)
+                    task._do_run(args)
                 except _FinishError:
                     self._finish()
                     return
@@ -282,10 +284,10 @@ class Loop:
             self._time = time
 
             # Execute time slot
-            for task, (cmd, arg) in self._iter_time_slot(time):
+            for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(cmd, arg)
+                    task._do_run(args)
                 except _FinishError:
                     self._finish()
                     return
