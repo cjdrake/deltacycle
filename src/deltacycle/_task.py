@@ -7,7 +7,7 @@ import logging
 from abc import ABC
 from collections import Counter, deque
 from collections.abc import Callable, Coroutine, Generator
-from enum import IntEnum, auto
+from enum import IntEnum
 from types import TracebackType
 from typing import Any
 
@@ -22,16 +22,25 @@ type TaskCoro = Coroutine[None, Any, Any]
 type TaskGen = Generator[None, Task, Any]
 
 
-class Interrupt(Exception):
+class Signal(Exception):
+    pass
+
+
+class Interrupt(Signal):
     """Interrupt task."""
+
+
+class _Kill(Signal):
+    """Kill task."""
 
 
 class TaskCommand(IntEnum):
     """Task Run Command."""
 
-    START = auto()
-    RESUME = auto()
-    INTERRUPT = auto()
+    START = 0b00
+    RESUME = 0b01
+    INTERRUPT = 0b10
+    KILL = 0b11
 
 
 class TaskState(IntEnum):
@@ -222,8 +231,8 @@ class Task(LoopIf):
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
 
-        # Flag to avoid multiple interrupts
-        self._interrupting = False
+        # Flag to avoid multiple signals
+        self._signal = False
 
         # Outputs
         self._result: Any = None
@@ -321,8 +330,11 @@ class Task(LoopIf):
             case (TaskCommand.RESUME, aw):
                 y = self._coro.send(aw)
             case (TaskCommand.INTERRUPT, irq):
-                self._interrupting = False
+                self._signal = False
                 y = self._coro.throw(irq)
+            case (TaskCommand.KILL, krq):
+                self._signal = False
+                y = self._coro.throw(krq)
             case _:  # pragma: no cover
                 assert False
 
@@ -413,7 +425,7 @@ class Task(LoopIf):
             Interrupt: If the task interrupts itself
         """
         # Already done; do nothing
-        if self._interrupting or self.done():
+        if self._signal or self.done():
             return False
 
         irq = Interrupt(*args)
@@ -422,12 +434,30 @@ class Task(LoopIf):
         if self is self._loop.task():
             raise irq
 
-        # Pending/Waiting tasks must first renege from queues
+        # Pending tasks must first renege from queues
         self._renege()
 
-        # Reschedule interrupt
-        self._interrupting = True
+        # Reschedule
+        self._signal = True
         self._loop.call_soon(self, value=(TaskCommand.INTERRUPT, irq))
+
+        # Success
+        return True
+
+    def _kill(self) -> bool:
+        # Already done; do nothing
+        if self._signal or self.done():
+            return False
+
+        # Task cannot kill itself
+        assert self is not self._loop.task()
+
+        # Pending tasks must first renege from queues
+        self._renege()
+
+        # Reschedule
+        self._signal = True
+        self._loop.call_soon(self, value=(TaskCommand.KILL, _Kill()))
 
         # Success
         return True
@@ -443,7 +473,7 @@ class TaskGroup(LoopIf):
         self._setup_done = False
         self._setup_tasks: set[Task] = set()
 
-        # Tasks in running/pending/interrupting state
+        # Tasks in running/pending/killing state
         self._awaited: set[Task] = set()
 
     async def __aenter__(self) -> TaskGroup:
@@ -465,10 +495,10 @@ class TaskGroup(LoopIf):
                 child._wait(self._parent)
 
         # Parent raised an exception:
-        # Interrupt children; suppress exceptions
+        # Kill children; suppress exceptions
         if exc:
             for child in self._awaited:
-                child.interrupt()
+                child._kill()
             while self._awaited:
                 child: Task = await self._loop.switch_coro()
                 self._awaited.remove(child)
@@ -479,16 +509,16 @@ class TaskGroup(LoopIf):
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
         child_excs: list[Exception] = []
-        interrupted: set[Task] = set()
+        killed: set[Task] = set()
         while self._awaited:
             child: Task = await self._loop.switch_coro()
             self._awaited.remove(child)
-            if child in interrupted:
+            if child in killed:
                 continue
             exc = child.exception()
             if exc is not None:
                 child_excs.append(exc)
-                interrupted.update(c for c in self._awaited if c.interrupt())
+                killed.update(c for c in self._awaited if c._kill())
 
         # Re-raise child exceptions
         if child_excs:
