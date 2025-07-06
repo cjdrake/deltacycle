@@ -22,6 +22,7 @@ from ._task import (
     TaskState,
 )
 from ._top import (
+    LoopGen,
     any_event,
     any_var,
     create_task,
@@ -58,6 +59,7 @@ logger.addFilter(DeltaCycleFilter())
 
 __all__ = [
     # loop
+    "LoopGen",
     "LoopState",
     "Loop",
     "finish",
