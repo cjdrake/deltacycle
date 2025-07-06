@@ -321,7 +321,7 @@ class Task(LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, args):
+    def _do_run(self, args: tuple[TaskCommand] | tuple[TaskCommand, Any]):
         self._set_state(TaskState.RUNNING)
 
         match args:
