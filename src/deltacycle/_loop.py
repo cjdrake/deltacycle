@@ -10,8 +10,9 @@ from ._event import Event
 from ._task import PendQueue, Signal, Task, TaskCommand, TaskCoro, TaskState
 from ._variable import Variable
 
-type TEV = Task | Event | Variable
-type CallValue = tuple[TaskCommand] | tuple[TaskCommand, TEV] | tuple[TaskCommand, Signal]
+# Awaitables
+type AW = Task | Event | Variable
+type CallValue = tuple[TaskCommand] | tuple[TaskCommand, AW | Signal]
 
 logger = logging.getLogger("deltacycle")
 
@@ -29,7 +30,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, TEV | None, TEV | None]:
+    def __await__(self) -> Generator[None, AW | None, AW | None]:
         # Suspend
         value = yield
         # Resume
@@ -181,7 +182,7 @@ class Loop:
         self.call_soon(task, value=(TaskCommand.START,))
         return task
 
-    async def switch_coro(self) -> TEV | None:
+    async def switch_coro(self) -> AW | None:
         assert self._task is not None
         # Suspend
         self._task._set_state(TaskState.PENDING)
