@@ -8,7 +8,7 @@ import logging
 from logging import Filter, LogRecord
 
 from ._event import Event, EventList
-from ._loop import Loop, LoopState, finish
+from ._loop import Loop, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
@@ -18,7 +18,6 @@ from ._task import (
     Task,
     TaskCoro,
     TaskGroup,
-    TaskState,
 )
 from ._top import (
     any_event,
@@ -57,7 +56,6 @@ logger.addFilter(DeltaCycleFilter())
 
 __all__ = [
     # loop
-    "LoopState",
     "Loop",
     "finish",
     "get_running_loop",
@@ -82,7 +80,6 @@ __all__ = [
     "TaskCoro",
     "Signal",
     "Interrupt",
-    "TaskState",
     "Task",
     "TaskGroup",
     "create_task",

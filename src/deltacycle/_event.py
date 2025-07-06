@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Generator
 
 from ._loop_if import LoopIf
-from ._task import Task, TaskCommand, WaitFifo
+from ._task import Task, WaitFifo
 
 
 class Event(LoopIf):
@@ -46,7 +46,7 @@ class Event(LoopIf):
             del self._loop._task2events[task]
 
             # Send event id to parent task
-            self._loop.call_soon(task, value=(TaskCommand.RESUME, self))
+            self._loop.call_soon(task, value=(Task.Command.RESUME, self))
 
     def set(self):
         self._flag = True

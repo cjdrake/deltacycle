@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import LoopState, create_task, finish, get_loop, irun, run, sleep
+from deltacycle import Loop, create_task, finish, get_loop, irun, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -130,7 +130,7 @@ def test_finish1(caplog: LogCaptureFixture):
 
     loop = get_loop()
     assert loop is not None
-    assert loop.state() is LoopState.FINISHED
+    assert loop.state() is Loop.State.FINISHED
 
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
@@ -151,7 +151,7 @@ def test_finish2(caplog: LogCaptureFixture):
 
     loop = get_loop()
     assert loop is not None
-    assert loop.state() is LoopState.FINISHED
+    assert loop.state() is Loop.State.FINISHED
     assert loop.done()
 
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}

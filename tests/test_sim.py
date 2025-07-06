@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import LoopState, create_task, get_running_loop, irun, run, sleep
+from deltacycle import Loop, create_task, get_running_loop, irun, run, sleep
 
 from .common import Bool
 
@@ -111,13 +111,13 @@ def test_vars_iter(caplog: LogCaptureFixture):
             break
 
     loop = get_running_loop()
-    assert loop.state() is LoopState.RUNNING
+    assert loop.state() is Loop.State.RUNNING
 
     for t in irun(loop=loop):
         if t >= 50:
             break
 
-    assert loop.state() is LoopState.RUNNING
+    assert loop.state() is Loop.State.RUNNING
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP
@@ -148,7 +148,7 @@ def test_vars_run_iter(caplog: LogCaptureFixture):
         if t >= 50:
             break
 
-    assert loop.state() is LoopState.RUNNING
+    assert loop.state() is Loop.State.RUNNING
 
     msgs = {(r.time, r.getMessage()) for r in caplog.records}
     assert msgs == EXP

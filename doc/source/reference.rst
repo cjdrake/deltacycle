@@ -56,10 +56,10 @@ Tasks
 .. autoexception:: deltacycle.Interrupt
     :show-inheritance:
 
-.. autoclass:: deltacycle.TaskState
-
 .. autoclass:: deltacycle.Task
     :show-inheritance:
+
+    .. autoclass:: deltacycle.Task.State
 
     .. automethod:: __await__
     .. autoproperty:: coro
@@ -129,9 +129,9 @@ Queues
 Loop
 ====
 
-.. autoclass:: deltacycle.LoopState
-
 .. autoclass:: deltacycle.Loop
+
+    .. autoclass:: deltacycle.Loop.State
 
     .. automethod:: deltacycle.Loop.state
     .. automethod:: deltacycle.Loop.time

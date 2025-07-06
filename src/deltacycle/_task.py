@@ -33,61 +33,6 @@ class _Kill(Signal):
     """Kill task."""
 
 
-class TaskCommand(IntEnum):
-    """Task Run Command."""
-
-    START = 0b00
-    RESUME = 0b01
-    INTERRUPT = 0b10
-    KILL = 0b11
-
-
-class TaskState(IntEnum):
-    """Task State
-
-    Transitions::
-
-                PENDING
-                   ^
-                   |
-                   v
-        INIT -> RUNNING -> RETURNED
-                        -> EXCEPTED
-    """
-
-    # Initialized
-    INIT = 0b001
-
-    # Currently running
-    RUNNING = 0b010
-
-    # Suspended
-    PENDING = 0b011
-
-    # Done: returned a result
-    RETURNED = 0b100
-    # Done: raised an exception
-    EXCEPTED = 0b101
-
-
-_DONE = TaskState.RETURNED & TaskState.EXCEPTED
-
-
-_task_state_transitions = {
-    TaskState.INIT: {
-        TaskState.RUNNING,
-    },
-    TaskState.RUNNING: {
-        TaskState.PENDING,
-        TaskState.RETURNED,
-        TaskState.EXCEPTED,
-    },
-    TaskState.PENDING: {
-        TaskState.RUNNING,
-    },
-}
-
-
 class TaskQueueIf(ABC):
     def __bool__(self) -> bool:
         """Return True if the queue has tasks ready to run."""
@@ -209,13 +154,60 @@ class Task(LoopIf):
     Use ``create_task`` function, or (better) ``TaskGroup.create_task`` method.
     """
 
+    class Command(IntEnum):
+        START = 0b00
+        RESUME = 0b01
+        INTERRUPT = 0b10
+        KILL = 0b11
+
+    class State(IntEnum):
+        """Task State
+
+        Transitions::
+
+                    PENDING
+                       |
+            INIT -> RUNNING -> RETURNED
+                            -> EXCEPTED
+        """
+
+        # Initialized
+        INIT = 0b001
+
+        # Currently running
+        RUNNING = 0b010
+
+        # Suspended
+        PENDING = 0b011
+
+        # Done: returned a result
+        RETURNED = 0b100
+        # Done: raised an exception
+        EXCEPTED = 0b101
+
+    _done = State.RETURNED & State.EXCEPTED
+
+    _state_transitions = {
+        State.INIT: {
+            State.RUNNING,
+        },
+        State.RUNNING: {
+            State.PENDING,
+            State.RETURNED,
+            State.EXCEPTED,
+        },
+        State.PENDING: {
+            State.RUNNING,
+        },
+    }
+
     def __init__(
         self,
         coro: TaskCoro,
         name: str,
         priority: int,
     ):
-        self._state = TaskState.INIT
+        self._state = self.State.INIT
 
         # Attributes
         self._coro = coro
@@ -256,7 +248,7 @@ class Task(LoopIf):
         while self._waiting:
             task = self._waiting.pop()
             # Send child id to parent task
-            self._loop.call_soon(task, value=(TaskCommand.RESUME, self))
+            self._loop.call_soon(task, value=(self.Command.RESUME, self))
 
     @property
     def coro(self) -> TaskCoro:
@@ -302,12 +294,12 @@ class Task(LoopIf):
 
     group = property(fget=_get_group, fset=_set_group)
 
-    def _set_state(self, state: TaskState):
-        assert state in _task_state_transitions[self._state]
+    def _set_state(self, state: State):
+        assert state in self._state_transitions[self._state]
         logger.debug("%s: %s => %s", self.name, self._state.name, state.name)
         self._state = state
 
-    def state(self) -> TaskState:
+    def state(self) -> State:
         return self._state
 
     def _link(self, tq: TaskQueueIf):
@@ -325,20 +317,20 @@ class Task(LoopIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, args: tuple[TaskCommand] | tuple[TaskCommand, Any]):
-        self._set_state(TaskState.RUNNING)
+    def _do_run(self, args: tuple[Command] | tuple[Command, Any]):
+        self._set_state(self.State.RUNNING)
 
         match args:
-            case (TaskCommand.START,):
+            case (self.Command.START,):
                 y = self._coro.send(None)
-            case (TaskCommand.RESUME,):
+            case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (TaskCommand.RESUME, aw):
+            case (self.Command.RESUME, aw):
                 y = self._coro.send(aw)
-            case (TaskCommand.INTERRUPT, irq):
+            case (self.Command.INTERRUPT, irq):
                 self._signal = False
                 y = self._coro.throw(irq)
-            case (TaskCommand.KILL, krq):
+            case (self.Command.KILL, krq):
                 self._signal = False
                 y = self._coro.throw(krq)
             case _:  # pragma: no cover
@@ -349,13 +341,13 @@ class Task(LoopIf):
 
     def _do_result(self, exc: StopIteration):
         self._result = exc.value
-        self._set_state(TaskState.RETURNED)
+        self._set_state(self.State.RETURNED)
         self._set()
         assert self._refcnts.total() == 0
 
     def _do_except(self, exc: Exception):
         self._exception = exc
-        self._set_state(TaskState.EXCEPTED)
+        self._set_state(self.State.EXCEPTED)
         self._set()
         assert self._refcnts.total() == 0
 
@@ -368,7 +360,7 @@ class Task(LoopIf):
         * Was interrupted by another task, or
         * Raised an exception.
         """
-        return bool(self._state & _DONE)
+        return bool(self._state & self._done)
 
     def result(self) -> Any:
         """Return the task's result, or raise an exception.
@@ -380,10 +372,10 @@ class Task(LoopIf):
             Exception: If the task raise any other type of exception.
             RuntimeError: If the task is not done.
         """
-        if self._state is TaskState.RETURNED:
+        if self._state is self.State.RETURNED:
             assert self._exception is None
             return self._result
-        if self._state is TaskState.EXCEPTED:
+        if self._state is self.State.EXCEPTED:
             assert self._result is None and self._exception is not None
             raise self._exception
         raise RuntimeError("Task is not done")
@@ -398,10 +390,10 @@ class Task(LoopIf):
         Raises:
             RuntimeError: If the task is not done.
         """
-        if self._state is TaskState.RETURNED:
+        if self._state is self.State.RETURNED:
             assert self._exception is None
             return self._exception
-        if self._state is TaskState.EXCEPTED:
+        if self._state is self.State.EXCEPTED:
             assert self._result is None and self._exception is not None
             return self._exception
         raise RuntimeError("Task is not done")
@@ -443,7 +435,7 @@ class Task(LoopIf):
 
         # Reschedule
         self._signal = True
-        self._loop.call_soon(self, value=(TaskCommand.INTERRUPT, irq))
+        self._loop.call_soon(self, value=(self.Command.INTERRUPT, irq))
 
         # Success
         return True
@@ -461,7 +453,7 @@ class Task(LoopIf):
 
         # Reschedule
         self._signal = True
-        self._loop.call_soon(self, value=(TaskCommand.KILL, _Kill()))
+        self._loop.call_soon(self, value=(self.Command.KILL, _Kill()))
 
         # Success
         return True

@@ -6,12 +6,12 @@ from collections.abc import Generator
 from enum import IntEnum
 
 from ._event import Event
-from ._task import PendQueue, Signal, Task, TaskCommand, TaskCoro, TaskState
+from ._task import PendQueue, Signal, Task, TaskCoro
 from ._variable import Variable
 
 # Awaitables
 type AW = Task | Event | Variable
-type CallValue = tuple[TaskCommand] | tuple[TaskCommand, AW | Signal]
+type CallValue = tuple[Task.Command] | tuple[Task.Command, AW | Signal]
 
 logger = logging.getLogger("deltacycle")
 
@@ -40,42 +40,6 @@ class _Finish(Exception):
     """Force the simulation to stop."""
 
 
-class LoopState(IntEnum):
-    """Loop State
-
-    Transitions::
-
-        INIT -> RUNNING -> COMPLETED
-                        -> FINISHED
-    """
-
-    # Initialized
-    INIT = 0b001
-
-    # Currently running
-    RUNNING = 0b010
-
-    # All tasks completed
-    COMPLETED = 0b100
-
-    # finish() called
-    FINISHED = 0b101
-
-
-_DONE = LoopState.COMPLETED & LoopState.FINISHED
-
-
-_loop_state_transitions = {
-    LoopState.INIT: {
-        LoopState.RUNNING,
-    },
-    LoopState.RUNNING: {
-        LoopState.COMPLETED,
-        LoopState.FINISHED,
-    },
-}
-
-
 class Loop:
     """Simulation event loop.
 
@@ -91,6 +55,39 @@ class Loop:
 
     _index = 0
 
+    class State(IntEnum):
+        """Loop State
+
+        Transitions::
+
+            INIT -> RUNNING -> COMPLETED
+                            -> FINISHED
+        """
+
+        # Initialized
+        INIT = 0b001
+
+        # Currently running
+        RUNNING = 0b010
+
+        # All tasks completed
+        COMPLETED = 0b100
+
+        # finish() called
+        FINISHED = 0b101
+
+    _done = State.COMPLETED & State.FINISHED
+
+    _state_transitions = {
+        State.INIT: {
+            State.RUNNING,
+        },
+        State.RUNNING: {
+            State.COMPLETED,
+            State.FINISHED,
+        },
+    }
+
     init_time = -1
     start_time = 0
 
@@ -101,7 +98,7 @@ class Loop:
         self._name = f"Loop-{self.__class__._index}"
         self.__class__._index += 1
 
-        self._state = LoopState.INIT
+        self._state = self.State.INIT
 
         # Simulation time
         self._time: int = self.init_time
@@ -125,12 +122,12 @@ class Loop:
         # Model variables
         self._touched: set[Variable] = set()
 
-    def _set_state(self, state: LoopState):
-        assert state in _loop_state_transitions[self._state]
+    def _set_state(self, state: State):
+        assert state in self._state_transitions[self._state]
         logger.debug("%s: %s => %s", self._name, self._state.name, state.name)
         self._state = state
 
-    def state(self) -> LoopState:
+    def state(self) -> State:
         """Current simulation state."""
         return self._state
 
@@ -150,7 +147,7 @@ class Loop:
         return self._task
 
     def done(self) -> bool:
-        return bool(self._state & _DONE)
+        return bool(self._state & self._done)
 
     # Scheduling methods
     def call_soon(self, task: Task, value: CallValue):
@@ -165,7 +162,7 @@ class Loop:
     def create_main(self, coro: TaskCoro):
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
-        self.call_at(self.start_time, self._main, value=(TaskCommand.START,))
+        self.call_at(self.start_time, self._main, value=(Task.Command.START,))
 
     def create_task(
         self,
@@ -178,13 +175,13 @@ class Loop:
             name = f"Task-{self._task_index}"
             self._task_index += 1
         task = Task(coro, name, priority)
-        self.call_soon(task, value=(TaskCommand.START,))
+        self.call_soon(task, value=(Task.Command.START,))
         return task
 
     async def switch_coro(self) -> AW | None:
         assert self._task is not None
         # Suspend
-        self._task._set_state(TaskState.PENDING)
+        self._task._set_state(Task.State.PENDING)
         value = await _SuspendResume()
         # Resume
         return value
@@ -192,7 +189,7 @@ class Loop:
     def switch_gen(self) -> Generator[None, AW, AW]:
         assert self._task is not None
         # Suspend
-        self._task._set_state(TaskState.PENDING)
+        self._task._set_state(Task.State.PENDING)
         value = yield
         # Resume
         return value
@@ -206,9 +203,9 @@ class Loop:
             v.update()
 
     def _start(self):
-        if self._state is LoopState.INIT:
-            self._set_state(LoopState.RUNNING)
-        elif self._state is not LoopState.RUNNING:
+        if self._state is self.State.INIT:
+            self._set_state(self.State.RUNNING)
+        elif self._state is not self.State.RUNNING:
             s = f"Loop has invalid state: {self._state.name}"
             raise RuntimeError(s)
 
@@ -229,7 +226,7 @@ class Loop:
         self._task2events.clear()
         self._task2vars.clear()
         self._touched.clear()
-        self._set_state(LoopState.FINISHED)
+        self._set_state(self.State.FINISHED)
 
     def _call(self, limit: int | None):
         self._start()
@@ -265,7 +262,7 @@ class Loop:
             self._update()
 
         # All tasks exhausted
-        self._set_state(LoopState.COMPLETED)
+        self._set_state(self.State.COMPLETED)
 
     def _iter(self) -> Generator[int, None, None]:
         self._start()
@@ -300,7 +297,7 @@ class Loop:
             self._update()
 
         # All tasks exhausted
-        self._set_state(LoopState.COMPLETED)
+        self._set_state(self.State.COMPLETED)
 
     def __call__(self, ticks: int | None = None, until: int | None = None):
         # Determine the run limit

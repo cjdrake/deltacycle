@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import Task, TaskGroup, TaskState, get_current_task, run, sleep
+from deltacycle import Task, TaskGroup, get_current_task, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -140,9 +140,9 @@ def test_group_child_except(caplog: LogCaptureFixture):
         assert ts[1].result() == 1
         assert ts[4].result() == 4
 
-        assert ts[5].state() is TaskState.EXCEPTED
-        assert ts[6].state() is TaskState.EXCEPTED
-        assert ts[7].state() is TaskState.EXCEPTED
+        assert ts[5].state() is Task.State.EXCEPTED
+        assert ts[6].state() is Task.State.EXCEPTED
+        assert ts[7].state() is Task.State.EXCEPTED
 
         exc = ts[2].exception()
         assert isinstance(exc, ArithmeticError) and exc.args == (2,)
@@ -184,8 +184,8 @@ def test_group_except(caplog: LogCaptureFixture):
 
                 raise ArithmeticError(42)
 
-        assert ts[0].state() is TaskState.EXCEPTED
-        assert ts[1].state() is TaskState.EXCEPTED
+        assert ts[0].state() is Task.State.EXCEPTED
+        assert ts[1].state() is Task.State.EXCEPTED
         assert e.value.args == (42,)
 
         logger.info("exit")
@@ -265,8 +265,8 @@ def test_group_newborns_except(caplog: LogCaptureFixture):
         assert ts[5].result() == 5
         assert ts[8].result() == 8
 
-        assert ts[9].state() is TaskState.EXCEPTED
-        assert ts[10].state() is TaskState.EXCEPTED
+        assert ts[9].state() is Task.State.EXCEPTED
+        assert ts[10].state() is Task.State.EXCEPTED
 
         exc = ts[6].exception()
         assert isinstance(exc, ArithmeticError) and exc.args == (6,)

@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Generator, Hashable
 
 from ._loop_if import LoopIf
-from ._task import Predicate, Task, TaskCommand, WaitSet
+from ._task import Predicate, Task, WaitSet
 
 
 class Variable(LoopIf):
@@ -50,7 +50,7 @@ class Variable(LoopIf):
             del self._loop._task2vars[task]
 
             # Send variable id to parent task
-            self._loop.call_soon(task, value=(TaskCommand.RESUME, self))
+            self._loop.call_soon(task, value=(Task.Command.RESUME, self))
 
         # Add variable to update set
         self._loop.touch(self)

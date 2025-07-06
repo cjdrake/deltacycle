@@ -10,7 +10,6 @@ from deltacycle import (
     Event,
     Interrupt,
     Task,
-    TaskState,
     create_task,
     get_current_task,
     irun,
@@ -162,7 +161,7 @@ def test_interrupt_pending1(caplog: LogCaptureFixture):
         await t3
 
         assert t1.done()
-        assert t1.state() is TaskState.EXCEPTED
+        assert t1.state() is Task.State.EXCEPTED
 
         # Result should re-raise Interrupt
         with pytest.raises(Interrupt):
@@ -213,7 +212,7 @@ def test_interrupt_pending2(caplog: LogCaptureFixture):
         await t3
 
         assert t1.done()
-        assert t1.state() is TaskState.EXCEPTED
+        assert t1.state() is Task.State.EXCEPTED
 
         # Result should re-raise Interrupt
         with pytest.raises(Interrupt):

@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import LoopState, get_loop, run, sleep
+from deltacycle import Loop, get_loop, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -35,7 +35,7 @@ def test_hello(caplog: LogCaptureFixture):
 
     loop = get_loop()
     assert loop is not None
-    assert loop.state() is LoopState.COMPLETED
+    assert loop.state() is Loop.State.COMPLETED
 
     with pytest.raises(RuntimeError):
         run(loop=loop)

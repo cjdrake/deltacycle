@@ -4,8 +4,8 @@ from collections.abc import Generator
 from typing import Any
 
 from ._event import Event
-from ._loop import Loop, LoopState
-from ._task import Predicate, Task, TaskCommand, TaskCoro
+from ._loop import Loop
+from ._task import Predicate, Task, TaskCoro
 from ._variable import Variable
 
 _loop: Loop | None = None
@@ -22,7 +22,7 @@ def get_running_loop() -> Loop:
     """
     if _loop is None:
         raise RuntimeError("No loop")
-    if _loop.state() is not LoopState.RUNNING:
+    if _loop.state() is not Loop.State.RUNNING:
         raise RuntimeError("Loop not RUNNING")
     return _loop
 
@@ -163,7 +163,7 @@ async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
     loop = get_running_loop()
     task = loop.task()
-    loop.call_later(delay, task, value=(TaskCommand.RESUME,))
+    loop.call_later(delay, task, value=(Task.Command.RESUME,))
     y = await loop.switch_coro()
     assert y is None
 

@@ -4,7 +4,7 @@ from collections import deque
 from functools import cached_property
 
 from ._loop_if import LoopIf
-from ._task import TaskCommand, WaitFifo
+from ._task import Task, WaitFifo
 
 
 class Queue[T](LoopIf):
@@ -35,7 +35,7 @@ class Queue[T](LoopIf):
         self._items.append(item)
         if self._wait_not_empty:
             task = self._wait_not_empty.pop()
-            self._loop.call_soon(task, value=(TaskCommand.RESUME,))
+            self._loop.call_soon(task, value=(Task.Command.RESUME,))
 
     def try_put(self, item: T) -> bool:
         """Nonblocking put: Return True if a put attempt is successful."""
@@ -59,7 +59,7 @@ class Queue[T](LoopIf):
         item = self._items.popleft()
         if self._wait_not_full:
             task = self._wait_not_full.pop()
-            self._loop.call_soon(task, value=(TaskCommand.RESUME,))
+            self._loop.call_soon(task, value=(Task.Command.RESUME,))
         return item
 
     def try_get(self) -> tuple[bool, T | None]:
