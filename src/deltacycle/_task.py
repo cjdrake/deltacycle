@@ -355,8 +355,7 @@ class Task(LoopIf):
 
         A task that is "done" either:
 
-        * Completed normally,
-        * Was interrupted by another task, or
+        * Completed normally, or
         * Raised an exception.
         """
         return bool(self._state & self._done)
