@@ -64,6 +64,9 @@ class LoopState(IntEnum):
     FINISHED = 0b11
 
 
+_DONE = LoopState.COMPLETED & LoopState.FINISHED
+
+
 _loop_state_transitions = {
     LoopState.INIT: {LoopState.RUNNING},
     LoopState.RUNNING: {LoopState.COMPLETED, LoopState.FINISHED},
@@ -143,10 +146,8 @@ class Loop:
         assert self._task is not None
         return self._task
 
-    _done_states = frozenset([LoopState.COMPLETED, LoopState.FINISHED])
-
     def done(self) -> bool:
-        return self._state in self._done_states
+        return bool(self._state & _DONE)
 
     # Scheduling methods
     def call_soon(self, task: Task, value: CallValue):

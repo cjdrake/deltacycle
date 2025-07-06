@@ -48,11 +48,11 @@ class TaskState(IntEnum):
 
     Transitions::
 
-                   +----------+
-                   |          |
-                   v          |
-        INIT -> RUNNING -> PENDING
-                        -> RETURNED
+                PENDING
+                   ^
+                   |
+                   v
+        INIT -> RUNNING -> RETURNED
                         -> EXCEPTED
     """
 
@@ -68,6 +68,9 @@ class TaskState(IntEnum):
     RETURNED = 0b100
     # Done: raised an exception
     EXCEPTED = 0b101
+
+
+_DONE = TaskState.RETURNED & TaskState.EXCEPTED
 
 
 _task_state_transitions = {
@@ -353,8 +356,6 @@ class Task(LoopIf):
         self._set()
         assert self._refcnts.total() == 0
 
-    _done_states = frozenset([TaskState.RETURNED, TaskState.EXCEPTED])
-
     def done(self) -> bool:
         """Return True if the task is done.
 
@@ -364,7 +365,7 @@ class Task(LoopIf):
         * Was interrupted by another task, or
         * Raised an exception.
         """
-        return self._state in self._done_states
+        return bool(self._state & _DONE)
 
     def result(self) -> Any:
         """Return the task's result, or raise an exception.
