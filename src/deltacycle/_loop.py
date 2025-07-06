@@ -52,24 +52,29 @@ class LoopState(IntEnum):
     """
 
     # Initialized
-    INIT = 0b00
+    INIT = 0b001
 
     # Currently running
-    RUNNING = 0b01
+    RUNNING = 0b010
 
     # All tasks completed
-    COMPLETED = 0b10
+    COMPLETED = 0b100
 
     # finish() called
-    FINISHED = 0b11
+    FINISHED = 0b101
 
 
 _DONE = LoopState.COMPLETED & LoopState.FINISHED
 
 
 _loop_state_transitions = {
-    LoopState.INIT: {LoopState.RUNNING},
-    LoopState.RUNNING: {LoopState.COMPLETED, LoopState.FINISHED},
+    LoopState.INIT: {
+        LoopState.RUNNING,
+    },
+    LoopState.RUNNING: {
+        LoopState.COMPLETED,
+        LoopState.FINISHED,
+    },
 }
 
 
@@ -185,7 +190,6 @@ class Loop:
         self._task._set_state(TaskState.PENDING)
         value = await _SuspendResume()
         # Resume
-        self._task._set_state(TaskState.RUNNING)
         return value
 
     # TODO(cjdrake): Restrict SendType/ReturnType?
@@ -195,7 +199,6 @@ class Loop:
         self._task._set_state(TaskState.PENDING)
         value = yield
         # Resume
-        self._task._set_state(TaskState.RUNNING)
         return value
 
     def touch(self, v: Variable):

@@ -57,10 +57,11 @@ class TaskState(IntEnum):
     """
 
     # Initialized
-    INIT = 0b000
+    INIT = 0b001
 
     # Currently running
     RUNNING = 0b010
+
     # Suspended
     PENDING = 0b011
 
@@ -76,7 +77,6 @@ _DONE = TaskState.RETURNED & TaskState.EXCEPTED
 _task_state_transitions = {
     TaskState.INIT: {
         TaskState.RUNNING,
-        TaskState.EXCEPTED,
     },
     TaskState.RUNNING: {
         TaskState.PENDING,
@@ -85,8 +85,6 @@ _task_state_transitions = {
     },
     TaskState.PENDING: {
         TaskState.RUNNING,
-        TaskState.RETURNED,
-        TaskState.EXCEPTED,
     },
 }
 
@@ -324,9 +322,10 @@ class Task(LoopIf):
             del self._refcnts[tq]
 
     def _do_run(self, args):
+        self._set_state(TaskState.RUNNING)
+
         match args:
             case (TaskCommand.START,):
-                self._set_state(TaskState.RUNNING)
                 y = self._coro.send(None)
             case (TaskCommand.RESUME,):
                 y = self._coro.send(None)
