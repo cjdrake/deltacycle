@@ -8,9 +8,6 @@ from ._loop import Loop, LoopState
 from ._task import Predicate, Task, TaskCommand, TaskCoro
 from ._variable import Variable
 
-# yields time: int; returns main.result()
-type LoopGen = Generator[int, None, Any]
-
 _loop: Loop | None = None
 
 
@@ -130,7 +127,7 @@ def run(
         return loop.main.result()
 
 
-def irun(coro: TaskCoro | None = None, loop: Loop | None = None) -> LoopGen:
+def irun(coro: TaskCoro | None = None, loop: Loop | None = None) -> Generator[int, None, Any]:
     """Iterate a simulation.
 
     Iterated simulations do not have a run limit.

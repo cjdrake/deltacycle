@@ -19,7 +19,6 @@ type Predicate = Callable[[], bool]
 
 # TODO(cjdrake): Restrict SendType?
 type TaskCoro = Coroutine[None, Any, Any]
-type TaskGen = Generator[None, Task, Any]
 
 
 class Signal(Exception):
@@ -239,7 +238,7 @@ class Task(LoopIf):
         self._result: Any = None
         self._exception: Exception | None = None
 
-    def __await__(self) -> TaskGen:
+    def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
             task = self._loop.task()
             self._wait(task)
