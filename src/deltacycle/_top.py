@@ -124,7 +124,7 @@ def run(
         RuntimeError: The loop is in an invalid state.
     """
     loop = _run_pre(coro, loop)
-    loop.run(ticks, until)
+    loop(ticks, until)
 
     if loop.main.done():
         return loop.main.result()

@@ -203,12 +203,12 @@ class Loop:
             v = self._touched.pop()
             v.update()
 
-    def _finish(self):
-        self._queue.clear()
-        self._task2events.clear()
-        self._task2vars.clear()
-        self._touched.clear()
-        self._set_state(LoopState.FINISHED)
+    def _start(self):
+        if self._state is LoopState.INIT:
+            self._set_state(LoopState.RUNNING)
+        elif self._state is not LoopState.RUNNING:
+            s = f"Loop has invalid state: {self._state.name}"
+            raise RuntimeError(s)
 
     def _iter_time_slot(self, time: int) -> Generator[tuple[Task, CallValue], None, None]:
         """Iterate through all tasks in a time slot.
@@ -222,12 +222,15 @@ class Loop:
             task, value = self._queue.pop()
             yield (task, value)
 
-    def _kernel(self, limit: int | None):
-        if self._state is LoopState.INIT:
-            self._set_state(LoopState.RUNNING)
-        elif self._state is not LoopState.RUNNING:
-            s = f"Loop has invalid state: {self._state.name}"
-            raise RuntimeError(s)
+    def _finish(self):
+        self._queue.clear()
+        self._task2events.clear()
+        self._task2vars.clear()
+        self._touched.clear()
+        self._set_state(LoopState.FINISHED)
+
+    def _call(self, limit: int | None):
+        self._start()
 
         while self._queue:
             # Peek when next event is scheduled
@@ -248,11 +251,11 @@ class Loop:
                 self._task = task
                 try:
                     task._do_run(cmd, arg)
-                except StopIteration as exc:
-                    task._do_result(exc)
                 except _FinishError:
                     self._finish()
                     return
+                except StopIteration as exc:
+                    task._do_result(exc)
                 except Exception as exc:
                     task._do_except(exc)
 
@@ -262,30 +265,8 @@ class Loop:
         # All tasks exhausted
         self._set_state(LoopState.COMPLETED)
 
-    def run(self, ticks: int | None = None, until: int | None = None):
-        # Determine the run limit
-        match ticks, until:
-            # Run until no tasks left
-            case None, None:
-                limit = None
-            # Run until an absolute time
-            case None, int():
-                limit = until
-            # Run until a number of ticks in the future
-            case int(), None:
-                limit = max(self.start_time, self._time) + ticks
-            case _:
-                s = "Expected either ticks or until to be int | None"
-                raise TypeError(s)
-
-        self._kernel(limit)
-
-    def __iter__(self) -> Generator[int, None, None]:
-        if self._state is LoopState.INIT:
-            self._set_state(LoopState.RUNNING)
-        elif self._state is not LoopState.RUNNING:
-            s = f"Loop has invalid state: {self._state.name}"
-            raise RuntimeError(s)
+    def _iter(self) -> Generator[int, None, None]:
+        self._start()
 
         while self._queue:
             # Peek when next event is scheduled
@@ -305,11 +286,11 @@ class Loop:
                 self._task = task
                 try:
                     task._do_run(cmd, arg)
-                except StopIteration as exc:
-                    task._do_result(exc)
                 except _FinishError:
                     self._finish()
                     return
+                except StopIteration as exc:
+                    task._do_result(exc)
                 except Exception as exc:
                     task._do_except(exc)
 
@@ -318,6 +299,27 @@ class Loop:
 
         # All tasks exhausted
         self._set_state(LoopState.COMPLETED)
+
+    def __call__(self, ticks: int | None = None, until: int | None = None):
+        # Determine the run limit
+        match ticks, until:
+            # Run until no tasks left
+            case None, None:
+                limit = None
+            # Run until an absolute time
+            case None, int():
+                limit = until
+            # Run until a number of ticks in the future
+            case int(), None:
+                limit = max(self.start_time, self._time) + ticks
+            case _:
+                s = "Expected either ticks or until to be int | None"
+                raise TypeError(s)
+
+        self._call(limit)
+
+    def __iter__(self) -> Generator[int, None, None]:
+        yield from self._iter()
 
 
 def finish():
