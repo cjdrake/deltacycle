@@ -294,9 +294,13 @@ class Task(LoopIf):
         """
         return self._priority
 
-    @property
-    def group(self) -> TaskGroup | None:
+    def _get_group(self) -> TaskGroup | None:
         return self._group
+
+    def _set_group(self, group: TaskGroup):
+        self._group = group
+
+    group = property(fget=_get_group, fset=_set_group)
 
     def _set_state(self, state: TaskState):
         assert state in _task_state_transitions[self._state]
@@ -533,7 +537,7 @@ class TaskGroup(LoopIf):
         priority: int = 0,
     ) -> Task:
         child = self._loop.create_task(coro, name, priority)
-        child._group = self
+        child.group = self
         if self._setup_done:
             self._awaited.add(child)
             child._wait(self._parent)
