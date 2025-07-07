@@ -3,15 +3,15 @@
 DeltaCycle is a Python library for discrete event simulation (DES).
 
 A simulation has two components: a collection of *variables*,
-and a collection of *processes*.
+and a collection of *tasks*.
 Variables represent the instantaneous state of the simulation.
 They may be organized into arbitrary data structures.
-Processes define how that state evolves.
+Tasks define how that state evolves.
 They may appear concurrent, but are scheduled sequentially.
 
-Process execution is subdivided into a sequence of slots.
+Task execution is subdivided into a sequence of slots.
 Slots are assigned a monotonically increasing integer value, called *time*.
-Multiple processes may execute in the same slot, and therefore at the same time.
+Multiple tasks may execute in the same slot, and therefore at the same time.
 The term "delta cycle" refers to a zero-delay subdivision of a time slot.
 It is the clockwork mechanism behind the illusion of concurrency.
 
@@ -21,22 +21,19 @@ It is the clockwork mechanism behind the illusion of concurrency.
 
 ## Features
 
-* Loop: task scheduler
-* Tasks: coroutine wrapper
+* Kernel: task scheduler
+* Task: coroutine wrapper
 * Synchronization Primitives:
     * Events
-    * Locks
     * Semaphores
     * Queues
-* Structured concurrency:
-    * Task groups
-    * Task interrupts
-    * Task dependencies
-    * Exception handling
-* Variables:
+* Structured Concurrency:
+    * Task Groups (parent/child hierarchy)
+    * Interrupts
+    * Exceptions
+* Model Variables:
     * Singular
     * Aggregate
-    * Variable dependencies
 
 ## Example
 
