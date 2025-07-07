@@ -38,6 +38,11 @@ def set_kernel(kernel: Kernel | None = None):
     _kernel = kernel
 
 
+def _get_kt() -> tuple[Kernel, Task]:
+    kernel = get_running_kernel()
+    return kernel, kernel.task()
+
+
 def get_current_task() -> Task:
     """Return currently running task.
 
@@ -47,8 +52,8 @@ def get_current_task() -> Task:
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
     """
-    kernel = get_running_kernel()
-    return kernel.task()
+    _, task = _get_kt()
+    return task
 
 
 def create_task(
@@ -127,7 +132,10 @@ def run(
         return kernel.main.result()
 
 
-def irun(coro: TaskCoro | None = None, kernel: Kernel | None = None) -> Generator[int, None, Any]:
+def irun(
+    coro: TaskCoro | None = None,
+    kernel: Kernel | None = None,
+) -> Generator[int, None, Any]:
     """Iterate a simulation.
 
     Iterated simulations do not have a run limit.
@@ -180,8 +188,7 @@ async def any_event(*events: Event) -> Event:
     Returns:
         The Event instance that triggered the task to resume.
     """
-    kernel = get_running_kernel()
-    task = kernel.task()
+    kernel, task = _get_kt()
 
     # Search for first set event
     fst = None
@@ -215,8 +222,8 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     Returns:
         The Variable instance that triggered the task to resume.
     """
-    kernel = get_running_kernel()
-    task = kernel.task()
+    kernel, task = _get_kt()
+
     for v, p in vps.items():
         v._wait(p, task)
     v = await kernel.switch_coro()
