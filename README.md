@@ -73,7 +73,7 @@ DeltaCycle is available on [PyPI](https://pypi.org):
 
     $ pip install deltacycle
 
-It supports Python 3.12+
+It requires Python 3.12+
 
 ## Developing
 
