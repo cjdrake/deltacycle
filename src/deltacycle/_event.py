@@ -20,7 +20,7 @@ class Event(KernelIf):
 
     def __await__(self) -> Generator[None, Event, Event]:
         if not self._flag:
-            self._wait()
+            self.wait()
             e = yield from self._kernel.switch_gen()
             assert e is self
 
@@ -29,7 +29,7 @@ class Event(KernelIf):
     def __or__(self, other: Event) -> EventList:
         return EventList(self, other)
 
-    def _wait(self):
+    def wait(self):
         task = self._kernel.task()
         self._waiting.push(task)
         self._kernel._task_deps[task].add(self)
@@ -71,7 +71,7 @@ class EventList(KernelIf):
         if fst is None:
             # Await first event to be set
             for e in self._events:
-                e._wait()
+                e.wait()
             fst = yield from self._kernel.switch_gen()
             assert isinstance(fst, Event)
 

@@ -231,14 +231,14 @@ class Task(KernelIf):
 
     def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
-            self._wait()
+            self.wait()
             t = yield from self._kernel.switch_gen()
             assert t is self
 
         # Resume
         return self.result()
 
-    def _wait(self):
+    def wait(self):
         task = self._kernel.task()
         self._waiting.push(task)
 

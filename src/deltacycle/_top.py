@@ -196,7 +196,7 @@ async def any_event(*events: Event) -> Event:
     if fst is None:
         # Await first event to be set
         for e in events:
-            e._wait()
+            e.wait()
         fst = await kernel.switch_coro()
         assert isinstance(fst, Event)
 
@@ -220,7 +220,7 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     kernel = get_running_kernel()
 
     for v, p in vps.items():
-        v._wait_for(p)
+        v.wait_for(p)
     v = await kernel.switch_coro()
     assert isinstance(v, Variable)
     return v
