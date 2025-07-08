@@ -231,15 +231,15 @@ class Task(KernelIf):
 
     def __await__(self) -> Generator[None, Task, Any]:
         if not self.done():
-            task = self._kernel.task()
-            self._wait(task)
+            self._wait()
             t = yield from self._kernel.switch_gen()
             assert t is self
 
         # Resume
         return self.result()
 
-    def _wait(self, task: Task):
+    def _wait(self):
+        task = self._kernel.task()
         self._waiting.push(task)
 
     def _set(self):
@@ -485,7 +485,7 @@ class TaskGroup(KernelIf):
             child = self._setup_tasks.pop()
             if not child.done():
                 self._awaited.add(child)
-                child._wait(self._parent)
+                child._waiting.push(self._parent)
 
         # Parent raised an exception:
         # Kill children; suppress exceptions
@@ -529,7 +529,7 @@ class TaskGroup(KernelIf):
         child.group = self
         if self._setup_done:
             self._awaited.add(child)
-            child._wait(self._parent)
+            child._waiting.push(self._parent)
         else:
             self._setup_tasks.add(child)
         return child

@@ -38,11 +38,6 @@ def set_kernel(kernel: Kernel | None = None):
     _kernel = kernel
 
 
-def _get_kt() -> tuple[Kernel, Task]:
-    kernel = get_running_kernel()
-    return kernel, kernel.task()
-
-
 def get_current_task() -> Task:
     """Return currently running task.
 
@@ -52,8 +47,8 @@ def get_current_task() -> Task:
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
     """
-    _, task = _get_kt()
-    return task
+    kernel = get_running_kernel()
+    return kernel.task()
 
 
 def create_task(
@@ -188,7 +183,7 @@ async def any_event(*events: Event) -> Event:
     Returns:
         The Event instance that triggered the task to resume.
     """
-    kernel, task = _get_kt()
+    kernel = get_running_kernel()
 
     # Search for first set event
     fst = None
@@ -201,7 +196,7 @@ async def any_event(*events: Event) -> Event:
     if fst is None:
         # Await first event to be set
         for e in events:
-            e._wait(task)
+            e._wait()
         fst = await kernel.switch_coro()
         assert isinstance(fst, Event)
 
@@ -222,10 +217,10 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     Returns:
         The Variable instance that triggered the task to resume.
     """
-    kernel, task = _get_kt()
+    kernel = get_running_kernel()
 
     for v, p in vps.items():
-        v._wait_for(p, task)
+        v._wait_for(p)
     v = await kernel.switch_coro()
     assert isinstance(v, Variable)
     return v

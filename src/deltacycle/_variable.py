@@ -26,18 +26,18 @@ class Variable(KernelIf):
         self._waiting = WaitSet()
 
     def __await__(self) -> Generator[None, Variable, Variable]:
-        task = self._kernel.task()
-        self._wait(task)
+        self._wait()
         v = yield from self._kernel.switch_gen()
         assert v is self
         return self
 
-    def _wait_for(self, p: Predicate, task: Task):
+    def _wait_for(self, p: Predicate):
+        task = self._kernel.task()
         self._waiting.push((p, task))
         self._kernel._task2vars[task].add(self)
 
-    def _wait(self, task: Task):
-        self._wait_for(self.changed, task)
+    def _wait(self):
+        self._wait_for(self.changed)
 
     def _set(self):
         self._waiting.set()
