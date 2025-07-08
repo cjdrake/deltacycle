@@ -234,7 +234,6 @@ class Task(KernelIf):
             task = self._kernel.task()
             self._wait(task)
             t = yield from self._kernel.switch_gen()
-            assert isinstance(t, Task)
             assert t is self
 
         # Resume
