@@ -40,11 +40,11 @@ class Event(KernelIf):
         while self._waiting:
             task = self._waiting.pop()
 
-            # Remove task from Event waiting queues
+            # Remove task from dependencies
             self._kernel._task_deps[task].remove(self)
             while self._kernel._task_deps[task]:
-                e = self._kernel._task_deps[task].pop()
-                e._waiting.drop(task)
+                aw = self._kernel._task_deps[task].pop()
+                aw._waiting.drop(task)
             del self._kernel._task_deps[task]
 
             # Send event id to parent task

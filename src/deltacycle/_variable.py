@@ -45,11 +45,11 @@ class Variable(KernelIf):
         while self._waiting:
             task = self._waiting.pop()
 
-            # Remove task from Variable waiting queues
+            # Remove task from dependencies
             self._kernel._task_deps[task].remove(self)
             while self._kernel._task_deps[task]:
-                v = self._kernel._task_deps[task].pop()
-                v._waiting.drop(task)
+                aw = self._kernel._task_deps[task].pop()
+                aw._waiting.drop(task)
             del self._kernel._task_deps[task]
 
             # Send variable id to parent task
