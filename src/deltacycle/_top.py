@@ -225,7 +225,7 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     kernel, task = _get_kt()
 
     for v, p in vps.items():
-        v._wait(p, task)
+        v._wait_for(p, task)
     v = await kernel.switch_coro()
     assert isinstance(v, Variable)
     return v
