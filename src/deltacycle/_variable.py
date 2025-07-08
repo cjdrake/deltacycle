@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Generator, Hashable
 
 from ._kernel_if import KernelIf
-from ._task import Predicate, Task, WaitSet
+from ._task import Predicate, Task, WaitPredicate
 
 
 class Variable(KernelIf):
@@ -23,7 +23,7 @@ class Variable(KernelIf):
     """
 
     def __init__(self):
-        self._waiting = WaitSet()
+        self._waiting = WaitPredicate()
 
     def __await__(self) -> Generator[None, Variable, Variable]:
         self._wait()
