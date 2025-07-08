@@ -112,11 +112,8 @@ class Kernel:
         # Task queue
         self._queue = PendQueue()
 
-        # Task => Event mapping table
-        self._task2events: defaultdict[Task, set[Event]] = defaultdict(set)
-
-        # Task => Variable mapping table
-        self._task2vars: defaultdict[Task, set[Variable]] = defaultdict(set)
+        # Task dependencies
+        self._task_deps: defaultdict[Task, set[Event | Variable]] = defaultdict(set)
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -222,8 +219,7 @@ class Kernel:
 
     def _finish(self):
         self._queue.clear()
-        self._task2events.clear()
-        self._task2vars.clear()
+        self._task_deps.clear()
         self._touched.clear()
         self._set_state(self.State.FINISHED)
 

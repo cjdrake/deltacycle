@@ -150,7 +150,7 @@ def test_any():
         assert e is e10
 
         kernel = get_running_kernel()
-        assert not kernel._task2events
+        assert not kernel._task_deps
 
     run(main())
 
@@ -176,7 +176,7 @@ def test_any_one_set():
         assert now() == 0
 
         kernel = get_running_kernel()
-        assert not kernel._task2events
+        assert not kernel._task_deps
 
     run(main())
 
@@ -199,7 +199,7 @@ def test_list_any_list():
         assert e is e10
 
         kernel = get_running_kernel()
-        assert not kernel._task2events
+        assert not kernel._task_deps
 
     run(main())
 
@@ -225,6 +225,6 @@ def test_list_any_one_set():
         assert now() == 0
 
         kernel = get_running_kernel()
-        assert not kernel._task2events
+        assert not kernel._task_deps
 
     run(main())

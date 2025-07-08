@@ -34,7 +34,7 @@ class Variable(KernelIf):
     def _wait_for(self, p: Predicate):
         task = self._kernel.task()
         self._waiting.push((p, task))
-        self._kernel._task2vars[task].add(self)
+        self._kernel._task_deps[task].add(self)
 
     def _wait(self):
         self._wait_for(self.changed)
@@ -46,11 +46,11 @@ class Variable(KernelIf):
             task = self._waiting.pop()
 
             # Remove task from Variable waiting queues
-            self._kernel._task2vars[task].remove(self)
-            while self._kernel._task2vars[task]:
-                v = self._kernel._task2vars[task].pop()
+            self._kernel._task_deps[task].remove(self)
+            while self._kernel._task_deps[task]:
+                v = self._kernel._task_deps[task].pop()
                 v._waiting.drop(task)
-            del self._kernel._task2vars[task]
+            del self._kernel._task_deps[task]
 
             # Send variable id to parent task
             self._kernel.call_soon(task, value=(Task.Command.RESUME, self))

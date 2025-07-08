@@ -32,18 +32,18 @@ class Event(KernelIf):
     def _wait(self):
         task = self._kernel.task()
         self._waiting.push(task)
-        self._kernel._task2events[task].add(self)
+        self._kernel._task_deps[task].add(self)
 
     def _set(self):
         while self._waiting:
             task = self._waiting.pop()
 
             # Remove task from Event waiting queues
-            self._kernel._task2events[task].remove(self)
-            while self._kernel._task2events[task]:
-                e = self._kernel._task2events[task].pop()
+            self._kernel._task_deps[task].remove(self)
+            while self._kernel._task_deps[task]:
+                e = self._kernel._task_deps[task].pop()
                 e._waiting.drop(task)
-            del self._kernel._task2events[task]
+            del self._kernel._task_deps[task]
 
             # Send event id to parent task
             self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
