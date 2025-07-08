@@ -242,7 +242,7 @@ class Task(KernelIf):
         task = self._kernel.task()
         self._waiting.push(task)
 
-    def _set(self):
+    def set(self):
         while self._waiting:
             task = self._waiting.pop()
             # Send child id to parent task
@@ -340,13 +340,13 @@ class Task(KernelIf):
     def _do_result(self, exc: StopIteration):
         self._result = exc.value
         self._set_state(self.State.RETURNED)
-        self._set()
+        self.set()
         assert self._refcnts.total() == 0
 
     def _do_except(self, exc: Exception):
         self._exception = exc
         self._set_state(self.State.EXCEPTED)
-        self._set()
+        self.set()
         assert self._refcnts.total() == 0
 
     def done(self) -> bool:

@@ -39,7 +39,7 @@ class Variable(KernelIf):
     def wait(self):
         self.wait_for(self.changed)
 
-    def _set(self):
+    def set(self):
         self._waiting.set()
 
         while self._waiting:
@@ -101,7 +101,7 @@ class Singular[T](Variable, Value[T]):
         self._next = value
 
         # Notify the kernel
-        self._set()
+        self.set()
 
     next = property(fset=set_next)
 
@@ -145,7 +145,7 @@ class Aggregate[T](Variable):
             self._nexts[key] = value
 
         # Notify the kernel
-        self._set()
+        self.set()
 
     # Variable
     def get_value(self) -> AggrValue[T]:

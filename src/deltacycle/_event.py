@@ -34,7 +34,9 @@ class Event(KernelIf):
         self._waiting.push(task)
         self._kernel._task_deps[task].add(self)
 
-    def _set(self):
+    def set(self):
+        self._flag = True
+
         while self._waiting:
             task = self._waiting.pop()
 
@@ -47,10 +49,6 @@ class Event(KernelIf):
 
             # Send event id to parent task
             self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
-
-    def set(self):
-        self._flag = True
-        self._set()
 
     def clear(self):
         self._flag = False
