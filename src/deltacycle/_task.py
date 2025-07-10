@@ -142,12 +142,59 @@ class WaitPredicate(TaskQueueIf):
         del self._tps[task]
         task._unlink(self)
 
-    def set(self):
+    def load(self):
         assert not self._items
         self._items.update(t for t, p in self._tps.items() if p())
 
 
-class Task(KernelIf):
+class AwaitableIf(KernelIf):
+    def __await__(self) -> Generator[None, AwaitableIf, Any]:
+        raise NotImplementedError()  # pragma: no cover
+
+    def __or__(self, other: AwaitableIf) -> AwaitList:
+        return AwaitList(self, other)
+
+    def wait_push(self, task: Task) -> None:
+        raise NotImplementedError()  # pragma: no cover
+
+    def wait_drop(self, task: Task) -> None:
+        raise NotImplementedError()  # pragma: no cover
+
+    def set(self) -> None:
+        raise NotImplementedError()  # pragma: no cover
+
+    def is_set(self) -> bool:
+        raise NotImplementedError()  # pragma: no cover
+
+
+class AwaitList(KernelIf):
+    def __init__(self, *aws: AwaitableIf):
+        self._aws = aws
+
+    def __await__(self) -> Generator[None, AwaitableIf, AwaitableIf]:
+        task = self._kernel.task()
+
+        fst = None
+        for aw in self._aws:
+            if aw.is_set():
+                fst = aw
+                break
+
+        # No events set yet
+        if fst is None:
+            # Await first event to be set
+            for aw in self._aws:
+                aw.wait_push(task)
+                self._kernel.add_task_dep(task, aw)
+            fst = yield from self._kernel.switch_gen()
+
+        return fst
+
+    def __or__(self, other: AwaitableIf) -> AwaitList:
+        return AwaitList(*self._aws, other)
+
+
+class Task(AwaitableIf):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -229,24 +276,29 @@ class Task(KernelIf):
         self._result: Any = None
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, Task, Any]:
-        if not self.done():
-            self.wait()
+    def __await__(self) -> Generator[None, AwaitableIf, Any]:
+        if not self.is_set():
+            task = self._kernel.task()
+            self.wait_push(task)
             t = yield from self._kernel.switch_gen()
             assert t is self
 
-        # Resume
         return self.result()
 
-    def wait(self):
-        task = self._kernel.task()
+    def wait_push(self, task: Task):
         self._waiting.push(task)
+
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
 
     def set(self):
         while self._waiting:
             task = self._waiting.pop()
-            # Send child id to parent task
+            self._kernel.remove_task_dep(task, self)
             self._kernel.call_soon(task, value=(self.Command.RESUME, self))
+
+    def is_set(self) -> bool:
+        return bool(self._state & self._done)
 
     @property
     def coro(self) -> TaskCoro:
@@ -485,7 +537,7 @@ class TaskGroup(KernelIf):
             child = self._setup_tasks.pop()
             if not child.done():
                 self._awaited.add(child)
-                child._waiting.push(self._parent)
+                child.wait_push(self._parent)
 
         # Parent raised an exception:
         # Kill children; suppress exceptions
@@ -529,7 +581,7 @@ class TaskGroup(KernelIf):
         child.group = self
         if self._setup_done:
             self._awaited.add(child)
-            child._waiting.push(self._parent)
+            child.wait_push(self._parent)
         else:
             self._setup_tasks.add(child)
         return child

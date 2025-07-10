@@ -13,6 +13,7 @@ from deltacycle import (
     create_task,
     get_current_task,
     irun,
+    now,
     run,
     sleep,
 )
@@ -335,5 +336,21 @@ def test_names():
         assert foo4.name == "foo"
 
         create_task(bar(), name="bar")
+
+    run(main())
+
+
+def test_task_list():
+    async def cf(t: int):
+        await sleep(t)
+
+    async def main():
+        t1 = create_task(cf(5), name="T1")
+        t2 = create_task(cf(10), name="T2")
+        t3 = create_task(cf(15), name="T3")
+
+        t = await (t1 | t2 | t3)
+        assert t is t1
+        assert now() == 5
 
     run(main())

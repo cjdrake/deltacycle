@@ -4,76 +4,44 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from ._kernel_if import KernelIf
-from ._task import Task, WaitFifo
+from ._task import AwaitableIf, Task, WaitFifo
 
 
-class Event(KernelIf):
+class Event(AwaitableIf):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
         self._flag = False
         self._waiting = WaitFifo()
 
-    def __bool__(self) -> bool:
-        return self._flag
-
-    def __await__(self) -> Generator[None, Event, Event]:
-        if not self._flag:
-            self.wait()
+    def __await__(self) -> Generator[None, AwaitableIf, Event]:
+        if not self.is_set():
+            task = self._kernel.task()
+            self.wait_push(task)
             e = yield from self._kernel.switch_gen()
             assert e is self
 
         return self
 
-    def __or__(self, other: Event) -> EventList:
-        return EventList(self, other)
-
-    def wait(self):
-        task = self._kernel.task()
+    def wait_push(self, task: Task):
         self._waiting.push(task)
-        self._kernel._task_deps[task].add(self)
+
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
 
     def set(self):
         self._flag = True
 
         while self._waiting:
             task = self._waiting.pop()
-
-            # Remove task from dependencies
-            self._kernel._task_deps[task].remove(self)
-            while self._kernel._task_deps[task]:
-                aw = self._kernel._task_deps[task].pop()
-                aw._waiting.drop(task)
-            del self._kernel._task_deps[task]
-
-            # Send event id to parent task
+            self._kernel.remove_task_dep(task, self)
             self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
+
+    def is_set(self) -> bool:
+        return self._flag
+
+    def __bool__(self) -> bool:
+        return self._flag
 
     def clear(self):
         self._flag = False
-
-
-class EventList(KernelIf):
-    def __init__(self, *events: Event):
-        self._events = events
-
-    def __await__(self) -> Generator[None, Event, Event]:
-        fst = None
-        for e in self._events:
-            if e:
-                fst = e
-                break
-
-        # No events set yet
-        if fst is None:
-            # Await first event to be set
-            for e in self._events:
-                e.wait()
-            fst = yield from self._kernel.switch_gen()
-            assert isinstance(fst, Event)
-
-        return fst
-
-    def __or__(self, other: Event) -> EventList:
-        return EventList(*self._events, other)

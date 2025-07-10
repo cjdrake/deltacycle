@@ -92,10 +92,6 @@ Synchronization Primitives
     .. automethod:: deltacycle.Event.set
     .. automethod:: deltacycle.Event.clear
 
-.. autoclass:: deltacycle.EventList
-
-.. autofunction:: deltacycle.any_event
-
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
 

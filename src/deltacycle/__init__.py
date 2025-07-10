@@ -7,11 +7,13 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 import logging
 from logging import Filter, LogRecord
 
-from ._event import Event, EventList
+from ._event import Event
 from ._kernel import Kernel, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
+    AwaitableIf,
+    AwaitList,
     Interrupt,
     Predicate,
     Signal,
@@ -20,7 +22,6 @@ from ._task import (
     TaskGroup,
 )
 from ._top import (
-    any_event,
     any_var,
     create_task,
     get_current_task,
@@ -67,8 +68,6 @@ __all__ = [
     "sleep",
     # event
     "Event",
-    "EventList",
-    "any_event",
     # queue
     "Queue",
     # semaphore
@@ -80,6 +79,8 @@ __all__ = [
     "TaskCoro",
     "Signal",
     "Interrupt",
+    "AwaitableIf",
+    "AwaitList",
     "Task",
     "TaskGroup",
     "create_task",

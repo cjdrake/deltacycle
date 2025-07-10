@@ -3,7 +3,6 @@
 from collections.abc import Generator
 from typing import Any
 
-from ._event import Event
 from ._kernel import Kernel
 from ._task import Predicate, Task, TaskCoro
 from ._variable import Variable
@@ -38,6 +37,12 @@ def set_kernel(kernel: Kernel | None = None):
     _kernel = kernel
 
 
+def _get_kt() -> tuple[Kernel, Task]:
+    kernel = get_running_kernel()
+    task = kernel.task()
+    return kernel, task
+
+
 def get_current_task() -> Task:
     """Return currently running task.
 
@@ -47,8 +52,8 @@ def get_current_task() -> Task:
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
     """
-    kernel = get_running_kernel()
-    return kernel.task()
+    _, task = _get_kt()
+    return task
 
 
 def create_task(
@@ -164,43 +169,10 @@ def irun(
 
 async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
-    kernel = get_running_kernel()
-    task = kernel.task()
+    kernel, task = _get_kt()
     kernel.call_later(delay, task, value=(Task.Command.RESUME,))
     y = await kernel.switch_coro()
     assert y is None
-
-
-async def any_event(*events: Event) -> Event:
-    """Resume execution after first event.
-
-    Suspend execution of the current task;
-    Resume after any event in the sensitivity list,
-
-    Args:
-        events: Tuple of Event, a sensitivity list.
-
-    Returns:
-        The Event instance that triggered the task to resume.
-    """
-    kernel = get_running_kernel()
-
-    # Search for first set event
-    fst = None
-    for e in events:
-        if e:
-            fst = e
-            break
-
-    # No events set yet
-    if fst is None:
-        # Await first event to be set
-        for e in events:
-            e.wait()
-        fst = await kernel.switch_coro()
-        assert isinstance(fst, Event)
-
-    return fst
 
 
 async def any_var(vps: dict[Variable, Predicate]) -> Variable:
@@ -217,10 +189,11 @@ async def any_var(vps: dict[Variable, Predicate]) -> Variable:
     Returns:
         The Variable instance that triggered the task to resume.
     """
-    kernel = get_running_kernel()
+    kernel, task = _get_kt()
 
     for v, p in vps.items():
-        v.wait_for(p)
+        v.wait_for(p, task)
+        kernel.add_task_dep(task, v)
     v = await kernel.switch_coro()
     assert isinstance(v, Variable)
     return v

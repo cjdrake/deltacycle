@@ -6,11 +6,10 @@ from abc import ABC
 from collections import defaultdict
 from collections.abc import Generator, Hashable
 
-from ._kernel_if import KernelIf
-from ._task import Predicate, Task, WaitPredicate
+from ._task import AwaitableIf, Predicate, Task, WaitPredicate
 
 
-class Variable(KernelIf):
+class Variable(AwaitableIf):
     """Model component.
 
     Children::
@@ -25,38 +24,37 @@ class Variable(KernelIf):
     def __init__(self):
         self._waiting = WaitPredicate()
 
-    def __await__(self) -> Generator[None, Variable, Variable]:
-        self.wait()
-        v = yield from self._kernel.switch_gen()
-        assert v is self
+    def __await__(self) -> Generator[None, AwaitableIf, Variable]:
+        if not self.is_set():  # pragma: no cover
+            task = self._kernel.task()
+            self.wait_push(task)
+            v = yield from self._kernel.switch_gen()
+            assert v is self
+
         return self
 
-    def wait_for(self, p: Predicate):
-        task = self._kernel.task()
+    def wait_for(self, p: Predicate, task: Task):
         self._waiting.push((p, task))
-        self._kernel._task_deps[task].add(self)
 
-    def wait(self):
-        self.wait_for(self.changed)
+    def wait_push(self, task: Task):
+        self.wait_for(self.changed, task)
+
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
 
     def set(self):
-        self._waiting.set()
+        self._waiting.load()
 
         while self._waiting:
             task = self._waiting.pop()
-
-            # Remove task from dependencies
-            self._kernel._task_deps[task].remove(self)
-            while self._kernel._task_deps[task]:
-                aw = self._kernel._task_deps[task].pop()
-                aw._waiting.drop(task)
-            del self._kernel._task_deps[task]
-
-            # Send variable id to parent task
+            self._kernel.remove_task_dep(task, self)
             self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
 
         # Add variable to update set
         self._kernel.touch(self)
+
+    def is_set(self) -> bool:
+        return False  # pragma: no cover
 
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""

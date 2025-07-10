@@ -5,13 +5,11 @@ from collections import defaultdict
 from collections.abc import Generator
 from enum import IntEnum
 
-from ._event import Event
-from ._task import PendQueue, Signal, Task, TaskCoro
+from ._task import AwaitableIf, PendQueue, Signal, Task, TaskCoro
 from ._variable import Variable
 
 # Awaitables
-type AW = Task | Event | Variable
-type CallValue = tuple[Task.Command] | tuple[Task.Command, AW | Signal]
+type CallValue = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
 
 logger = logging.getLogger("deltacycle")
 
@@ -29,7 +27,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, AW | None, AW | None]:
+    def __await__(self) -> Generator[None, AwaitableIf | None, AwaitableIf | None]:
         # Suspend
         value = yield
         # Resume
@@ -113,7 +111,7 @@ class Kernel:
         self._queue = PendQueue()
 
         # Task dependencies
-        self._task_deps: defaultdict[Task, set[Event | Variable]] = defaultdict(set)
+        self._task_deps: defaultdict[Task, set[AwaitableIf]] = defaultdict(set)
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -174,7 +172,7 @@ class Kernel:
         self.call_soon(task, value=(Task.Command.START,))
         return task
 
-    async def switch_coro(self) -> AW | None:
+    async def switch_coro(self) -> AwaitableIf | None:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -182,13 +180,24 @@ class Kernel:
         # Resume
         return value
 
-    def switch_gen(self) -> Generator[None, AW, AW]:
+    def switch_gen(self) -> Generator[None, AwaitableIf, AwaitableIf]:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
         value = yield
         # Resume
         return value
+
+    def add_task_dep(self, task: Task, aw: AwaitableIf):
+        self._task_deps[task].add(aw)
+
+    def remove_task_dep(self, task: Task, aw: AwaitableIf):
+        if task in self._task_deps:
+            self._task_deps[task].remove(aw)
+            while self._task_deps[task]:
+                aw = self._task_deps[task].pop()
+                aw.wait_drop(task)
+            del self._task_deps[task]
 
     def touch(self, v: Variable):
         self._touched.add(v)
