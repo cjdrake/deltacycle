@@ -80,17 +80,16 @@ def test_regfile(caplog: LogCaptureFixture):
             regs[wr_addr.prev].next = wr_data.prev
 
     async def rd_port():
-        vps = {regs: regs.changed, rd_addr: rd_addr.changed}
         while True:
-            await any_var(vps)
+            await (regs | rd_addr)
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():
-        create_task(drv_clk(), priority=2)
-        create_task(drv_inputs(), priority=2)
-        create_task(mon_outputs(), priority=3)
-        create_task(wr_port(), priority=2)
-        create_task(rd_port(), priority=1)
+        create_task(drv_clk(), priority=2, name="drv_clk")
+        create_task(drv_inputs(), priority=2, name="drv_inputs")
+        create_task(mon_outputs(), priority=3, name="mon_outputs")
+        create_task(wr_port(), priority=2, name="wr_port")
+        create_task(rd_port(), priority=1, name="rd_port")
 
     run(main(), until=120)
 
