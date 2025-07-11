@@ -17,8 +17,8 @@ logger = logging.getLogger("deltacycle")
 
 type Predicate = Callable[[], bool]
 
-# TODO(cjdrake): Restrict SendType?
-type TaskCoro = Coroutine[None, Any, Any]
+type TaskCoro = Coroutine[None, AwaitableIf | None, Any]
+type CallValue = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
 
 
 class Signal(Exception):
@@ -204,8 +204,7 @@ class Task(AwaitableIf):
     class Command(IntEnum):
         START = 0b00
         RESUME = 0b01
-        INTERRUPT = 0b10
-        KILL = 0b11
+        SIGNAL = 0b10
 
     class State(IntEnum):
         """
@@ -367,7 +366,7 @@ class Task(AwaitableIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, args: tuple[Command] | tuple[Command, Any]):
+    def _do_run(self, args: CallValue):
         self._set_state(self.State.RUNNING)
 
         match args:
@@ -375,14 +374,11 @@ class Task(AwaitableIf):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, aw):
+            case (self.Command.RESUME, AwaitableIf() as aw):
                 y = self._coro.send(aw)
-            case (self.Command.INTERRUPT, irq):
+            case (self.Command.SIGNAL, Signal() as sig):
                 self._signal = False
-                y = self._coro.throw(irq)
-            case (self.Command.KILL, kill):
-                self._signal = False
-                y = self._coro.throw(kill)
+                y = self._coro.throw(sig)
             case _:  # pragma: no cover
                 assert False
 
@@ -484,7 +480,7 @@ class Task(AwaitableIf):
 
         # Reschedule
         self._signal = True
-        self._kernel.call_soon(self, value=(self.Command.INTERRUPT, irq))
+        self._kernel.call_soon(self, value=(self.Command.SIGNAL, irq))
 
         # Success
         return True
@@ -502,7 +498,7 @@ class Task(AwaitableIf):
 
         # Reschedule
         self._signal = True
-        self._kernel.call_soon(self, value=(self.Command.KILL, _Kill()))
+        self._kernel.call_soon(self, value=(self.Command.SIGNAL, _Kill()))
 
         # Success
         return True

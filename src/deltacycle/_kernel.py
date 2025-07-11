@@ -5,11 +5,8 @@ from collections import defaultdict
 from collections.abc import Generator
 from enum import IntEnum
 
-from ._task import AwaitableIf, PendQueue, Signal, Task, TaskCoro
+from ._task import AwaitableIf, CallValue, PendQueue, Task, TaskCoro
 from ._variable import Variable
-
-# Awaitables
-type CallValue = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
 
 logger = logging.getLogger("deltacycle")
 
