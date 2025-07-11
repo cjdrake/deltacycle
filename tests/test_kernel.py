@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import get_kernel, get_running_kernel, irun, run, set_kernel, sleep
+from deltacycle import get_kernel, get_running_kernel, run, set_kernel, sleep, step
 
 logger = logging.getLogger("deltacycle")
 
@@ -30,7 +30,7 @@ def test_run(caplog: LogCaptureFixture):
 def test_irun(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    g = irun(main(42))
+    g = step(main(42))
     try:
         while True:
             next(g)
@@ -52,7 +52,7 @@ def test_cannot_run(caplog: LogCaptureFixture):
         run(kernel=kernel)
 
     with pytest.raises(RuntimeError):
-        list(irun(kernel=kernel))
+        list(step(kernel=kernel))
 
 
 def test_limits(caplog: LogCaptureFixture):
@@ -84,7 +84,7 @@ def test_nocoro():
     with pytest.raises(ValueError):
         run()
     with pytest.raises(ValueError):
-        list(irun())
+        list(step())
 
 
 def test_get_running_kernel():

@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Kernel, create_task, finish, get_kernel, irun, run, sleep
+from deltacycle import Kernel, create_task, finish, get_kernel, run, sleep, step
 
 logger = logging.getLogger("deltacycle")
 
@@ -147,7 +147,7 @@ def test_finish2(caplog: LogCaptureFixture):
         create_task(ping(11), name="BUZ")
 
     # Subsequent calls to run() have no effect
-    list(irun(main()))
+    list(step(main()))
 
     kernel = get_kernel()
     assert kernel is not None

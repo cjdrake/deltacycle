@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Kernel, create_task, get_running_kernel, irun, run, sleep
+from deltacycle import Kernel, create_task, get_running_kernel, run, sleep, step
 
 from .common import Bool
 
@@ -106,14 +106,14 @@ def test_vars_iter(caplog: LogCaptureFixture):
         create_task(drv_c(c, clk), priority=2)
         create_task(mon(a, b, c, clk), priority=3)
 
-    for t in irun(main()):
+    for t in step(main()):
         if t >= 25:
             break
 
     kernel = get_running_kernel()
     assert kernel.state() is Kernel.State.RUNNING
 
-    for t in irun(kernel=kernel):
+    for t in step(kernel=kernel):
         if t >= 50:
             break
 
@@ -144,7 +144,7 @@ def test_vars_run_iter(caplog: LogCaptureFixture):
 
     kernel = get_running_kernel()
 
-    for t in irun(kernel=kernel):
+    for t in step(kernel=kernel):
         if t >= 50:
             break
 

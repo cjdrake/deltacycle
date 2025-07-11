@@ -48,7 +48,7 @@ class Kernel:
 
     This is a low level API.
     User code is not expected to interact with it directly.
-    To run a simulation, use the run and irun functions.
+    To run a simulation, use the run and step functions.
     """
 
     _index = 0

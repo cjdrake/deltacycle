@@ -142,7 +142,7 @@ Kernel
 .. autofunction:: deltacycle.set_kernel
 
 .. autofunction:: deltacycle.run
-.. autofunction:: deltacycle.irun
+.. autofunction:: deltacycle.step
 
 .. autofunction:: deltacycle.now
 .. autofunction:: deltacycle.sleep

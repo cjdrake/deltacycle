@@ -12,10 +12,10 @@ from deltacycle import (
     Task,
     create_task,
     get_current_task,
-    irun,
     now,
     run,
     sleep,
+    step,
 )
 
 logger = logging.getLogger("deltacycle")
@@ -103,7 +103,7 @@ def test_one_exception():
             assert False
 
     run(main())
-    list(irun(main()))
+    list(step(main()))
 
 
 EXP1 = {
@@ -222,7 +222,7 @@ def test_interrupt_pending2(caplog: LogCaptureFixture):
         # Cannot interrupt done task
         assert not t1.interrupt()
 
-    list(irun(main()))
+    list(step(main()))
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
 

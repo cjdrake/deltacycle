@@ -27,11 +27,11 @@ from ._top import (
     get_current_task,
     get_kernel,
     get_running_kernel,
-    irun,
     now,
     run,
     set_kernel,
     sleep,
+    step,
 )
 from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
@@ -63,7 +63,7 @@ __all__ = [
     "get_kernel",
     "set_kernel",
     "run",
-    "irun",
+    "step",
     "now",
     "sleep",
     # event

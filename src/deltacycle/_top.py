@@ -132,7 +132,7 @@ def run(
         return kernel.main.result()
 
 
-def irun(
+def step(
     coro: TaskCoro | None = None,
     kernel: Kernel | None = None,
 ) -> Generator[int, None, Any]:
