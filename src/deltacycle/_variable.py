@@ -11,7 +11,7 @@ from ._task import AwaitableIf, Task, TaskQueueIf
 type Predicate = Callable[[], bool]
 
 
-class WaitPredicate(TaskQueueIf):
+class _WaitPredicate(TaskQueueIf):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -53,7 +53,7 @@ class Variable(AwaitableIf):
     """
 
     def __init__(self):
-        self._waiting = WaitPredicate()
+        self._waiting = _WaitPredicate()
 
     def __await__(self) -> Generator[None, AwaitableIf, Variable]:
         if not self.is_set():  # pragma: no cover

@@ -1,11 +1,13 @@
 """Execution Kernel"""
 
+import heapq
 import logging
 from collections import defaultdict
 from collections.abc import Generator
 from enum import IntEnum
+from typing import Any
 
-from ._task import AwaitableIf, CallValue, PendQueue, Task, TaskCoro
+from ._task import AwaitableIf, CallValue, Task, TaskCoro, TaskQueueIf
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -33,6 +35,51 @@ class _SuspendResume:
 
 class _Finish(Exception):
     """Force the simulation to stop."""
+
+
+class _PendQueue(TaskQueueIf):
+    """Priority queue for ordering task execution."""
+
+    def __init__(self):
+        # time, priority, index, task, value
+        self._items: list[tuple[int, int, int, Task, Any]] = []
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[int, Task, Any]):
+        time, task, value = item
+        task._link(self)
+        heapq.heappush(self._items, (time, task.priority, self._index, task, value))
+        self._index += 1
+
+    def pop(self) -> tuple[Task, Any]:
+        _, _, _, task, value = heapq.heappop(self._items)
+        task._unlink(self)
+        return (task, value)
+
+    def _find(self, task: Task) -> int:
+        for i, (_, _, _, t, _) in enumerate(self._items):
+            if t is task:
+                return i
+        assert False  # pragma: no cover
+
+    def drop(self, task: Task):
+        index = self._find(task)
+        self._items.pop(index)
+        task._unlink(self)
+
+    def peek(self) -> int:
+        return self._items[0][0]
+
+    def clear(self):
+        while self._items:
+            self.pop()
+        self._index = 0
 
 
 class Kernel:
@@ -105,7 +152,7 @@ class Kernel:
         self._task_index = 0
 
         # Task queue
-        self._queue = PendQueue()
+        self._queue = _PendQueue()
 
         # Task dependencies
         self._task_deps: defaultdict[Task, set[AwaitableIf]] = defaultdict(set)
