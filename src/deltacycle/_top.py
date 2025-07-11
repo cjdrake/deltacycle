@@ -136,7 +136,7 @@ def step(
     coro: TaskCoro | None = None,
     kernel: Kernel | None = None,
 ) -> Generator[int, None, Any]:
-    """Iterate a simulation.
+    """Step (iterate) a simulation.
 
     Iterated simulations do not have a run limit.
     It is the user's responsibility to break at the desired time.
