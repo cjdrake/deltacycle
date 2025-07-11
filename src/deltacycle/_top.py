@@ -4,8 +4,8 @@ from collections.abc import Generator
 from typing import Any
 
 from ._kernel import Kernel
-from ._task import Predicate, Task, TaskCoro
-from ._variable import Variable
+from ._task import Task, TaskCoro
+from ._variable import Predicate, Variable
 
 _kernel: Kernel | None = None
 

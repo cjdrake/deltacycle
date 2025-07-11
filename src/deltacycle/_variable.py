@@ -4,9 +4,40 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import defaultdict
-from collections.abc import Generator, Hashable
+from collections.abc import Callable, Generator, Hashable
 
-from ._task import AwaitableIf, Predicate, Task, WaitPredicate
+from ._task import AwaitableIf, Task, TaskQueueIf
+
+type Predicate = Callable[[], bool]
+
+
+class WaitPredicate(TaskQueueIf):
+    """Tasks wait for variable touch."""
+
+    def __init__(self):
+        self._tps: dict[Task, Predicate] = dict()
+        self._items: set[Task] = set()
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[Predicate, Task]):
+        p, task = item
+        task._link(self)
+        self._tps[task] = p
+
+    def pop(self) -> Task:
+        task = self._items.pop()
+        self.drop(task)
+        return task
+
+    def drop(self, task: Task):
+        del self._tps[task]
+        task._unlink(self)
+
+    def load(self):
+        assert not self._items
+        self._items.update(t for t, p in self._tps.items() if p())
 
 
 class Variable(AwaitableIf):

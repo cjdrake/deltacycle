@@ -15,7 +15,6 @@ from ._task import (
     AwaitableIf,
     AwaitList,
     Interrupt,
-    Predicate,
     Signal,
     Task,
     TaskCoro,
@@ -33,7 +32,7 @@ from ._top import (
     sleep,
     step,
 )
-from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
+from ._variable import Aggregate, AggrItem, AggrValue, Predicate, Singular, Value, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)

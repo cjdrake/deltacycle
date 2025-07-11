@@ -6,7 +6,7 @@ import heapq
 import logging
 from abc import ABC
 from collections import Counter, deque
-from collections.abc import Callable, Coroutine, Generator
+from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
 from typing import Any
@@ -15,7 +15,6 @@ from ._kernel_if import KernelIf
 
 logger = logging.getLogger("deltacycle")
 
-type Predicate = Callable[[], bool]
 
 type TaskCoro = Coroutine[None, AwaitableIf | None, Any]
 type CallValue = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
@@ -116,35 +115,6 @@ class WaitFifo(TaskQueueIf):
     def drop(self, task: Task):
         self._items.remove(task)
         task._unlink(self)
-
-
-class WaitPredicate(TaskQueueIf):
-    """Tasks wait for variable touch."""
-
-    def __init__(self):
-        self._tps: dict[Task, Predicate] = dict()
-        self._items: set[Task] = set()
-
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    def push(self, item: tuple[Predicate, Task]):
-        p, task = item
-        task._link(self)
-        self._tps[task] = p
-
-    def pop(self) -> Task:
-        task = self._items.pop()
-        self.drop(task)
-        return task
-
-    def drop(self, task: Task):
-        del self._tps[task]
-        task._unlink(self)
-
-    def load(self):
-        assert not self._items
-        self._items.update(t for t, p in self._tps.items() if p())
 
 
 class AwaitableIf(KernelIf):
