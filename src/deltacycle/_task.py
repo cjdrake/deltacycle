@@ -8,7 +8,7 @@ from collections import Counter, deque
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any
+from typing import Any, Self
 
 from ._kernel_if import KernelIf
 
@@ -441,7 +441,7 @@ class TaskGroup(KernelIf):
         # Tasks in running/pending/killing state
         self._awaited: set[Task] = set()
 
-    async def __aenter__(self) -> TaskGroup:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(

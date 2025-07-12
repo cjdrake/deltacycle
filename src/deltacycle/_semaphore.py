@@ -1,7 +1,7 @@
 """Semaphore synchronization primitive"""
 
 from types import TracebackType
-from typing import override
+from typing import Self, override
 
 from ._kernel_if import KernelIf
 from ._task import Task, WaitFifo
@@ -19,7 +19,7 @@ class Semaphore(KernelIf):
         self._cnt = value
         self._waiting = WaitFifo()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         await self.get()
         return self
 

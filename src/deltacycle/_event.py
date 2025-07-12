@@ -1,8 +1,7 @@
 """Event synchronization primitive"""
 
-from __future__ import annotations
-
 from collections.abc import Generator
+from typing import Self
 
 from ._task import AwaitableIf, Task, WaitFifo
 
@@ -14,7 +13,7 @@ class Event(AwaitableIf):
         self._flag = False
         self._waiting = WaitFifo()
 
-    def __await__(self) -> Generator[None, AwaitableIf, Event]:
+    def __await__(self) -> Generator[None, AwaitableIf, Self]:
         if not self.is_set():
             task = self._kernel.task()
             self.wait_push(task)

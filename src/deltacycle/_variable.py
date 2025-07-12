@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC
 from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
+from typing import Self
 
 from ._task import AwaitableIf, Task, TaskQueueIf
 
@@ -55,7 +56,7 @@ class Variable(AwaitableIf):
     def __init__(self):
         self._waiting = _WaitPredicate()
 
-    def __await__(self) -> Generator[None, AwaitableIf, Variable]:
+    def __await__(self) -> Generator[None, AwaitableIf, Self]:
         if not self.is_set():  # pragma: no cover
             task = self._kernel.task()
             self.wait_push(task)
