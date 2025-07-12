@@ -74,7 +74,6 @@ __all__ = [
     "BoundedSemaphore",
     "Lock",
     # task
-    "Predicate",
     "TaskCoro",
     "Signal",
     "Interrupt",
@@ -85,6 +84,7 @@ __all__ = [
     "create_task",
     "get_current_task",
     # variable
+    "Predicate",
     "Variable",
     "Value",
     "Singular",
