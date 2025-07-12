@@ -35,7 +35,7 @@ class Queue[T](KernelIf):
         self._items.append(item)
         if self._wait_not_empty:
             task = self._wait_not_empty.pop()
-            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
 
     def try_put(self, item: T) -> bool:
         """Nonblocking put: Return True if a put attempt is successful."""
@@ -59,7 +59,7 @@ class Queue[T](KernelIf):
         item = self._items.popleft()
         if self._wait_not_full:
             task = self._wait_not_full.pop()
-            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         return item
 
     def try_get(self) -> tuple[bool, T | None]:

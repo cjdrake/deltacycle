@@ -170,7 +170,7 @@ def step(
 async def sleep(delay: int):
     """Suspend the task, and wake up after a delay."""
     kernel, task = _get_kt()
-    kernel.call_later(delay, task, value=(Task.Command.RESUME,))
+    kernel.call_later(delay, task, args=(Task.Command.RESUME,))
     y = await kernel.switch_coro()
     assert y is None
 

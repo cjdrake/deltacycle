@@ -35,7 +35,7 @@ class Semaphore(KernelIf):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         else:
             self._cnt += 1
 
@@ -73,7 +73,7 @@ class BoundedSemaphore(Semaphore):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._kernel.call_soon(task, value=(Task.Command.RESUME,))
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")

@@ -80,7 +80,7 @@ class Variable(AwaitableIf):
         while self._waiting:
             task = self._waiting.pop()
             self._kernel.remove_task_dep(task, self)
-            self._kernel.call_soon(task, value=(Task.Command.RESUME, self))
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
         # Add variable to update set
         self._kernel.touch(self)

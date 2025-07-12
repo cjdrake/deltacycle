@@ -16,7 +16,7 @@ logger = logging.getLogger("deltacycle")
 
 
 type TaskCoro = Coroutine[None, AwaitableIf | None, Any]
-type CallValue = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
 
 
 class Signal(Exception):
@@ -218,7 +218,7 @@ class Task(AwaitableIf):
         while self._waiting:
             task = self._waiting.pop()
             self._kernel.remove_task_dep(task, self)
-            self._kernel.call_soon(task, value=(self.Command.RESUME, self))
+            self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 
     def is_set(self) -> bool:
         return bool(self._state & self._done)
@@ -290,7 +290,7 @@ class Task(AwaitableIf):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, args: CallValue):
+    def _do_run(self, args: TaskArgs):
         self._set_state(self.State.RUNNING)
 
         match args:
@@ -404,7 +404,7 @@ class Task(AwaitableIf):
 
         # Reschedule
         self._signal = True
-        self._kernel.call_soon(self, value=(self.Command.SIGNAL, irq))
+        self._kernel.call_soon(self, args=(self.Command.SIGNAL, irq))
 
         # Success
         return True
@@ -422,7 +422,7 @@ class Task(AwaitableIf):
 
         # Reschedule
         self._signal = True
-        self._kernel.call_soon(self, value=(self.Command.SIGNAL, _Kill()))
+        self._kernel.call_soon(self, args=(self.Command.SIGNAL, _Kill()))
 
         # Success
         return True

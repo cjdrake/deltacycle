@@ -7,7 +7,7 @@ from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
-from ._task import AwaitableIf, CallValue, Task, TaskCoro, TaskQueueIf
+from ._task import AwaitableIf, Task, TaskArgs, TaskCoro, TaskQueueIf
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -188,19 +188,19 @@ class Kernel:
         return bool(self._state & self._done)
 
     # Scheduling methods
-    def call_soon(self, task: Task, value: CallValue):
-        self._queue.push((self._time, task, value))
+    def call_soon(self, task: Task, args: TaskArgs):
+        self._queue.push((self._time, task, args))
 
-    def call_later(self, delay: int, task: Task, value: CallValue):
-        self._queue.push((self._time + delay, task, value))
+    def call_later(self, delay: int, task: Task, args: TaskArgs):
+        self._queue.push((self._time + delay, task, args))
 
-    def call_at(self, when: int, task: Task, value: CallValue):
-        self._queue.push((when, task, value))
+    def call_at(self, when: int, task: Task, args: TaskArgs):
+        self._queue.push((when, task, args))
 
     def create_main(self, coro: TaskCoro):
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
-        self.call_at(self.start_time, self._main, value=(Task.Command.START,))
+        self.call_at(self.start_time, self._main, args=(Task.Command.START,))
 
     def create_task(
         self,
@@ -213,7 +213,7 @@ class Kernel:
             name = f"Task-{self._task_index}"
             self._task_index += 1
         task = Task(coro, name, priority)
-        self.call_soon(task, value=(Task.Command.START,))
+        self.call_soon(task, args=(Task.Command.START,))
         return task
 
     async def switch_coro(self) -> AwaitableIf | None:
@@ -258,7 +258,7 @@ class Kernel:
             s = f"Kernel has invalid state: {self._state.name}"
             raise RuntimeError(s)
 
-    def _iter_time_slot(self, time: int) -> Generator[tuple[Task, CallValue], None, None]:
+    def _iter_time_slot(self, time: int) -> Generator[tuple[Task, TaskArgs], None, None]:
         """Iterate through all tasks in a time slot.
 
         The first task has already been peeked.
