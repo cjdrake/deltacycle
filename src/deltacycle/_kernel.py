@@ -7,7 +7,7 @@ from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
-from ._task import AwaitableIf, Task, TaskArgs, TaskCoro, TaskQueueIf
+from ._task import AwaitableIf, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -37,7 +37,7 @@ class _Finish(Exception):
     """Force the simulation to stop."""
 
 
-class _PendQueue(TaskQueueIf):
+class _PendQueue(TaskQueue):
     """Priority queue for ordering task execution."""
 
     def __init__(self):

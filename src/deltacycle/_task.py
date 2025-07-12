@@ -31,7 +31,7 @@ class _Kill(Signal):
     """Kill task."""
 
 
-class TaskQueueIf(ABC):
+class TaskQueue(ABC):
     def __bool__(self) -> bool:
         """Return True if the queue has tasks ready to run."""
         raise NotImplementedError()  # pragma: no cover
@@ -47,7 +47,7 @@ class TaskQueueIf(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class WaitFifo(TaskQueueIf):
+class WaitFifo(TaskQueue):
     """Tasks wait in FIFO order."""
 
     def __init__(self):
@@ -187,7 +187,7 @@ class Task(AwaitableIf):
         self._group: TaskGroup | None = None
 
         # Keep track of all queues containing this task
-        self._refcnts: Counter[TaskQueueIf] = Counter()
+        self._refcnts: Counter[TaskQueue] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = WaitFifo()
@@ -275,10 +275,10 @@ class Task(AwaitableIf):
     def state(self) -> State:
         return self._state
 
-    def _link(self, tq: TaskQueueIf):
+    def _link(self, tq: TaskQueue):
         self._refcnts[tq] += 1
 
-    def _unlink(self, tq: TaskQueueIf):
+    def _unlink(self, tq: TaskQueue):
         assert self._refcnts[tq] > 0
         self._refcnts[tq] -= 1
 

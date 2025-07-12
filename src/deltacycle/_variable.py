@@ -7,12 +7,12 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
-from ._task import AwaitableIf, Task, TaskQueueIf
+from ._task import AwaitableIf, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
 
-class _WaitPredicate(TaskQueueIf):
+class _WaitPredicate(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
