@@ -75,7 +75,9 @@ Tasks
 .. autoclass:: deltacycle.TaskGroup
     :show-inheritance:
 
-    .. automethod:: deltacycle.TaskGroup.create_task
+    .. automethod:: __aenter__
+    .. automethod:: __aexit__
+    .. automethod:: create_task
 
 .. autofunction:: deltacycle.create_task
 .. autofunction:: deltacycle.get_current_task
@@ -87,10 +89,10 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Event
     :show-inheritance:
 
-    .. automethod:: deltacycle.Event.__bool__
-    .. automethod:: deltacycle.Event.__await__
-    .. automethod:: deltacycle.Event.set
-    .. automethod:: deltacycle.Event.clear
+    .. automethod:: __bool__
+    .. automethod:: __await__
+    .. automethod:: set
+    .. automethod:: clear
 
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
@@ -129,11 +131,11 @@ Kernel
 
 .. autoclass:: deltacycle.Kernel
 
-    .. automethod:: deltacycle.Kernel.state
-    .. automethod:: deltacycle.Kernel.time
-    .. autoproperty:: deltacycle.Kernel.main
-    .. automethod:: deltacycle.Kernel.task
-    .. automethod:: deltacycle.Kernel.done
+    .. automethod:: state
+    .. automethod:: time
+    .. autoproperty:: main
+    .. automethod:: task
+    .. automethod:: done
 
 .. autofunction:: deltacycle.finish
 
