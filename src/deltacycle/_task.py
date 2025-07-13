@@ -147,7 +147,7 @@ class _Schedule(KernelIf):
         else:
             s.wait_for(p, task)
 
-    def _schedule_todo(self, task):
+    def _schedule_todo(self, task: Task):
         for s in self._todo:
             self._sched_wait(s, task)
             self._kernel.add_task_sched(task, s)
