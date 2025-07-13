@@ -7,7 +7,7 @@ from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
-from ._task import AwaitableIf, Task, TaskArgs, TaskCoro, TaskQueue
+from ._task import Schedulable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -26,7 +26,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, AwaitableIf | None, AwaitableIf | None]:
+    def __await__(self) -> Generator[None, Schedulable | None, Schedulable | None]:
         # Suspend
         value = yield
         # Resume
@@ -155,7 +155,7 @@ class Kernel:
         self._queue = _PendQueue()
 
         # Task dependencies
-        self._task_deps: defaultdict[Task, set[AwaitableIf]] = defaultdict(set)
+        self._task_deps: defaultdict[Task, set[Schedulable]] = defaultdict(set)
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -216,7 +216,7 @@ class Kernel:
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
-    async def switch_coro(self) -> AwaitableIf | None:
+    async def switch_coro(self) -> Schedulable | None:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -224,7 +224,7 @@ class Kernel:
         # Resume
         return value
 
-    def switch_gen(self) -> Generator[None, AwaitableIf, AwaitableIf]:
+    def switch_gen(self) -> Generator[None, Schedulable, Schedulable]:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -232,15 +232,16 @@ class Kernel:
         # Resume
         return value
 
-    def add_task_dep(self, task: Task, aw: AwaitableIf):
-        self._task_deps[task].add(aw)
+    def add_task_dep(self, task: Task, sched: Schedulable):
+        self._task_deps[task].add(sched)
 
-    def remove_task_dep(self, task: Task, aw: AwaitableIf):
+    def remove_task_dep(self, task: Task, sched: Schedulable):
         if task in self._task_deps:
-            self._task_deps[task].remove(aw)
-            while self._task_deps[task]:
-                aw = self._task_deps[task].pop()
-                aw.wait_drop(task)
+            deps = self._task_deps[task]
+            deps.remove(sched)
+            while deps:
+                s = deps.pop()
+                s.wait_drop(task)
             del self._task_deps[task]
 
     def touch(self, v: Variable):

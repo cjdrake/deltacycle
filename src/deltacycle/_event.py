@@ -3,17 +3,17 @@
 from collections.abc import Generator
 from typing import Self
 
-from ._task import AwaitableIf, Task, WaitFifo
+from ._task import Schedulable, Task, WaitFifo
 
 
-class Event(AwaitableIf):
+class Event(Schedulable):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
         self._flag = False
         self._waiting = WaitFifo()
 
-    def __await__(self) -> Generator[None, AwaitableIf, Self]:
+    def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self.is_set():
             task = self._kernel.task()
             self.wait_push(task)

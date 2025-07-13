@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
-from ._task import AwaitableIf, Task, TaskQueue
+from ._task import Schedulable, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
@@ -41,7 +41,7 @@ class _WaitPredicate(TaskQueue):
         self._items.update(t for t, p in self._tps.items() if p())
 
 
-class Variable(AwaitableIf):
+class Variable(Schedulable):
     """Model component.
 
     Children::
@@ -56,7 +56,7 @@ class Variable(AwaitableIf):
     def __init__(self):
         self._waiting = _WaitPredicate()
 
-    def __await__(self) -> Generator[None, AwaitableIf, Self]:
+    def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self.is_set():  # pragma: no cover
             task = self._kernel.task()
             self.wait_push(task)

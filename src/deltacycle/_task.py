@@ -15,8 +15,8 @@ from ._kernel_if import KernelIf
 logger = logging.getLogger("deltacycle")
 
 
-type TaskCoro = Coroutine[None, AwaitableIf | None, Any]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, AwaitableIf | Signal]
+type TaskCoro = Coroutine[None, Schedulable | None, Any]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Schedulable | Signal]
 
 
 class Signal(Exception):
@@ -71,11 +71,11 @@ class WaitFifo(TaskQueue):
         task._unlink(self)
 
 
-class AwaitableIf(KernelIf):
-    def __await__(self) -> Generator[None, AwaitableIf, Any]:
+class Schedulable(KernelIf):
+    def __await__(self) -> Generator[None, Schedulable, Any]:
         raise NotImplementedError()  # pragma: no cover
 
-    def __or__(self, other: AwaitableIf) -> AwaitList:
+    def __or__(self, other: Schedulable) -> AwaitList:
         return AwaitList(self, other)
 
     def wait_push(self, task: Task) -> None:
@@ -92,10 +92,10 @@ class AwaitableIf(KernelIf):
 
 
 class AwaitList(KernelIf):
-    def __init__(self, *aws: AwaitableIf):
+    def __init__(self, *aws: Schedulable):
         self._aws = aws
 
-    def __await__(self) -> Generator[None, AwaitableIf, AwaitableIf]:
+    def __await__(self) -> Generator[None, Schedulable, Schedulable]:
         task = self._kernel.task()
 
         fst = None
@@ -114,11 +114,11 @@ class AwaitList(KernelIf):
 
         return fst
 
-    def __or__(self, other: AwaitableIf) -> AwaitList:
+    def __or__(self, other: Schedulable) -> AwaitList:
         return AwaitList(*self._aws, other)
 
 
-class Task(AwaitableIf):
+class Task(Schedulable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -199,7 +199,7 @@ class Task(AwaitableIf):
         self._result: Any = None
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, AwaitableIf, Any]:
+    def __await__(self) -> Generator[None, Schedulable, Any]:
         if not self.is_set():
             task = self._kernel.task()
             self.wait_push(task)
@@ -298,7 +298,7 @@ class Task(AwaitableIf):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, AwaitableIf() as aw):
+            case (self.Command.RESUME, Schedulable() as aw):
                 y = self._coro.send(aw)
             case (self.Command.SIGNAL, Signal() as sig):
                 self._signal = False
