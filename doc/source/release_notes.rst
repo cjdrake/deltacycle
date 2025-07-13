@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.19.0
+==============
+
+* Renamed ``Schedule`` to ``AnyOf``
+* Added new ``AllOf`` scheduler, which implements both async await and iterate.
+
+
 Version 0.18.0
 ==============
 
