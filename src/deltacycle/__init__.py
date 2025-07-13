@@ -13,6 +13,7 @@ from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
     Interrupt,
+    Predicate,
     Schedulable,
     Schedule,
     Signal,
@@ -32,7 +33,7 @@ from ._top import (
     sleep,
     step,
 )
-from ._variable import Aggregate, AggrItem, AggrValue, Predicate, Singular, Value, Variable
+from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ __all__ = [
     "BoundedSemaphore",
     "Lock",
     # task
+    "Predicate",
     "TaskCoro",
     "Signal",
     "Interrupt",
@@ -84,7 +86,6 @@ __all__ = [
     "create_task",
     "get_current_task",
     # variable
-    "Predicate",
     "Variable",
     "Value",
     "Singular",
