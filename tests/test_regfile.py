@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import any_var, create_task, run, sleep
+from deltacycle import Schedule, any_var, create_task, run, sleep
 
 from .common import Bool, Int, IntMem
 
@@ -81,7 +81,7 @@ def test_regfile(caplog: LogCaptureFixture):
 
     async def rd_port():
         while True:
-            await (regs | rd_addr)
+            await Schedule(regs, rd_addr)
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():

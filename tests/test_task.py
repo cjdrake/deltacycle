@@ -9,6 +9,7 @@ from pytest import LogCaptureFixture
 from deltacycle import (
     Event,
     Interrupt,
+    Schedule,
     Task,
     create_task,
     get_current_task,
@@ -349,7 +350,7 @@ def test_task_list():
         t2 = create_task(cf(10), name="T2")
         t3 = create_task(cf(15), name="T3")
 
-        t = await (t1 | t2 | t3)
+        t = await Schedule(t1, t2, t3)
         assert t is t1
         assert now() == 5
 
