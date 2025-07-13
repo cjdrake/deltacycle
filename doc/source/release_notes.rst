@@ -8,6 +8,23 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.18.0
+==============
+
+* Renamed ``irun`` function to ``step``.
+* Got rid of both ``any_event`` and ``any_var`` public functions.
+  Replaced by ``Schedule`` class.
+
+Also, unfortunately had to get rid of ``e1 | e2 | ...`` syntax.
+It might be fine for tasks and events, but we need to reserve the ``|``
+operator for variable operator overloading.
+Use ``Schedule(t1, e1, v1, ...)`` to mix and match task/event/variable
+"schedule" items.
+
+Lots of refactoring this release.
+Probably forgot to mention a few things.
+
+
 Version 0.17.0
 ==============
 
