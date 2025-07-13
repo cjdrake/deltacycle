@@ -3,10 +3,11 @@
 from collections.abc import Generator
 from typing import Self
 
+from ._kernel_if import KernelIf
 from ._task import Schedulable, Task, WaitFifo
 
 
-class Event(Schedulable):
+class Event(KernelIf, Schedulable):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):

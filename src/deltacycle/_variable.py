@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
+from ._kernel_if import KernelIf
 from ._task import Schedulable, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
@@ -41,7 +42,7 @@ class _WaitPredicate(TaskQueue):
         self._items.update(t for t, p in self._tps.items() if p())
 
 
-class Variable(Schedulable):
+class Variable(KernelIf, Schedulable):
     """Model component.
 
     Children::

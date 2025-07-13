@@ -71,7 +71,7 @@ class WaitFifo(TaskQueue):
         task._unlink(self)
 
 
-class Schedulable(KernelIf):
+class Schedulable(ABC):
     def __await__(self) -> Generator[None, Schedulable, Any]:
         raise NotImplementedError()  # pragma: no cover
 
@@ -118,7 +118,7 @@ class AwaitList(KernelIf):
         return AwaitList(*self._aws, other)
 
 
-class Task(Schedulable):
+class Task(KernelIf, Schedulable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
