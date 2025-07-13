@@ -119,24 +119,37 @@ class Schedulable(ABC):
 
 
 class Schedule(KernelIf):
-    def __init__(self, *items: Schedulable):
-        self._items = items
+    def __init__(self, *items: Schedulable | tuple[Predicate, Schedulable]):
+        self._preds: dict[Schedulable, Predicate] = {}
+        self._scheds: list[Schedulable] = []
+        for item in items:
+            if isinstance(item, Schedulable):
+                self._scheds.append(item)
+            else:
+                p, s = item
+                self._preds[s] = p
+                self._scheds.append(s)
 
     def __await__(self) -> Generator[None, Schedulable, Schedulable]:
         task = self._kernel.task()
 
         fst = None
-        for item in self._items:
-            if item.is_set():
-                fst = item
+        for s in self._scheds:
+            if s.is_set():
+                fst = s
                 break
 
         # Nothing scheduled yet
         if fst is None:
-            # Await first item
-            for item in self._items:
-                item.wait_push(task)
-                self._kernel.add_task_sched(task, item)
+            # Await first {task, event, variable}
+            for s in self._scheds:
+                try:
+                    p = self._preds[s]
+                except KeyError:
+                    s.wait_push(task)
+                else:
+                    s.wait_for(p, task)
+                self._kernel.add_task_sched(task, s)
             fst = yield from self._kernel.switch_gen()
 
         return fst

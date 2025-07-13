@@ -45,8 +45,6 @@ Variables
 
     .. automethod:: __getitem__
 
-.. autofunction:: deltacycle.any_var
-
 
 Tasks
 =====

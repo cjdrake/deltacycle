@@ -2,7 +2,7 @@
 
 import logging
 
-from deltacycle import Aggregate, Singular, any_var
+from deltacycle import Aggregate, Schedule, Singular
 
 logger = logging.getLogger("deltacycle")
 
@@ -24,13 +24,13 @@ class Bool(Singular[bool]):
         return self.is_posedge() or self.is_negedge()
 
     async def posedge(self):
-        await any_var({self: self.is_posedge})
+        await Schedule((self.is_posedge, self))
 
     async def negedge(self):
-        await any_var({self: self.is_negedge})
+        await Schedule((self.is_negedge, self))
 
     async def edge(self):
-        await any_var({self: self.is_edge})
+        await Schedule((self.is_edge, self))
 
 
 class Int(Singular[int]):

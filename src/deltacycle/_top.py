@@ -5,7 +5,6 @@ from typing import Any
 
 from ._kernel import Kernel
 from ._task import Task, TaskCoro
-from ._variable import Predicate, Variable
 
 _kernel: Kernel | None = None
 
@@ -173,27 +172,3 @@ async def sleep(delay: int):
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
     y = await kernel.switch_coro()
     assert y is None
-
-
-async def any_var(vps: dict[Variable, Predicate]) -> Variable:
-    """Resume execution upon predicated variable change.
-
-    Suspend execution of the current task;
-    Resume when any variable in the sensitivity list changes,
-    *and* the predicate function evaluates to True.
-    If the predicate function is None, it will default to *any* change.
-
-    Args:
-        vps: Dict of Variable => Predicate mappings, a sensitivity list.
-
-    Returns:
-        The Variable instance that triggered the task to resume.
-    """
-    kernel, task = _get_kt()
-
-    for v, p in vps.items():
-        v.wait_for(p, task)
-        kernel.add_task_sched(task, v)
-    v = await kernel.switch_coro()
-    assert isinstance(v, Variable)
-    return v

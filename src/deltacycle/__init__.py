@@ -22,7 +22,6 @@ from ._task import (
     TaskGroup,
 )
 from ._top import (
-    any_var,
     create_task,
     get_current_task,
     get_kernel,
@@ -92,5 +91,4 @@ __all__ = [
     "Aggregate",
     "AggrItem",
     "AggrValue",
-    "any_var",
 ]
