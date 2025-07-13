@@ -13,7 +13,6 @@ class Event(KernelIf, Schedulable):
     def __init__(self):
         self._flag = False
         self._waiting = WaitPredicate()
-        self._p = lambda: True
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self.is_set():
@@ -26,6 +25,9 @@ class Event(KernelIf, Schedulable):
 
     def wait_for(self, p: Predicate, task: Task):
         self._waiting.push((p, task))
+
+    def _p(self) -> bool:
+        return True
 
     def wait_push(self, task: Task):
         self._waiting.push((self._p, task))
