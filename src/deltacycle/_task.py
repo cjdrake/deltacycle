@@ -72,9 +72,6 @@ class WaitFifo(TaskQueue):
 
 
 class Schedulable(ABC):
-    def __await__(self) -> Generator[None, Schedulable, Any]:
-        raise NotImplementedError()  # pragma: no cover
-
     def wait_push(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
