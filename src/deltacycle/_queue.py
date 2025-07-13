@@ -4,7 +4,7 @@ from collections import deque
 from functools import cached_property
 
 from ._kernel_if import KernelIf
-from ._task import Task, WaitFifo
+from ._task import Task, TaskFifo
 
 
 class Queue[T](KernelIf):
@@ -13,8 +13,8 @@ class Queue[T](KernelIf):
     def __init__(self, maxlen: int = 0):
         self._maxlen = maxlen
         self._items: deque[T] = deque()
-        self._wait_not_empty = WaitFifo()
-        self._wait_not_full = WaitFifo()
+        self._wait_not_empty = TaskFifo()
+        self._wait_not_full = TaskFifo()
 
     def __len__(self) -> int:
         return len(self._items)

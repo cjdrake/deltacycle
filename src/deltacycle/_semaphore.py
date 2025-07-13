@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Task, WaitFifo
+from ._task import Task, TaskFifo
 
 
 class Semaphore(KernelIf):
@@ -17,7 +17,7 @@ class Semaphore(KernelIf):
         if value < 1:
             raise ValueError(f"Expected value >= 1, got {value}")
         self._cnt = value
-        self._waiting = WaitFifo()
+        self._waiting = TaskFifo()
 
     async def __aenter__(self) -> Self:
         await self.get()

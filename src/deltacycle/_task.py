@@ -48,7 +48,7 @@ class TaskQueue(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class WaitFifo(TaskQueue):
+class TaskFifo(TaskQueue):
     """Tasks wait in FIFO order."""
 
     def __init__(self):
