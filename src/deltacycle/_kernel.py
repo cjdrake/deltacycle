@@ -2,7 +2,6 @@
 
 import heapq
 import logging
-from collections import defaultdict
 from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
@@ -155,7 +154,7 @@ class Kernel:
         self._queue = _PendQueue()
 
         # Task dependencies
-        self._task_deps: defaultdict[Task, set[Schedulable]] = defaultdict(set)
+        self._task_deps: dict[Task, set[Schedulable]] = {}
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -233,11 +232,19 @@ class Kernel:
         return value
 
     def add_task_sched(self, task: Task, sched: Schedulable):
-        self._task_deps[task].add(sched)
+        try:
+            deps = self._task_deps[task]
+        except KeyError:
+            self._task_deps[task] = {sched}
+        else:
+            deps.add(sched)
 
     def remove_task_sched(self, task: Task, sched: Schedulable):
-        if task in self._task_deps:
+        try:
             deps = self._task_deps[task]
+        except KeyError:
+            pass
+        else:
             deps.remove(sched)
             while deps:
                 s = deps.pop()
