@@ -3,43 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import OrderedDict, defaultdict, deque
-from collections.abc import Callable, Generator, Hashable
+from collections import defaultdict
+from collections.abc import Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, Task, TaskQueue
-
-type Predicate = Callable[[], bool]
-
-
-class _WaitPredicate(TaskQueue):
-    """Tasks wait for variable touch."""
-
-    def __init__(self):
-        self._tps: OrderedDict[Task, Predicate] = OrderedDict()
-        self._items: deque[Task] = deque()
-
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    def push(self, item: tuple[Predicate, Task]):
-        p, task = item
-        task._link(self)
-        self._tps[task] = p
-
-    def pop(self) -> Task:
-        task = self._items.popleft()
-        self.drop(task)
-        return task
-
-    def drop(self, task: Task):
-        del self._tps[task]
-        task._unlink(self)
-
-    def load(self):
-        assert not self._items
-        self._items.extend(t for t, p in self._tps.items() if p())
+from ._task import Predicate, Schedulable, Task, WaitPredicate
 
 
 class Variable(KernelIf, Schedulable):
@@ -55,7 +24,7 @@ class Variable(KernelIf, Schedulable):
     """
 
     def __init__(self):
-        self._waiting = _WaitPredicate()
+        self._waiting = WaitPredicate()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self.is_set():  # pragma: no cover

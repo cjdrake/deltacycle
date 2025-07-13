@@ -4,7 +4,7 @@ from collections.abc import Generator
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, Task, WaitFifo
+from ._task import Predicate, Schedulable, Task, WaitPredicate
 
 
 class Event(KernelIf, Schedulable):
@@ -12,7 +12,8 @@ class Event(KernelIf, Schedulable):
 
     def __init__(self):
         self._flag = False
-        self._waiting = WaitFifo()
+        self._waiting = WaitPredicate()
+        self._p = lambda: True
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self.is_set():
@@ -23,15 +24,18 @@ class Event(KernelIf, Schedulable):
 
         return self
 
+    def wait_for(self, p: Predicate, task: Task):
+        self._waiting.push((p, task))
+
     def wait_push(self, task: Task):
-        self._waiting.push(task)
+        self._waiting.push((self._p, task))
 
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
     def set(self):
         self._flag = True
-
+        self._waiting.load()
         while self._waiting:
             task = self._waiting.pop()
             self._kernel.remove_task_sched(task, self)
