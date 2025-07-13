@@ -108,6 +108,13 @@ Synchronization Primitives
     :show-inheritance:
 
 
+Scheduling
+==========
+
+.. autoclass:: deltacycle.AllOf
+.. autoclass:: deltacycle.AnyOf
+
+
 Queues
 ======
 
