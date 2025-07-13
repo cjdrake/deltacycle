@@ -12,9 +12,9 @@ from ._kernel import Kernel, finish
 from ._queue import Queue
 from ._semaphore import BoundedSemaphore, Lock, Semaphore
 from ._task import (
-    AwaitList,
     Interrupt,
     Schedulable,
+    Schedule,
     Signal,
     Task,
     TaskCoro,
@@ -78,7 +78,7 @@ __all__ = [
     "Signal",
     "Interrupt",
     "Schedulable",
-    "AwaitList",
+    "Schedule",
     "Task",
     "TaskGroup",
     "create_task",

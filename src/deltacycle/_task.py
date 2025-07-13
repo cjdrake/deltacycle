@@ -75,8 +75,8 @@ class Schedulable(ABC):
     def __await__(self) -> Generator[None, Schedulable, Any]:
         raise NotImplementedError()  # pragma: no cover
 
-    def __or__(self, other: Schedulable) -> AwaitList:
-        return AwaitList(self, other)
+    def __or__(self, other: Schedulable) -> Schedule:
+        return Schedule(self, other)
 
     def wait_push(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
@@ -91,7 +91,7 @@ class Schedulable(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class AwaitList(KernelIf):
+class Schedule(KernelIf):
     def __init__(self, *aws: Schedulable):
         self._aws = aws
 
@@ -114,8 +114,8 @@ class AwaitList(KernelIf):
 
         return fst
 
-    def __or__(self, other: Schedulable) -> AwaitList:
-        return AwaitList(*self._aws, other)
+    def __or__(self, other: Schedulable) -> Schedule:
+        return Schedule(*self._aws, other)
 
 
 class Task(KernelIf, Schedulable):
