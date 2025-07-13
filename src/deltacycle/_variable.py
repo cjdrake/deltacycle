@@ -80,7 +80,7 @@ class Variable(KernelIf, Schedulable):
 
         while self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_dep(task, self)
+            self._kernel.remove_task_sched(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
         # Add variable to update set

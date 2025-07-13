@@ -232,10 +232,10 @@ class Kernel:
         # Resume
         return value
 
-    def add_task_dep(self, task: Task, sched: Schedulable):
+    def add_task_sched(self, task: Task, sched: Schedulable):
         self._task_deps[task].add(sched)
 
-    def remove_task_dep(self, task: Task, sched: Schedulable):
+    def remove_task_sched(self, task: Task, sched: Schedulable):
         if task in self._task_deps:
             deps = self._task_deps[task]
             deps.remove(sched)

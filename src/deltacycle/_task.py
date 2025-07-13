@@ -92,30 +92,30 @@ class Schedulable(ABC):
 
 
 class Schedule(KernelIf):
-    def __init__(self, *aws: Schedulable):
-        self._aws = aws
+    def __init__(self, *items: Schedulable):
+        self._items = items
 
     def __await__(self) -> Generator[None, Schedulable, Schedulable]:
         task = self._kernel.task()
 
         fst = None
-        for aw in self._aws:
-            if aw.is_set():
-                fst = aw
+        for item in self._items:
+            if item.is_set():
+                fst = item
                 break
 
         # No events set yet
         if fst is None:
             # Await first event to be set
-            for aw in self._aws:
-                aw.wait_push(task)
-                self._kernel.add_task_dep(task, aw)
+            for item in self._items:
+                item.wait_push(task)
+                self._kernel.add_task_sched(task, item)
             fst = yield from self._kernel.switch_gen()
 
         return fst
 
     def __or__(self, other: Schedulable) -> Schedule:
-        return Schedule(*self._aws, other)
+        return Schedule(*self._items, other)
 
 
 class Task(KernelIf, Schedulable):
@@ -217,7 +217,7 @@ class Task(KernelIf, Schedulable):
     def set(self):
         while self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_dep(task, self)
+            self._kernel.remove_task_sched(task, self)
             self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 
     def is_set(self) -> bool:
@@ -298,8 +298,8 @@ class Task(KernelIf, Schedulable):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, Schedulable() as aw):
-                y = self._coro.send(aw)
+            case (self.Command.RESUME, Schedulable() as sched):
+                y = self._coro.send(sched)
             case (self.Command.SIGNAL, Signal() as sig):
                 self._signal = False
                 y = self._coro.throw(sig)
