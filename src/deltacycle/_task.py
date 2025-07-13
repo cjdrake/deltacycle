@@ -75,9 +75,6 @@ class Schedulable(ABC):
     def __await__(self) -> Generator[None, Schedulable, Any]:
         raise NotImplementedError()  # pragma: no cover
 
-    def __or__(self, other: Schedulable) -> Schedule:
-        return Schedule(self, other)
-
     def wait_push(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
@@ -113,9 +110,6 @@ class Schedule(KernelIf):
             fst = yield from self._kernel.switch_gen()
 
         return fst
-
-    def __or__(self, other: Schedulable) -> Schedule:
-        return Schedule(*self._items, other)
 
 
 class Task(KernelIf, Schedulable):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import defaultdict
+from collections import OrderedDict, defaultdict, deque
 from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
@@ -17,8 +17,8 @@ class _WaitPredicate(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._tps: dict[Task, Predicate] = dict()
-        self._items: set[Task] = set()
+        self._tps: OrderedDict[Task, Predicate] = OrderedDict()
+        self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
         return bool(self._items)
@@ -29,7 +29,7 @@ class _WaitPredicate(TaskQueue):
         self._tps[task] = p
 
     def pop(self) -> Task:
-        task = self._items.pop()
+        task = self._items.popleft()
         self.drop(task)
         return task
 
@@ -39,7 +39,7 @@ class _WaitPredicate(TaskQueue):
 
     def load(self):
         assert not self._items
-        self._items.update(t for t, p in self._tps.items() if p())
+        self._items.extend(t for t, p in self._tps.items() if p())
 
 
 class Variable(KernelIf, Schedulable):
