@@ -72,11 +72,11 @@ class TaskFifo(TaskQueue):
         task._unlink(self)
 
 
-class WaitPredicate(TaskQueue):
+class SchedFifo(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._tps: OrderedDict[Task, Predicate] = OrderedDict()
+        self._preds: OrderedDict[Task, Predicate] = OrderedDict()
         self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
@@ -85,7 +85,7 @@ class WaitPredicate(TaskQueue):
     def push(self, item: tuple[Predicate, Task]):
         p, task = item
         task._link(self)
-        self._tps[task] = p
+        self._preds[task] = p
 
     def pop(self) -> Task:
         task = self._items.popleft()
@@ -93,12 +93,12 @@ class WaitPredicate(TaskQueue):
         return task
 
     def drop(self, task: Task):
-        del self._tps[task]
+        del self._preds[task]
         task._unlink(self)
 
     def load(self):
         assert not self._items
-        self._items.extend(t for t, p in self._tps.items() if p())
+        self._items.extend(t for t, p in self._preds.items() if p())
 
 
 class Schedulable(ABC):
@@ -227,7 +227,7 @@ class Task(KernelIf, Schedulable):
         self._refcnts: Counter[TaskQueue] = Counter()
 
         # Other tasks waiting for this task to complete
-        self._waiting = WaitPredicate()
+        self._waiting = SchedFifo()
 
         # Flag to avoid multiple signals
         self._signal = False
@@ -259,6 +259,7 @@ class Task(KernelIf, Schedulable):
 
     def set(self):
         self._waiting.load()
+
         while self._waiting:
             task = self._waiting.pop()
             self._kernel.remove_task_sched(task, self)

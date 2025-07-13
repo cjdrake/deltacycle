@@ -8,7 +8,7 @@ from collections.abc import Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Predicate, Schedulable, Task, WaitPredicate
+from ._task import Predicate, SchedFifo, Schedulable, Task
 
 
 class Variable(KernelIf, Schedulable):
@@ -24,7 +24,7 @@ class Variable(KernelIf, Schedulable):
     """
 
     def __init__(self):
-        self._waiting = WaitPredicate()
+        self._waiting = SchedFifo()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self.is_set():  # pragma: no cover
