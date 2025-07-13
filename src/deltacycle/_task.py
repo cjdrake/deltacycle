@@ -131,9 +131,9 @@ class Schedule(KernelIf):
                 fst = item
                 break
 
-        # No events set yet
+        # Nothing scheduled yet
         if fst is None:
-            # Await first event to be set
+            # Await first item
             for item in self._items:
                 item.wait_push(task)
                 self._kernel.add_task_sched(task, item)
