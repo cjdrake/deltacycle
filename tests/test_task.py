@@ -7,9 +7,10 @@ import pytest
 from pytest import LogCaptureFixture
 
 from deltacycle import (
+    AllOf,
+    AnyOf,
     Event,
     Interrupt,
-    Schedule,
     Task,
     create_task,
     get_current_task,
@@ -341,7 +342,7 @@ def test_names():
     run(main())
 
 
-def test_task_list():
+def test_task_any1():
     async def cf(t: int):
         await sleep(t)
 
@@ -350,8 +351,91 @@ def test_task_list():
         t2 = create_task(cf(10), name="T2")
         t3 = create_task(cf(15), name="T3")
 
-        t = await Schedule(t1, t2, t3)
+        t = await AnyOf(t1, t2, t3)
         assert t is t1
         assert now() == 5
+
+    run(main())
+
+
+def test_task_any2():
+    async def main():
+        y = await AnyOf()
+        assert y is None
+        assert now() == 0
+
+    run(main())
+
+
+def test_task_all1():
+    async def cf(t: int):
+        await sleep(t)
+
+    async def main():
+        t1 = create_task(cf(5), name="T1")
+        t2 = create_task(cf(10), name="T2")
+        t3 = create_task(cf(15), name="T3")
+
+        ts = []
+        async for t in AllOf(t1, t2, t3):
+            ts.append(t)
+        assert ts == [t1, t2, t3]
+        assert now() == 15
+
+    run(main())
+
+
+def test_task_all2():
+    async def cf(t: int):
+        await sleep(t)
+
+    async def main():
+        t1 = create_task(cf(5), name="T1")
+        t2 = create_task(cf(10), name="T2")
+        t3 = create_task(cf(15), name="T3")
+
+        await sleep(6)  # t1 is done
+
+        ts = []
+        async for t in AllOf(t1, t2, t3):
+            ts.append(t)
+        assert ts == [t1, t2, t3]
+        assert now() == 15
+
+    run(main())
+
+
+def test_task_all3():
+    async def cf(t: int):
+        await sleep(t)
+
+    async def main():
+        t1 = create_task(cf(5), name="T1")
+        t2 = create_task(cf(10), name="T2")
+        t3 = create_task(cf(15), name="T3")
+
+        await sleep(20)  # all are done
+
+        ts = set()
+        async for t in AllOf(t1, t2, t3):
+            ts.add(t)
+        assert ts == {t1, t2, t3}
+        assert now() == 20
+
+    run(main())
+
+
+def test_task_all4():
+    async def cf(t: int):
+        await sleep(t)
+
+    async def main():
+        t1 = create_task(cf(5), name="T1")
+        t2 = create_task(cf(10), name="T2")
+        t3 = create_task(cf(15), name="T3")
+
+        ts = await AllOf(t1, t2, t3)
+        assert ts == (t1, t2, t3)
+        assert now() == 15
 
     run(main())

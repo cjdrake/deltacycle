@@ -118,41 +118,89 @@ class Schedulable(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class Schedule(KernelIf):
+class _Schedule(KernelIf):
     def __init__(self, *items: Schedulable | tuple[Predicate, Schedulable]):
         self._preds: dict[Schedulable, Predicate] = {}
-        self._scheds: list[Schedulable] = []
+        self._todo: set[Schedulable] = set()
+        self._done: deque[Schedulable] = deque()
+
         for item in items:
             if isinstance(item, Schedulable):
-                self._scheds.append(item)
+                self._todo.add(item)
             else:
                 p, s = item
                 self._preds[s] = p
-                self._scheds.append(s)
+                self._todo.add(s)
 
-    def __await__(self) -> Generator[None, Schedulable, Schedulable]:
+    def _todo2done(self):
+        done = {s for s in self._todo if s.is_set()}
+        while done:
+            s = done.pop()
+            self._todo.remove(s)
+            self._done.append(s)
+
+    def _sched_wait(self, s: Schedulable, task: Task):
+        try:
+            p = self._preds[s]
+        except KeyError:
+            s.wait_push(task)
+        else:
+            s.wait_for(p, task)
+
+    def _schedule_todo(self, task):
+        for s in self._todo:
+            self._sched_wait(s, task)
+            self._kernel.add_task_sched(task, s)
+
+
+class AllOf(_Schedule):
+    def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
         task = self._kernel.task()
 
-        fst = None
-        for s in self._scheds:
-            if s.is_set():
-                fst = s
-                break
+        self._todo2done()
 
-        # Nothing scheduled yet
-        if fst is None:
-            # Await first {task, event, variable}
-            for s in self._scheds:
-                try:
-                    p = self._preds[s]
-                except KeyError:
-                    s.wait_push(task)
-                else:
-                    s.wait_for(p, task)
-                self._kernel.add_task_sched(task, s)
-            fst = yield from self._kernel.switch_gen()
+        for s in self._todo:
+            self._sched_wait(s, task)
+        while self._todo:
+            s = yield from self._kernel.switch_gen()
+            self._todo.remove(s)
+            self._done.append(s)
 
-        return fst
+        return tuple(self._done)
+
+    def __aiter__(self) -> Self:
+        return self
+
+    async def __anext__(self) -> Schedulable:
+        task = self._kernel.task()
+
+        self._todo2done()
+        if self._done:
+            return self._done.popleft()
+
+        if self._todo:
+            self._schedule_todo(task)
+            s = await self._kernel.switch_coro()
+            assert isinstance(s, Schedulable)
+            self._todo.remove(s)
+            return s
+
+        raise StopAsyncIteration()
+
+
+class AnyOf(_Schedule):
+    def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
+        task = self._kernel.task()
+
+        self._todo2done()
+        if self._done:
+            return self._done.popleft()
+
+        if self._todo:
+            self._schedule_todo(task)
+            s = yield from self._kernel.switch_gen()
+            self._todo.remove(s)
+            return s
 
 
 class Task(KernelIf, Schedulable):

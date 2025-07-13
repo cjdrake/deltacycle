@@ -4,7 +4,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import Schedule, create_task, run, sleep
+from deltacycle import AnyOf, create_task, run, sleep
 
 from .common import Bool, Int, IntMem
 
@@ -76,12 +76,12 @@ def test_regfile(caplog: LogCaptureFixture):
             return clk.is_posedge() and wr_en.prev
 
         while True:
-            await Schedule((clk_pred, clk))
+            await AnyOf((clk_pred, clk))
             regs[wr_addr.prev].next = wr_data.prev
 
     async def rd_port():
         while True:
-            await Schedule(regs, rd_addr)
+            await AnyOf(regs, rd_addr)
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():
