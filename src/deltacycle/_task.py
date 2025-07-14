@@ -169,13 +169,12 @@ class AllOf(_Schedule):
         return self
 
     async def __anext__(self) -> Schedulable:
-        task = self._kernel.task()
-
         self._todo2done()
         if self._done:
             return self._done.popleft()
 
         if self._todo:
+            task = self._kernel.task()
             self._schedule_todo(task)
             sk = await self._kernel.switch_coro()
             assert isinstance(sk, Schedulable)
@@ -187,13 +186,12 @@ class AllOf(_Schedule):
 
 class AnyOf(_Schedule):
     def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
-        task = self._kernel.task()
-
         self._todo2done()
         if self._done:
             return self._done.popleft()
 
         if self._todo:
+            task = self._kernel.task()
             self._schedule_todo(task)
             sk = yield from self._kernel.switch_gen()
             self._todo.remove(sk)
