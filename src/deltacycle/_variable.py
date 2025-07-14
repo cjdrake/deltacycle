@@ -44,6 +44,9 @@ class Variable(KernelIf, Schedulable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
+    def is_set(self) -> bool:
+        return False  # pragma: no cover
+
     def _set(self):
         self._waiting.load()
 
@@ -54,9 +57,6 @@ class Variable(KernelIf, Schedulable):
 
         # Add variable to update set
         self._kernel.touch(self)
-
-    def is_set(self) -> bool:
-        return False  # pragma: no cover
 
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""

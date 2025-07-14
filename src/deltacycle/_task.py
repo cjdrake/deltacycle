@@ -302,14 +302,6 @@ class Task(KernelIf, Schedulable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
-    def _set(self):
-        self._waiting.load()
-
-        while self._waiting:
-            task = self._waiting.pop()
-            self._kernel.remove_task_sched(task, self)
-            self._kernel.call_soon(task, args=(self.Command.RESUME, self))
-
     def is_set(self) -> bool:
         return bool(self._state & self._done)
 
@@ -398,6 +390,14 @@ class Task(KernelIf, Schedulable):
 
         # TaskCoro YieldType=None
         assert y is None
+
+    def _set(self):
+        self._waiting.load()
+
+        while self._waiting:
+            task = self._waiting.pop()
+            self._kernel.remove_task_sched(task, self)
+            self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 
     def _do_result(self, exc: StopIteration):
         self._result = exc.value

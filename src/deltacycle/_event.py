@@ -35,6 +35,12 @@ class Event(KernelIf, Schedulable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
+    def is_set(self) -> bool:
+        return self._flag
+
+    def __bool__(self) -> bool:
+        return self._flag
+
     def set(self):
         self._flag = True
         self._waiting.load()
@@ -43,12 +49,6 @@ class Event(KernelIf, Schedulable):
             task = self._waiting.pop()
             self._kernel.remove_task_sched(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
-
-    def is_set(self) -> bool:
-        return self._flag
-
-    def __bool__(self) -> bool:
-        return self._flag
 
     def clear(self):
         self._flag = False
