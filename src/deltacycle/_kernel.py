@@ -247,8 +247,8 @@ class Kernel:
         else:
             deps.remove(sched)
             while deps:
-                s = deps.pop()
-                s.wait_drop(task)
+                sk = deps.pop()
+                sk.wait_drop(task)
             del self._task_deps[task]
 
     def touch(self, v: Variable):

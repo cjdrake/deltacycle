@@ -125,29 +125,29 @@ class _Schedule(KernelIf):
             if isinstance(item, Schedulable):
                 self._todo.add(item)
             else:
-                p, s = item
-                self._preds[s] = p
-                self._todo.add(s)
+                p, sk = item
+                self._preds[sk] = p
+                self._todo.add(sk)
 
     def _todo2done(self):
-        done = {s for s in self._todo if s.is_set()}
+        done = {sk for sk in self._todo if sk.is_set()}
         while done:
-            s = done.pop()
-            self._todo.remove(s)
-            self._done.append(s)
+            sk = done.pop()
+            self._todo.remove(sk)
+            self._done.append(sk)
 
-    def _sched_wait(self, s: Schedulable, task: Task):
+    def _sched_wait(self, sk: Schedulable, task: Task):
         try:
-            p = self._preds[s]
+            p = self._preds[sk]
         except KeyError:
-            s.wait_push(task)
+            sk.wait_push(task)
         else:
-            s.wait_for(p, task)
+            sk.wait_for(p, task)
 
     def _schedule_todo(self, task: Task):
-        for s in self._todo:
-            self._sched_wait(s, task)
-            self._kernel.add_task_sched(task, s)
+        for sk in self._todo:
+            self._sched_wait(sk, task)
+            self._kernel.add_task_sched(task, sk)
 
 
 class AllOf(_Schedule):
@@ -156,12 +156,12 @@ class AllOf(_Schedule):
 
         self._todo2done()
 
-        for s in self._todo:
-            self._sched_wait(s, task)
+        for sk in self._todo:
+            self._sched_wait(sk, task)
         while self._todo:
-            s = yield from self._kernel.switch_gen()
-            self._todo.remove(s)
-            self._done.append(s)
+            sk = yield from self._kernel.switch_gen()
+            self._todo.remove(sk)
+            self._done.append(sk)
 
         return tuple(self._done)
 
@@ -177,10 +177,10 @@ class AllOf(_Schedule):
 
         if self._todo:
             self._schedule_todo(task)
-            s = await self._kernel.switch_coro()
-            assert isinstance(s, Schedulable)
-            self._todo.remove(s)
-            return s
+            sk = await self._kernel.switch_coro()
+            assert isinstance(sk, Schedulable)
+            self._todo.remove(sk)
+            return sk
 
         raise StopAsyncIteration()
 
@@ -195,9 +195,9 @@ class AnyOf(_Schedule):
 
         if self._todo:
             self._schedule_todo(task)
-            s = yield from self._kernel.switch_gen()
-            self._todo.remove(s)
-            return s
+            sk = yield from self._kernel.switch_gen()
+            self._todo.remove(sk)
+            return sk
 
 
 class Task(KernelIf, Schedulable):
