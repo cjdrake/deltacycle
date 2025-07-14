@@ -27,7 +27,7 @@ class Variable(KernelIf, Schedulable):
         self._waiting = SchedFifo()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
-        if not self.is_set():  # pragma: no cover
+        if self.wait():  # pragma: no cover
             task = self._kernel.task()
             self.wait_push(task)
             v = yield from self._kernel.switch_gen()
@@ -43,9 +43,6 @@ class Variable(KernelIf, Schedulable):
 
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
-
-    def is_set(self) -> bool:
-        return False  # pragma: no cover
 
     def _set(self):
         self._waiting.load()

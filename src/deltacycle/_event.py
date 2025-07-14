@@ -1,7 +1,7 @@
 """Event synchronization primitive"""
 
 from collections.abc import Generator
-from typing import Self
+from typing import Self, override
 
 from ._kernel_if import KernelIf
 from ._task import Predicate, SchedFifo, Schedulable, Task
@@ -15,13 +15,17 @@ class Event(KernelIf, Schedulable):
         self._waiting = SchedFifo()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
-        if not self.is_set():
+        if self.wait():
             task = self._kernel.task()
             self.wait_push(task)
             e = yield from self._kernel.switch_gen()
             assert e is self
 
         return self
+
+    @override
+    def wait(self) -> bool:
+        return not self._flag
 
     def wait_for(self, p: Predicate, task: Task):
         self._waiting.push((p, task))
@@ -34,9 +38,6 @@ class Event(KernelIf, Schedulable):
 
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
-
-    def is_set(self) -> bool:
-        return self._flag
 
     def __bool__(self) -> bool:
         return self._flag

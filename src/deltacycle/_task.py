@@ -8,7 +8,7 @@ from collections import Counter, OrderedDict, deque
 from collections.abc import Callable, Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, override
 
 from ._kernel_if import KernelIf
 
@@ -102,6 +102,9 @@ class SchedFifo(TaskQueue):
 
 
 class Schedulable(ABC):
+    def wait(self) -> bool:
+        return True
+
     def wait_for(self, p: Predicate, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
@@ -111,8 +114,11 @@ class Schedulable(ABC):
     def wait_drop(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
-    def is_set(self) -> bool:
-        raise NotImplementedError()  # pragma: no cover
+    def dec(self):
+        """Decrement resource counter."""
+
+    def put(self):
+        """Increment resource counter, and trigger waiting tasks."""
 
 
 class _Schedule(KernelIf):
@@ -130,9 +136,11 @@ class _Schedule(KernelIf):
                 self._todo.add(sk)
 
     def _todo2done(self):
-        done = {sk for sk in self._todo if sk.is_set()}
+        done = {sk for sk in self._todo if not sk.wait()}
         while done:
             sk = done.pop()
+            # Transfer credit from resource to done
+            sk.dec()
             self._todo.remove(sk)
             self._done.append(sk)
 
@@ -154,14 +162,20 @@ class AllOf(_Schedule):
     def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
         task = self._kernel.task()
 
+        # Transfer credit(s) from resource(s) to done
         self._todo2done()
 
         for sk in self._todo:
             self._sched_wait(sk, task)
         while self._todo:
+            # Transfer credit from another task to done
             sk = yield from self._kernel.switch_gen()
             self._todo.remove(sk)
             self._done.append(sk)
+
+        # Return all credits
+        for sk in self._done:
+            sk.put()
 
         return tuple(self._done)
 
@@ -169,16 +183,23 @@ class AllOf(_Schedule):
         return self
 
     async def __anext__(self) -> Schedulable:
+        # Transfer credit(s) from resource(s) to done
         self._todo2done()
+
         if self._done:
-            return self._done.popleft()
+            # Get credit from done
+            sk = self._done.popleft()
+            sk.put()  # Return credit
+            return sk
 
         if self._todo:
             task = self._kernel.task()
             self._schedule_todo(task)
+            # Get credit from another task
             sk = await self._kernel.switch_coro()
             assert isinstance(sk, Schedulable)
             self._todo.remove(sk)
+            sk.put()  # Return credit
             return sk
 
         raise StopAsyncIteration()
@@ -186,15 +207,22 @@ class AllOf(_Schedule):
 
 class AnyOf(_Schedule):
     def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
+        # Transfer credit(s) from resource(s) to done
         self._todo2done()
+
         if self._done:
-            return self._done.popleft()
+            # Get credit from done
+            sk = self._done.popleft()
+            sk.put()  # Return credit
+            return sk
 
         if self._todo:
             task = self._kernel.task()
             self._schedule_todo(task)
+            # Get credit from another task
             sk = yield from self._kernel.switch_gen()
             self._todo.remove(sk)
+            sk.put()  # Return credit
             return sk
 
 
@@ -280,13 +308,17 @@ class Task(KernelIf, Schedulable):
         self._exception: Exception | None = None
 
     def __await__(self) -> Generator[None, Schedulable, Any]:
-        if not self.is_set():
+        if self.wait():
             task = self._kernel.task()
             self.wait_push(task)
             t = yield from self._kernel.switch_gen()
             assert t is self
 
         return self.result()
+
+    @override
+    def wait(self) -> bool:
+        return not self.done()
 
     def wait_for(self, p: Predicate, task: Task):
         self._waiting.push((p, task))
@@ -299,9 +331,6 @@ class Task(KernelIf, Schedulable):
 
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
-
-    def is_set(self) -> bool:
-        return bool(self._state & self._done)
 
     @property
     def coro(self) -> TaskCoro:

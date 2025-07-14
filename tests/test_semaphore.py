@@ -5,7 +5,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import BoundedSemaphore, Semaphore, create_task, run, sleep
+from deltacycle import AllOf, BoundedSemaphore, Lock, Semaphore, create_task, now, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -165,3 +165,48 @@ def test_init_bad_values():
 
     with pytest.raises(ValueError):
         _ = Semaphore(-1)
+
+
+def test_schedule_all1():
+    async def cf(s: Semaphore, t1: int, t2: int, t3: int):
+        await sleep(t1)
+        await s.get()
+        await sleep(t2)
+        s.put()
+        await sleep(t3)
+
+    async def main():
+        lock = Lock()
+        t1 = create_task(cf(lock, 0, 10, 10))
+
+        await sleep(1)
+        await AllOf(t1, lock)
+
+        assert now() == 20
+        assert lock._cnt == 1
+
+    run(main())
+
+
+def test_schedule_all2():
+    async def cf(s: Semaphore, t1: int, t2: int, t3: int):
+        await sleep(t1)
+        await s.get()
+        await sleep(t2)
+        s.put()
+        await sleep(t3)
+
+    async def main():
+        lock = Lock()
+        t1 = create_task(cf(lock, 0, 10, 10))
+
+        await sleep(1)
+        sks = []
+        async for sk in AllOf(t1, lock):
+            sks.append(sk)
+
+        assert sks == [lock, t1]
+        assert now() == 20
+        assert lock._cnt == 1
+
+    run(main())

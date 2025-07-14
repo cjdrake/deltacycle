@@ -4,10 +4,10 @@ from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Task, TaskFifo
+from ._task import Schedulable, Task, TaskFifo
 
 
-class Semaphore(KernelIf):
+class Semaphore(KernelIf, Schedulable):
     """Semaphore to synchronize tasks.
 
     Permits number of put() > resource count.
@@ -31,30 +31,46 @@ class Semaphore(KernelIf):
     ):
         self.put()
 
+    @override
+    def wait(self) -> bool:
+        assert self._cnt >= 0
+        return self._cnt == 0
+
+    # def wait_for(self, p: Predicate, task: Task) -> None:
+    #    raise NotImplementedError()  # pragma: no cover
+
+    def wait_push(self, task: Task):
+        self._waiting.push(task)
+
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
+
+    def dec(self):
+        self._cnt -= 1
+
     def put(self):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+            self._kernel.remove_task_sched(task, self)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         else:
             self._cnt += 1
 
     def try_get(self) -> bool:
-        assert self._cnt >= 0
-        if self._cnt == 0:
+        if self.wait():
             return False
         self._cnt -= 1
         return True
 
     async def get(self):
-        assert self._cnt >= 0
-        if self._cnt == 0:
+        if self.wait():
             task = self._kernel.task()
-            self._waiting.push(task)
-            y = await self._kernel.switch_coro()
-            assert y is None
+            self.wait_push(task)
+            s = await self._kernel.switch_coro()
+            assert s is self
         else:
-            self._cnt -= 1
+            self.dec()
 
 
 class BoundedSemaphore(Semaphore):
@@ -73,7 +89,8 @@ class BoundedSemaphore(Semaphore):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+            self._kernel.remove_task_sched(task, self)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")
