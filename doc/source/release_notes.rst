@@ -8,6 +8,15 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.20.0
+==============
+
+Update ``Semaphore`` and its subclasses to implement ``Schedulable`` interface.
+The objective is to make it easier for a task to timeout while waiting for a resource.
+Something like ``await AnyOf(lock, create_task(sleep(10)))`` should work,
+though it needs more testing.
+
+
 Version 0.19.0
 ==============
 
