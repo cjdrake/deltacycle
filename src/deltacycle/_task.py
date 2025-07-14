@@ -111,9 +111,6 @@ class Schedulable(ABC):
     def wait_drop(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
-    def set(self) -> None:
-        raise NotImplementedError()  # pragma: no cover
-
     def is_set(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
@@ -305,7 +302,7 @@ class Task(KernelIf, Schedulable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
-    def set(self):
+    def _set(self):
         self._waiting.load()
 
         while self._waiting:
@@ -405,13 +402,13 @@ class Task(KernelIf, Schedulable):
     def _do_result(self, exc: StopIteration):
         self._result = exc.value
         self._set_state(self.State.RETURNED)
-        self.set()
+        self._set()
         assert self._refcnts.total() == 0
 
     def _do_except(self, exc: Exception):
         self._exception = exc
         self._set_state(self.State.EXCEPTED)
-        self.set()
+        self._set()
         assert self._refcnts.total() == 0
 
     def done(self) -> bool:

@@ -44,7 +44,7 @@ class Variable(KernelIf, Schedulable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
-    def set(self):
+    def _set(self):
         self._waiting.load()
 
         while self._waiting:
@@ -101,7 +101,7 @@ class Singular[T](Variable, Value[T]):
         self._next = value
 
         # Notify the kernel
-        self.set()
+        self._set()
 
     next = property(fset=set_next)
 
@@ -145,7 +145,7 @@ class Aggregate[T](Variable):
             self._nexts[key] = value
 
         # Notify the kernel
-        self.set()
+        self._set()
 
     # Variable
     def get_value(self) -> AggrValue[T]:
