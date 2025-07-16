@@ -1,10 +1,14 @@
 """Event synchronization primitive"""
 
 from collections.abc import Generator
-from typing import Self, override
+from typing import Self
 
 from ._kernel_if import KernelIf
 from ._task import Predicate, SchedFifo, Schedulable, Task
+
+
+def _t():
+    return True
 
 
 class Event(KernelIf, Schedulable):
@@ -15,28 +19,21 @@ class Event(KernelIf, Schedulable):
         self._waiting = SchedFifo()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
-        if self.wait():
+        if not self._flag:
             task = self._kernel.task()
-            self.wait_push(task)
+            self._waiting.push((_t, task))
             e = yield from self._kernel.switch_gen()
             assert e is self
 
         return self
 
-    @override
-    def wait(self) -> bool:
-        return not self._flag
+    def schedule(self, task: Task, p: Predicate) -> bool:
+        if not self._flag:
+            self._waiting.push((p, task))
+            return True
+        return False
 
-    def wait_for(self, p: Predicate, task: Task):
-        self._waiting.push((p, task))
-
-    def _p(self) -> bool:
-        return True
-
-    def wait_push(self, task: Task):
-        self._waiting.push((self._p, task))
-
-    def wait_drop(self, task: Task):
+    def cancel(self, task: Task):
         self._waiting.drop(task)
 
     def __bool__(self) -> bool:
@@ -48,7 +45,7 @@ class Event(KernelIf, Schedulable):
 
         while self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_sched(task, self)
+            self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
     def clear(self):

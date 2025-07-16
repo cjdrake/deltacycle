@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, Task, TaskFifo
+from ._task import Predicate, Schedulable, Task, TaskFifo
 
 
 class Semaphore(KernelIf, Schedulable):
@@ -31,46 +31,52 @@ class Semaphore(KernelIf, Schedulable):
     ):
         self.put()
 
-    @override
-    def wait(self) -> bool:
+    def schedule(self, task: Task, p: Predicate) -> bool:
         assert self._cnt >= 0
-        return self._cnt == 0
+        if self._locked():
+            self._waiting.push(task)
+            return True
+        self._dec()
+        return False
 
-    # def wait_for(self, p: Predicate, task: Task) -> None:
-    #    raise NotImplementedError()  # pragma: no cover
-
-    def wait_push(self, task: Task):
-        self._waiting.push(task)
-
-    def wait_drop(self, task: Task):
+    def cancel(self, task: Task):
         self._waiting.drop(task)
 
-    def dec(self):
+    def _locked(self) -> bool:
+        return self._cnt == 0
+
+    def _dec(self):
         self._cnt -= 1
+
+    def _inc(self):
+        self._cnt += 1
 
     def put(self):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_sched(task, self)
+            self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         else:
-            self._cnt += 1
+            self._inc()
 
     def try_get(self) -> bool:
-        if self.wait():
+        assert self._cnt >= 0
+        if self._locked():
             return False
-        self._cnt -= 1
+
+        self._dec()
         return True
 
     async def get(self):
-        if self.wait():
+        assert self._cnt >= 0
+        if self._locked():
             task = self._kernel.task()
-            self.wait_push(task)
+            self._waiting.push(task)
             s = await self._kernel.switch_coro()
             assert s is self
         else:
-            self.dec()
+            self._dec()
 
 
 class BoundedSemaphore(Semaphore):
@@ -89,12 +95,12 @@ class BoundedSemaphore(Semaphore):
         assert self._cnt >= 0
         if self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_sched(task, self)
+            self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")
-            self._cnt += 1
+            self._inc()
 
 
 class Lock(BoundedSemaphore):

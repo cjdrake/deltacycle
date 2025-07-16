@@ -8,7 +8,7 @@ from collections import Counter, OrderedDict, deque
 from collections.abc import Callable, Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, Self, override
+from typing import Any, Self
 
 from ._kernel_if import KernelIf
 
@@ -18,6 +18,10 @@ logger = logging.getLogger("deltacycle")
 type Predicate = Callable[[], bool]
 type TaskCoro = Coroutine[None, Schedulable | None, Any]
 type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Schedulable | Signal]
+
+
+def _t():
+    return True
 
 
 class Signal(Exception):
@@ -102,104 +106,61 @@ class SchedFifo(TaskQueue):
 
 
 class Schedulable(ABC):
-    def wait(self) -> bool:
-        return True
-
-    def wait_for(self, p: Predicate, task: Task) -> None:
+    def schedule(self, task: Task, p: Predicate) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
-    def wait_push(self, task: Task) -> None:
+    def cancel(self, task: Task):
         raise NotImplementedError()  # pragma: no cover
-
-    def wait_drop(self, task: Task) -> None:
-        raise NotImplementedError()  # pragma: no cover
-
-    def dec(self):
-        """Decrement resource counter."""
-
-    def put(self):
-        """Increment resource counter, and trigger waiting tasks."""
 
 
 class _Schedule(KernelIf):
     def __init__(self, *items: Schedulable | tuple[Predicate, Schedulable]):
-        self._preds: dict[Schedulable, Predicate] = {}
+        self._items = items
         self._todo: set[Schedulable] = set()
-        self._done: deque[Schedulable] = deque()
 
-        for item in items:
-            if isinstance(item, Schedulable):
-                self._todo.add(item)
-            else:
-                p, sk = item
-                self._preds[sk] = p
-                self._todo.add(sk)
-
-    def _todo2done(self):
-        done = {sk for sk in self._todo if not sk.wait()}
-        while done:
-            sk = done.pop()
-            # Transfer credit from resource to done
-            sk.dec()
-            self._todo.remove(sk)
-            self._done.append(sk)
-
-    def _sched_wait(self, sk: Schedulable, task: Task):
-        try:
-            p = self._preds[sk]
-        except KeyError:
-            sk.wait_push(task)
+    def _item2psk(
+        self, item: Schedulable | tuple[Predicate, Schedulable]
+    ) -> tuple[Predicate, Schedulable]:
+        if isinstance(item, Schedulable):
+            return _t, item
         else:
-            sk.wait_for(p, task)
-
-    def _schedule_todo(self, task: Task):
-        for sk in self._todo:
-            self._sched_wait(sk, task)
-            self._kernel.add_task_sched(task, sk)
+            return item
 
 
 class AllOf(_Schedule):
+    def __init__(self, *items: Schedulable | tuple[Predicate, Schedulable]):
+        super().__init__(*items)
+        self._done: deque[Schedulable] = deque()
+
+    def _sort_items(self, task: Task):
+        for item in self._items:
+            p, sk = self._item2psk(item)
+            if sk.schedule(task, p):
+                self._todo.add(sk)
+            else:
+                self._done.append(sk)
+
     def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
         task = self._kernel.task()
-
-        # Transfer credit(s) from resource(s) to done
-        self._todo2done()
-
-        for sk in self._todo:
-            self._sched_wait(sk, task)
+        self._sort_items(task)
         while self._todo:
-            # Transfer credit from another task to done
             sk = yield from self._kernel.switch_gen()
-            self._todo.remove(sk)
             self._done.append(sk)
-
-        # Return all credits
-        for sk in self._done:
-            sk.put()
-
         return tuple(self._done)
 
     def __aiter__(self) -> Self:
+        task = self._kernel.task()
+        self._sort_items(task)
         return self
 
     async def __anext__(self) -> Schedulable:
-        # Transfer credit(s) from resource(s) to done
-        self._todo2done()
-
         if self._done:
-            # Get credit from done
-            sk = self._done.popleft()
-            sk.put()  # Return credit
-            return sk
+            return self._done.popleft()
 
         if self._todo:
-            task = self._kernel.task()
-            self._schedule_todo(task)
-            # Get credit from another task
             sk = await self._kernel.switch_coro()
             assert isinstance(sk, Schedulable)
-            self._todo.remove(sk)
-            sk.put()  # Return credit
+            self._done.append(sk)
             return sk
 
         raise StopAsyncIteration()
@@ -207,22 +168,20 @@ class AllOf(_Schedule):
 
 class AnyOf(_Schedule):
     def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
-        # Transfer credit(s) from resource(s) to done
-        self._todo2done()
+        task = self._kernel.task()
 
-        if self._done:
-            # Get credit from done
-            sk = self._done.popleft()
-            sk.put()  # Return credit
-            return sk
+        for item in self._items:
+            p, sk = self._item2psk(item)
+            if sk.schedule(task, p):
+                self._todo.add(sk)
+            else:
+                while self._todo:
+                    self._todo.pop().cancel(task)
+                return sk
 
         if self._todo:
-            task = self._kernel.task()
-            self._schedule_todo(task)
-            # Get credit from another task
+            self._kernel.fork(task, *self._todo)
             sk = yield from self._kernel.switch_gen()
-            self._todo.remove(sk)
-            sk.put()  # Return credit
             return sk
 
 
@@ -308,28 +267,21 @@ class Task(KernelIf, Schedulable):
         self._exception: Exception | None = None
 
     def __await__(self) -> Generator[None, Schedulable, Any]:
-        if self.wait():
+        if not self.done():
             task = self._kernel.task()
-            self.wait_push(task)
+            self._waiting.push((_t, task))
             t = yield from self._kernel.switch_gen()
             assert t is self
 
         return self.result()
 
-    @override
-    def wait(self) -> bool:
-        return not self.done()
+    def schedule(self, task: Task, p: Predicate) -> bool:
+        if not self.done():
+            self._waiting.push((p, task))
+            return True
+        return False
 
-    def wait_for(self, p: Predicate, task: Task):
-        self._waiting.push((p, task))
-
-    def _p(self) -> bool:
-        return True
-
-    def wait_push(self, task: Task):
-        self._waiting.push((self._p, task))
-
-    def wait_drop(self, task: Task):
+    def cancel(self, task: Task):
         self._waiting.drop(task)
 
     @property
@@ -423,7 +375,7 @@ class Task(KernelIf, Schedulable):
 
         while self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_sched(task, self)
+            self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 
     def _do_result(self, exc: StopIteration):
@@ -556,7 +508,7 @@ class TaskGroup(KernelIf):
         self._setup_tasks: set[Task] = set()
 
         # Tasks in running/pending/killing state
-        self._awaited: set[Task] = set()
+        self._todo: set[Task] = set()
 
     async def __aenter__(self) -> Self:
         return self
@@ -572,19 +524,18 @@ class TaskGroup(KernelIf):
         # Start newly created tasks; ignore exceptions handled by parent
         while self._setup_tasks:
             child = self._setup_tasks.pop()
-            if not child.done():
-                self._awaited.add(child)
-                child.wait_push(self._parent)
+            if child.schedule(self._parent, _t):
+                self._todo.add(child)
 
         # Parent raised an exception:
         # Kill children; suppress exceptions
         if exc:
-            for child in self._awaited:
+            for child in self._todo:
                 child._kill()
-            while self._awaited:
+            while self._todo:
                 child = await self._kernel.switch_coro()
                 assert isinstance(child, Task)
-                self._awaited.remove(child)
+                self._todo.remove(child)
 
             # Re-raise parent exception
             return False
@@ -593,16 +544,16 @@ class TaskGroup(KernelIf):
         # Await children; collect exceptions
         child_excs: list[Exception] = []
         killed: set[Task] = set()
-        while self._awaited:
+        while self._todo:
             child = await self._kernel.switch_coro()
             assert isinstance(child, Task)
-            self._awaited.remove(child)
+            self._todo.remove(child)
             if child in killed:
                 continue
             exc = child.exception()
             if exc is not None:
                 child_excs.append(exc)
-                killed.update(c for c in self._awaited if c._kill())
+                killed.update(c for c in self._todo if c._kill())
 
         # Re-raise child exceptions
         if child_excs:
@@ -617,8 +568,8 @@ class TaskGroup(KernelIf):
         child = self._kernel.create_task(coro, name, priority)
         child.group = self
         if self._setup_done:
-            self._awaited.add(child)
-            child.wait_push(self._parent)
+            if child.schedule(self._parent, _t):
+                self._todo.add(child)
         else:
             self._setup_tasks.add(child)
         return child

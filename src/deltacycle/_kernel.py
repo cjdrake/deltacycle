@@ -153,8 +153,8 @@ class Kernel:
         # Task queue
         self._queue = _PendQueue()
 
-        # Task dependencies
-        self._task_deps: dict[Task, set[Schedulable]] = {}
+        # Serial Tasks
+        self._schedule: dict[Task, set[Schedulable]] = {}
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -231,25 +231,17 @@ class Kernel:
         # Resume
         return value
 
-    def add_task_sched(self, task: Task, sched: Schedulable):
-        try:
-            deps = self._task_deps[task]
-        except KeyError:
-            self._task_deps[task] = {sched}
-        else:
-            deps.add(sched)
+    def fork(self, task: Task, *sks: Schedulable):
+        self._schedule[task] = set(sks)
 
-    def remove_task_sched(self, task: Task, sched: Schedulable):
-        try:
-            deps = self._task_deps[task]
-        except KeyError:
-            pass
-        else:
-            deps.remove(sched)
-            while deps:
-                sk = deps.pop()
-                sk.wait_drop(task)
-            del self._task_deps[task]
+    def join_any(self, task: Task, sk: Schedulable):
+        if task in self._schedule:
+            sks = self._schedule[task]
+            sks.remove(sk)
+            while sks:
+                sk = sks.pop()
+                sk.cancel(task)
+            del self._schedule[task]
 
     def touch(self, v: Variable):
         self._touched.add(v)
@@ -280,7 +272,7 @@ class Kernel:
 
     def _finish(self):
         self._queue.clear()
-        self._task_deps.clear()
+        # self._task_deps.clear()
         self._touched.clear()
         self._set_state(self.State.FINISHED)
 

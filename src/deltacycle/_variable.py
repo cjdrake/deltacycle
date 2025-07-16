@@ -27,21 +27,18 @@ class Variable(KernelIf, Schedulable):
         self._waiting = SchedFifo()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
-        if self.wait():  # pragma: no cover
-            task = self._kernel.task()
-            self.wait_push(task)
-            v = yield from self._kernel.switch_gen()
-            assert v is self
+        task = self._kernel.task()
+        self._waiting.push((self.changed, task))
+        v = yield from self._kernel.switch_gen()
+        assert v is self
 
         return self
 
-    def wait_for(self, p: Predicate, task: Task):
+    def schedule(self, task: Task, p: Predicate) -> bool:
         self._waiting.push((p, task))
+        return True
 
-    def wait_push(self, task: Task):
-        self.wait_for(self.changed, task)
-
-    def wait_drop(self, task: Task):
+    def cancel(self, task: Task):
         self._waiting.drop(task)
 
     def _set(self):
@@ -49,7 +46,7 @@ class Variable(KernelIf, Schedulable):
 
         while self._waiting:
             task = self._waiting.pop()
-            self._kernel.remove_task_sched(task, self)
+            self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
         # Add variable to update set
