@@ -104,7 +104,7 @@ class Schedulable(ABC):
     def schedule(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
-    def cancel(self, task: Task):
+    def cancel(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     @property
