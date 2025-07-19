@@ -60,7 +60,6 @@ class Variable(KernelIf, Schedulable):
         self._waiting.push((self.changed, task))
         v = yield from self._kernel.switch_gen()
         assert v is self
-
         return self
 
     def schedule(self, task: Task) -> bool:
@@ -99,6 +98,13 @@ class PredVar(Schedulable):
     def __init__(self, p: Predicate, v: Variable):
         self._p = p
         self._v = v
+
+    def __await__(self) -> Generator[None, Schedulable, Variable]:
+        task = self._v._kernel.task()
+        self._v._waiting.push((self._p, task))
+        v = yield from self._v._kernel.switch_gen()
+        assert v is self._v
+        return self._v
 
     def schedule(self, task: Task) -> bool:
         self._v._waiting.push((self._p, task))
