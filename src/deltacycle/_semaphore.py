@@ -42,7 +42,6 @@ class Semaphore(KernelIf, Schedulable):
         self._waiting.drop(task)
 
     def _locked(self) -> bool:
-        assert self._cnt >= 0
         return self._cnt == 0
 
     def _dec(self):
@@ -61,12 +60,14 @@ class Semaphore(KernelIf, Schedulable):
             self._inc()
 
     def try_get(self) -> bool:
+        assert self._cnt >= 0
         if not self._locked():
             self._dec()
             return True
         return False
 
     async def get(self):
+        assert self._cnt >= 0
         if not self._locked():
             self._dec()
         else:
