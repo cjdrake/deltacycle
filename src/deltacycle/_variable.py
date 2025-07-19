@@ -3,12 +3,41 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections import defaultdict
+from collections import OrderedDict, defaultdict, deque
 from collections.abc import Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Predicate, SchedFifo, Schedulable, Task
+from ._task import Predicate, Schedulable, Task, TaskQueue
+
+
+class VarQueue(TaskQueue):
+    """Tasks wait for variable touch."""
+
+    def __init__(self):
+        self._t2p: OrderedDict[Task, Predicate] = OrderedDict()
+        self._items: deque[Task] = deque()
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[Predicate, Task]):
+        p, task = item
+        task._link(self)
+        self._t2p[task] = p
+
+    def pop(self) -> Task:
+        task = self._items.popleft()
+        self.drop(task)
+        return task
+
+    def drop(self, task: Task):
+        del self._t2p[task]
+        task._unlink(self)
+
+    def load(self):
+        assert not self._items
+        self._items.extend(t for t, p in self._t2p.items() if p())
 
 
 class Variable(KernelIf, Schedulable):
@@ -24,7 +53,7 @@ class Variable(KernelIf, Schedulable):
     """
 
     def __init__(self):
-        self._waiting = SchedFifo()
+        self._waiting = VarQueue()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
         task = self._kernel.task()
@@ -34,8 +63,8 @@ class Variable(KernelIf, Schedulable):
 
         return self
 
-    def schedule(self, task: Task, p: Predicate) -> bool:
-        self._waiting.push((p, task))
+    def schedule(self, task: Task) -> bool:
+        self._waiting.push((self.changed, task))
         return False
 
     def cancel(self, task: Task):
@@ -52,6 +81,9 @@ class Variable(KernelIf, Schedulable):
         # Add variable to update set
         self._kernel.touch(self)
 
+    def pred(self, p: Predicate) -> PredVar:
+        return PredVar(p, self)
+
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""
         raise NotImplementedError()  # pragma: no cover
@@ -59,6 +91,25 @@ class Variable(KernelIf, Schedulable):
     def update(self) -> None:
         """Kernel callback."""
         raise NotImplementedError()  # pragma: no cover
+
+
+class PredVar(Schedulable):
+    """Predicated Variable."""
+
+    def __init__(self, p: Predicate, v: Variable):
+        self._p = p
+        self._v = v
+
+    def schedule(self, task: Task) -> bool:
+        self._v._waiting.push((self._p, task))
+        return False
+
+    def cancel(self, task: Task):
+        self._v._waiting.drop(task)
+
+    @property
+    def sk(self) -> Schedulable:
+        return self._v
 
 
 class Value[T](ABC):

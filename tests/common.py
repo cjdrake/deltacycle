@@ -24,13 +24,13 @@ class Bool(Singular[bool]):
         return self.is_posedge() or self.is_negedge()
 
     async def posedge(self):
-        await AnyOf((self.is_posedge, self))
+        await AnyOf(self.pred(self.is_posedge))
 
     async def negedge(self):
-        await AnyOf((self.is_negedge, self))
+        await AnyOf(self.pred(self.is_negedge))
 
     async def edge(self):
-        await AnyOf((self.is_edge, self))
+        await AnyOf(self.pred(self.is_edge))
 
 
 class Int(Singular[int]):

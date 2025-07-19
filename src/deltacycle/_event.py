@@ -4,11 +4,7 @@ from collections.abc import Generator
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Predicate, SchedFifo, Schedulable, Task
-
-
-def _t():
-    return True
+from ._task import SchedFifo, Schedulable, Task
 
 
 class Event(KernelIf, Schedulable):
@@ -21,16 +17,16 @@ class Event(KernelIf, Schedulable):
     def __await__(self) -> Generator[None, Schedulable, Self]:
         if not self._flag:
             task = self._kernel.task()
-            self._waiting.push((_t, task))
+            self._waiting.push(task)
             e = yield from self._kernel.switch_gen()
             assert e is self
 
         return self
 
-    def schedule(self, task: Task, p: Predicate) -> bool:
+    def schedule(self, task: Task) -> bool:
         if self._flag:
             return True
-        self._waiting.push((p, task))
+        self._waiting.push(task)
         return False
 
     def cancel(self, task: Task):

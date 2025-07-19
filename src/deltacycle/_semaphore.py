@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Predicate, Schedulable, Task, TaskFifo
+from ._task import Schedulable, Task, TaskFifo
 
 
 class Semaphore(KernelIf, Schedulable):
@@ -31,7 +31,7 @@ class Semaphore(KernelIf, Schedulable):
     ):
         self.put()
 
-    def schedule(self, task: Task, p: Predicate) -> bool:
+    def schedule(self, task: Task) -> bool:
         if not self._locked():
             self._dec()
             return True

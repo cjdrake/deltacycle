@@ -20,10 +20,6 @@ type TaskCoro = Coroutine[None, Schedulable | None, Any]
 type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Schedulable | Signal]
 
 
-def _t():
-    return True
-
-
 class Signal(Exception):
     pass
 
@@ -80,16 +76,15 @@ class SchedFifo(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._preds: OrderedDict[Task, Predicate] = OrderedDict()
+        self._tasks: OrderedDict[Task, None] = OrderedDict()
         self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
         return bool(self._items)
 
-    def push(self, item: tuple[Predicate, Task]):
-        p, task = item
-        task._link(self)
-        self._preds[task] = p
+    def push(self, item: Task):
+        item._link(self)
+        self._tasks[item] = None
 
     def pop(self) -> Task:
         task = self._items.popleft()
@@ -97,48 +92,43 @@ class SchedFifo(TaskQueue):
         return task
 
     def drop(self, task: Task):
-        del self._preds[task]
+        del self._tasks[task]
         task._unlink(self)
 
     def load(self):
         assert not self._items
-        self._items.extend(t for t, p in self._preds.items() if p())
+        self._items.extend(self._tasks)
 
 
 class Schedulable(ABC):
-    def schedule(self, task: Task, p: Predicate) -> bool:
+    def schedule(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
     def cancel(self, task: Task):
         raise NotImplementedError()  # pragma: no cover
 
+    @property
+    def sk(self) -> Schedulable:
+        return self
+
 
 class _Schedule(KernelIf):
-    def __init__(self, *items: Schedulable | tuple[Predicate, Schedulable]):
+    def __init__(self, *items: Schedulable):
         self._items = items
         self._todo: set[Schedulable] = set()
 
-    def _item2psk(
-        self, item: Schedulable | tuple[Predicate, Schedulable]
-    ) -> tuple[Predicate, Schedulable]:
-        if isinstance(item, Schedulable):
-            return _t, item
-        else:
-            return item
-
 
 class AllOf(_Schedule):
-    def __init__(self, *items: Schedulable | tuple[Predicate, Schedulable]):
+    def __init__(self, *items: Schedulable):
         super().__init__(*items)
         self._done: deque[Schedulable] = deque()
 
     def _sort_items(self, task: Task):
         for item in self._items:
-            p, sk = self._item2psk(item)
-            if sk.schedule(task, p):
-                self._done.append(sk)
+            if item.schedule(task):
+                self._done.append(item.sk)
             else:
-                self._todo.add(sk)
+                self._todo.add(item.sk)
 
     def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
         task = self._kernel.task()
@@ -172,13 +162,13 @@ class AnyOf(_Schedule):
         task = self._kernel.task()
 
         for item in self._items:
-            p, sk = self._item2psk(item)
-            if sk.schedule(task, p):
+            if item.schedule(task):
                 while self._todo:
-                    self._todo.pop().cancel(task)
-                return sk
+                    sk = self._todo.pop()
+                    sk.cancel(task)
+                return item
             else:
-                self._todo.add(sk)
+                self._todo.add(item.sk)
 
         if self._todo:
             self._kernel.fork(task, *self._todo)
@@ -270,16 +260,16 @@ class Task(KernelIf, Schedulable):
     def __await__(self) -> Generator[None, Schedulable, Any]:
         if not self.done():
             task = self._kernel.task()
-            self._waiting.push((_t, task))
+            self._waiting.push(task)
             t = yield from self._kernel.switch_gen()
             assert t is self
 
         return self.result()
 
-    def schedule(self, task: Task, p: Predicate) -> bool:
+    def schedule(self, task: Task) -> bool:
         if self.done():
             return True
-        self._waiting.push((p, task))
+        self._waiting.push(task)
         return False
 
     def cancel(self, task: Task):
@@ -525,7 +515,7 @@ class TaskGroup(KernelIf):
         # Start newly created tasks; ignore exceptions handled by parent
         while self._setup_tasks:
             child = self._setup_tasks.pop()
-            if not child.schedule(self._parent, _t):
+            if not child.schedule(self._parent):
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -569,7 +559,7 @@ class TaskGroup(KernelIf):
         child = self._kernel.create_task(coro, name, priority)
         child.group = self
         if self._setup_done:
-            if not child.schedule(self._parent, _t):
+            if not child.schedule(self._parent):
                 self._todo.add(child)
         else:
             self._setup_tasks.add(child)

@@ -33,7 +33,7 @@ from ._top import (
     sleep,
     step,
 )
-from ._variable import Aggregate, AggrItem, AggrValue, Singular, Value, Variable
+from ._variable import Aggregate, AggrItem, AggrValue, PredVar, Singular, Value, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)
@@ -88,6 +88,7 @@ __all__ = [
     "get_current_task",
     # variable
     "Variable",
+    "PredVar",
     "Value",
     "Singular",
     "Aggregate",

@@ -76,7 +76,7 @@ def test_regfile(caplog: LogCaptureFixture):
             return clk.is_posedge() and wr_en.prev
 
         while True:
-            await AnyOf((clk_pred, clk))
+            await AnyOf(clk.pred(clk_pred))
             regs[wr_addr.prev].next = wr_data.prev
 
     async def rd_port():
