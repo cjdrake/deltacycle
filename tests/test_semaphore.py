@@ -183,7 +183,7 @@ def test_schedule_all1():
         await AllOf(t1, lock)
 
         assert now() == 20
-        assert lock._cnt == 1
+        assert lock._cnt == 0
         lock.put()
 
     run(main())
@@ -208,7 +208,7 @@ def test_schedule_all2():
 
         assert sks == [lock, t1]
         assert now() == 20
-        assert lock._cnt == 1
+        assert lock._cnt == 0
         lock.put()
 
     run(main())

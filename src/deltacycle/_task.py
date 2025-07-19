@@ -145,6 +145,7 @@ class AllOf(_Schedule):
         self._sort_items(task)
         while self._todo:
             sk = yield from self._kernel.switch_gen()
+            self._todo.remove(sk)
             self._done.append(sk)
         return tuple(self._done)
 
@@ -160,7 +161,7 @@ class AllOf(_Schedule):
         if self._todo:
             sk = await self._kernel.switch_coro()
             assert isinstance(sk, Schedulable)
-            self._done.append(sk)
+            self._todo.remove(sk)
             return sk
 
         raise StopAsyncIteration()
