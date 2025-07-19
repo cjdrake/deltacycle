@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.21.0
+==============
+
+* Fixed problems w/ the first version of ``Schedulable`` type.
+* Simplified how to use predicated variables.
+
+
 Version 0.20.0
 ==============
 
