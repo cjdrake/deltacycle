@@ -15,7 +15,6 @@ from ._task import (
     AllOf,
     AnyOf,
     Interrupt,
-    Predicate,
     Schedulable,
     Signal,
     Task,
@@ -33,7 +32,7 @@ from ._top import (
     sleep,
     step,
 )
-from ._variable import Aggregate, AggrItem, AggrValue, PredVar, Singular, Value, Variable
+from ._variable import Aggregate, AggrItem, AggrValue, Predicate, PredVar, Singular, Value, Variable
 
 # Customize logging
 logger = logging.getLogger(__name__)
@@ -75,7 +74,6 @@ __all__ = [
     "BoundedSemaphore",
     "Lock",
     # task
-    "Predicate",
     "TaskCoro",
     "Signal",
     "Interrupt",
@@ -88,6 +86,7 @@ __all__ = [
     "get_current_task",
     # variable
     "Variable",
+    "Predicate",
     "PredVar",
     "Value",
     "Singular",

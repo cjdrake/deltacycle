@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from collections import Counter, OrderedDict, deque
-from collections.abc import Callable, Coroutine, Generator
+from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
 from typing import Any, Self
@@ -15,7 +15,6 @@ from ._kernel_if import KernelIf
 logger = logging.getLogger("deltacycle")
 
 
-type Predicate = Callable[[], bool]
 type TaskCoro = Coroutine[None, Schedulable | None, Any]
 type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Schedulable | Signal]
 

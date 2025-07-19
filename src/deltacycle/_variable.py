@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from abc import ABC
 from collections import OrderedDict, defaultdict, deque
-from collections.abc import Generator, Hashable
+from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Predicate, Schedulable, Task, TaskQueue
+from ._task import Schedulable, Task, TaskQueue
+
+type Predicate = Callable[[], bool]
 
 
 class VarQueue(TaskQueue):
