@@ -32,17 +32,17 @@ class Semaphore(KernelIf, Schedulable):
         self.put()
 
     def schedule(self, task: Task, p: Predicate) -> bool:
-        assert self._cnt >= 0
-        if self._locked():
-            self._waiting.push(task)
+        if not self._locked():
+            self._dec()
             return True
-        self._dec()
+        self._waiting.push(task)
         return False
 
     def cancel(self, task: Task):
         self._waiting.drop(task)
 
     def _locked(self) -> bool:
+        assert self._cnt >= 0
         return self._cnt == 0
 
     def _dec(self):
@@ -61,22 +61,19 @@ class Semaphore(KernelIf, Schedulable):
             self._inc()
 
     def try_get(self) -> bool:
-        assert self._cnt >= 0
-        if self._locked():
-            return False
-
-        self._dec()
-        return True
+        if not self._locked():
+            self._dec()
+            return True
+        return False
 
     async def get(self):
-        assert self._cnt >= 0
-        if self._locked():
+        if not self._locked():
+            self._dec()
+        else:
             task = self._kernel.task()
             self._waiting.push(task)
             s = await self._kernel.switch_coro()
             assert s is self
-        else:
-            self._dec()
 
 
 class BoundedSemaphore(Semaphore):

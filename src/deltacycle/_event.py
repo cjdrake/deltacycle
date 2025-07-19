@@ -28,9 +28,9 @@ class Event(KernelIf, Schedulable):
         return self
 
     def schedule(self, task: Task, p: Predicate) -> bool:
-        if not self._flag:
-            self._waiting.push((p, task))
+        if self._flag:
             return True
+        self._waiting.push((p, task))
         return False
 
     def cancel(self, task: Task):

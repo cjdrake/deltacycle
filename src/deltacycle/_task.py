@@ -136,9 +136,9 @@ class AllOf(_Schedule):
         for item in self._items:
             p, sk = self._item2psk(item)
             if sk.schedule(task, p):
-                self._todo.add(sk)
-            else:
                 self._done.append(sk)
+            else:
+                self._todo.add(sk)
 
     def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
         task = self._kernel.task()
@@ -173,11 +173,11 @@ class AnyOf(_Schedule):
         for item in self._items:
             p, sk = self._item2psk(item)
             if sk.schedule(task, p):
-                self._todo.add(sk)
-            else:
                 while self._todo:
                     self._todo.pop().cancel(task)
                 return sk
+            else:
+                self._todo.add(sk)
 
         if self._todo:
             self._kernel.fork(task, *self._todo)
@@ -276,9 +276,9 @@ class Task(KernelIf, Schedulable):
         return self.result()
 
     def schedule(self, task: Task, p: Predicate) -> bool:
-        if not self.done():
-            self._waiting.push((p, task))
+        if self.done():
             return True
+        self._waiting.push((p, task))
         return False
 
     def cancel(self, task: Task):
@@ -524,7 +524,7 @@ class TaskGroup(KernelIf):
         # Start newly created tasks; ignore exceptions handled by parent
         while self._setup_tasks:
             child = self._setup_tasks.pop()
-            if child.schedule(self._parent, _t):
+            if not child.schedule(self._parent, _t):
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -568,7 +568,7 @@ class TaskGroup(KernelIf):
         child = self._kernel.create_task(coro, name, priority)
         child.group = self
         if self._setup_done:
-            if child.schedule(self._parent, _t):
+            if not child.schedule(self._parent, _t):
                 self._todo.add(child)
         else:
             self._setup_tasks.add(child)

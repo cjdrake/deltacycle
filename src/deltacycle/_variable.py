@@ -36,7 +36,7 @@ class Variable(KernelIf, Schedulable):
 
     def schedule(self, task: Task, p: Predicate) -> bool:
         self._waiting.push((p, task))
-        return True
+        return False
 
     def cancel(self, task: Task):
         self._waiting.drop(task)
