@@ -10,7 +10,7 @@ from logging import Filter, LogRecord
 from ._event import Event
 from ._kernel import Kernel, finish
 from ._queue import Queue
-from ._semaphore import BoundedSemaphore, Lock, Semaphore
+from ._semaphore import BoundedSemaphore, Lock, Request, Semaphore
 from ._task import (
     AllOf,
     AnyOf,
@@ -72,6 +72,7 @@ __all__ = [
     "Queue",
     # semaphore
     "Semaphore",
+    "Request",
     "BoundedSemaphore",
     "Lock",
     # task

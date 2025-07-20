@@ -201,7 +201,7 @@ def test_schedule_all1():
         t1 = create_task(cf(lock, 0, 10, 10))
 
         await sleep(1)
-        await AllOf(t1, lock)
+        await AllOf(t1, lock.req())
 
         assert now() == 20
         assert lock._cnt == 0
@@ -223,7 +223,7 @@ def test_schedule_all2():
         t1 = create_task(cf(lock, 0, 10, 10))
 
         await sleep(1)
-        sks = await AllOf(t1, lock)
+        sks = await AllOf(t1, lock.req())
 
         assert sks == (lock, t1)
         assert now() == 20

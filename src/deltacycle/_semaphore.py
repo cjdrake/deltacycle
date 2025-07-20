@@ -1,11 +1,13 @@
 """Semaphore synchronization primitive"""
 
+from __future__ import annotations
+
 import heapq
 from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Cancellable, Task, TaskQueue
+from ._task import Cancellable, Schedulable, Task, TaskQueue
 
 
 class _SemQueue(TaskQueue):
@@ -93,6 +95,9 @@ class Semaphore(KernelIf, Cancellable):
     def _inc(self):
         self._cnt += 1
 
+    def req(self, priority: int = 0) -> Request:
+        return Request(priority, self)
+
     def put(self):
         assert self._cnt >= 0
         if self._waiting:
@@ -118,6 +123,23 @@ class Semaphore(KernelIf, Cancellable):
             self.wait_push(priority, task)
             s = await self._kernel.switch_coro()
             assert s is self
+
+
+class Request(Schedulable):
+    def __init__(self, p: int, s: Semaphore):
+        self._p = p
+        self._s = s
+
+    def schedule(self, task: Task) -> bool:
+        if not self._s._locked():
+            self._s._dec()
+            return True
+        self._s.wait_push(self._p, task)
+        return False
+
+    @property
+    def c(self) -> Cancellable:
+        return self._s
 
 
 class BoundedSemaphore(Semaphore):
