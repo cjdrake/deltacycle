@@ -159,6 +159,27 @@ def test_bounded():
     run(main())
 
 
+def test_priority():
+    async def request(lock: Lock, p: int):
+        await sleep(5)
+        await lock.get(priority=p)
+        await sleep(5)
+        lock.put()
+
+    async def main():
+        lock = Lock()
+        t3 = create_task(request(lock, 3), name="T3")
+        t2 = create_task(request(lock, 2), name="T2")
+        t1 = create_task(request(lock, 1), name="T1")
+        t0 = create_task(request(lock, 0), name="T0", priority=-1)
+
+        ts = await AllOf(t3, t2, t1, t0)
+        assert ts == (t0, t1, t2, t3)
+        assert now() == 25
+
+    run(main())
+
+
 def test_init_bad_values():
     with pytest.raises(ValueError):
         _ = Semaphore(0)

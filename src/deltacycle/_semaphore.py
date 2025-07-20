@@ -1,10 +1,48 @@
 """Semaphore synchronization primitive"""
 
+import heapq
 from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, Task, TaskFifo
+from ._task import Schedulable, Task, TaskQueue
+
+
+class _SemQueue(TaskQueue):
+    """Priority queue for ordering task execution."""
+
+    def __init__(self):
+        # priority, index, task
+        self._items: list[tuple[int, int, Task]] = []
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[int, Task]):
+        priority, task = item
+        task._link(self)
+        heapq.heappush(self._items, (priority, self._index, task))
+        self._index += 1
+
+    def pop(self) -> Task:
+        _, _, task = heapq.heappop(self._items)
+        task._unlink(self)
+        return task
+
+    def _find(self, task: Task) -> int:
+        for i, (_, _, t) in enumerate(self._items):
+            if t is task:
+                return i
+        assert False  # pragma: no cover
+
+    def drop(self, task: Task):
+        index = self._find(task)
+        self._items.pop(index)
+        task._unlink(self)
 
 
 class Semaphore(KernelIf, Schedulable):
@@ -17,7 +55,7 @@ class Semaphore(KernelIf, Schedulable):
         if value < 1:
             raise ValueError(f"Expected value >= 1, got {value}")
         self._cnt = value
-        self._waiting = TaskFifo()
+        self._waiting = _SemQueue()
 
     async def __aenter__(self) -> Self:
         await self.get()
@@ -35,7 +73,8 @@ class Semaphore(KernelIf, Schedulable):
         if not self._locked():
             self._dec()
             return True
-        self._waiting.push(task)
+        # TODO(cjdrake): Give schedule method a priority?
+        self._waiting.push((0, task))
         return False
 
     def cancel(self, task: Task):
@@ -66,13 +105,13 @@ class Semaphore(KernelIf, Schedulable):
             return True
         return False
 
-    async def get(self):
+    async def get(self, priority: int = 0):
         assert self._cnt >= 0
         if not self._locked():
             self._dec()
         else:
             task = self._kernel.task()
-            self._waiting.push(task)
+            self._waiting.push((priority, task))
             s = await self._kernel.switch_coro()
             assert s is self
 
