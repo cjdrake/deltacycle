@@ -35,7 +35,7 @@ async def use_with(sem: Semaphore, t1: int, t2: int):
     await sleep(t1)
 
     logger.info("attempt get")
-    async with sem:
+    async with sem.req():
         logger.info("acquired")
         await sleep(t2)
     logger.info("put")

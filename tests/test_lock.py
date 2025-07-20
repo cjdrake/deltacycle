@@ -34,7 +34,7 @@ async def use_with(lock: Lock, t1: int, t2: int):
     await sleep(t1)
 
     logger.info("attempt get")
-    async with lock:
+    async with lock.req():
         logger.info("acquired")
         await sleep(t2)
     logger.info("put")

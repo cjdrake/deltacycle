@@ -62,12 +62,14 @@ class Variable(KernelIf, Cancellable):
 
     def __await__(self) -> Generator[None, Cancellable, Self]:
         task = self._kernel.task()
+        # NOTE: Use default predicate
         self.wait_push(self.changed, task)
         v = yield from self._kernel.switch_gen()
         assert v is self
         return self
 
     def schedule(self, task: Task) -> bool:
+        # NOTE: Use default predicate
         self.wait_push(self.changed, task)
         return False
 

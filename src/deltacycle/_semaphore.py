@@ -59,19 +59,6 @@ class Semaphore(KernelIf, Cancellable):
         self._cnt = value
         self._waiting = _SemQueue()
 
-    async def __aenter__(self) -> Self:
-        # TODO(cjdrake): Give context manager a priority?
-        await self.get()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[Exception],
-        exc: Exception,
-        traceback: TracebackType,
-    ):
-        self.put()
-
     def wait_push(self, p: int, t: Task):
         self._waiting.push((p, t))
 
@@ -79,7 +66,7 @@ class Semaphore(KernelIf, Cancellable):
         if not self._locked():
             self._dec()
             return True
-        # TODO(cjdrake): Give schedule method a priority?
+        # NOTE: Use default priority
         self.wait_push(0, task)
         return False
 
@@ -129,6 +116,18 @@ class Request(Schedulable):
     def __init__(self, p: int, s: Semaphore):
         self._p = p
         self._s = s
+
+    async def __aenter__(self) -> Self:
+        await self._s.get(self._p)
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[Exception],
+        exc: Exception,
+        traceback: TracebackType,
+    ):
+        self._s.put()
 
     def schedule(self, task: Task) -> bool:
         if not self._s._locked():
