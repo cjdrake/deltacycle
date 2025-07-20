@@ -154,7 +154,7 @@ class Kernel:
         self._queue = _PendQueue()
 
         # Serial Tasks
-        self._schedule: dict[Task, set[Cancellable]] = {}
+        self._forks: dict[Task, set[Cancellable]] = {}
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -232,16 +232,16 @@ class Kernel:
         return value
 
     def fork(self, task: Task, *cs: Cancellable):
-        self._schedule[task] = set(cs)
+        self._forks[task] = set(cs)
 
     def join_any(self, task: Task, c: Cancellable):
-        if task in self._schedule:
-            cs = self._schedule[task]
+        if task in self._forks:
+            cs = self._forks[task]
             cs.remove(c)
             while cs:
                 c = cs.pop()
                 c.cancel(task)
-            del self._schedule[task]
+            del self._forks[task]
 
     def touch(self, v: Variable):
         self._touched.add(v)

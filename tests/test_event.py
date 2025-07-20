@@ -150,7 +150,7 @@ def test_list_any_list():
         assert e is e10
 
         kernel = get_running_kernel()
-        assert not kernel._schedule
+        assert not kernel._forks
 
     run(main())
 
@@ -176,6 +176,6 @@ def test_list_any_one_set():
         assert now() == 0
 
         kernel = get_running_kernel()
-        assert not kernel._schedule
+        assert not kernel._forks
 
     run(main())
