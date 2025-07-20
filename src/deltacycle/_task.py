@@ -75,10 +75,16 @@ class SchedFifo(TaskQueue):
         self._items.extend(self._tasks)
 
 
-class Schedulable(ABC):
+class SchedulableBase(ABC):
     def schedule(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
+    @property
+    def sk(self) -> Schedulable:
+        raise NotImplementedError()  # pragma: no cover
+
+
+class Schedulable(SchedulableBase):
     def cancel(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
@@ -87,8 +93,8 @@ class Schedulable(ABC):
         return self
 
 
-class _Schedule(KernelIf):
-    def __init__(self, *items: Schedulable):
+class _Condition(KernelIf):
+    def __init__(self, *items: SchedulableBase):
         self._items = items
         self._todo: set[Schedulable] = set()
 
@@ -96,8 +102,8 @@ class _Schedule(KernelIf):
         self._todo.clear()
 
 
-class AllOf(_Schedule):
-    def __init__(self, *items: Schedulable):
+class AllOf(_Condition):
+    def __init__(self, *items: SchedulableBase):
         super().__init__(*items)
         self._done: deque[Schedulable] = deque()
 
@@ -120,10 +126,11 @@ class AllOf(_Schedule):
             sk = yield from self._kernel.switch_gen()
             self._todo.remove(sk)
             self._done.append(sk)
+
         return tuple(self._done)
 
 
-class AnyOf(_Schedule):
+class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
         self.clear()
 
@@ -134,7 +141,7 @@ class AnyOf(_Schedule):
                 while self._todo:
                     sk = self._todo.pop()
                     sk.cancel(task)
-                return item
+                return item.sk
             else:
                 self._todo.add(item.sk)
 

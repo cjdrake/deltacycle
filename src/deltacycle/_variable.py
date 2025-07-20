@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, Task, TaskQueue
+from ._task import Schedulable, SchedulableBase, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
@@ -94,7 +94,7 @@ class Variable(KernelIf, Schedulable):
         raise NotImplementedError()  # pragma: no cover
 
 
-class PredVar(Schedulable):
+class PredVar(SchedulableBase):
     """Predicated Variable."""
 
     def __init__(self, p: Predicate, v: Variable):
@@ -111,9 +111,6 @@ class PredVar(Schedulable):
     def schedule(self, task: Task) -> bool:
         self._v._waiting.push((self._p, task))
         return False
-
-    def cancel(self, task: Task):
-        self._v._waiting.drop(task)
 
     @property
     def sk(self) -> Schedulable:
