@@ -13,7 +13,7 @@ from ._task import Schedulable, Task, TaskQueue
 type Predicate = Callable[[], bool]
 
 
-class VarQueue(TaskQueue):
+class _VarQueue(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -55,7 +55,7 @@ class Variable(KernelIf, Schedulable):
     """
 
     def __init__(self):
-        self._waiting = VarQueue()
+        self._waiting = _VarQueue()
 
     def __await__(self) -> Generator[None, Schedulable, Self]:
         task = self._kernel.task()
