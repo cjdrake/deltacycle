@@ -70,12 +70,15 @@ class Semaphore(KernelIf, Cancellable):
     ):
         self.put()
 
+    def wait_push(self, p: int, t: Task):
+        self._waiting.push((p, t))
+
     def schedule(self, task: Task) -> bool:
         if not self._locked():
             self._dec()
             return True
         # TODO(cjdrake): Give schedule method a priority?
-        self._waiting.push((0, task))
+        self.wait_push(0, task)
         return False
 
     def cancel(self, task: Task):
@@ -112,7 +115,7 @@ class Semaphore(KernelIf, Cancellable):
             self._dec()
         else:
             task = self._kernel.task()
-            self._waiting.push((priority, task))
+            self.wait_push(priority, task)
             s = await self._kernel.switch_coro()
             assert s is self
 
