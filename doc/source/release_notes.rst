@@ -8,6 +8,30 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.24.0
+==============
+
+* Changed ``AllOf`` so it is no longer iterable.
+* Split the ``Schedulable`` class into ``Schedulable`` / ``Cancellable``.
+* Gave ``Semaphore`` a ``req`` method, which returns a ``Request`` object.
+* Moved semaphore context manager to ``Request`` object.
+
+This no longer works::
+
+    >>> lock = Lock()
+    >>> async with lock:
+    ...
+
+Use the Lock ``req`` method::
+
+    >>> async with lock.req():
+    ...
+
+The same applies to ``AllOf`` and ``AnyOf``.
+You can no longer await ``AllOf(..., lock, ..)``.
+Use ``lock.req()`` instead.
+
+
 Version 0.23.0
 ==============
 
