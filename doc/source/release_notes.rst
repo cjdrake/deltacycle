@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.23.0
+==============
+
+Updated ``Semaphore`` to use a priority queue.
+The ``get`` methods now takes a ``priority`` argument.
+
+
 Version 0.22.0
 ==============
 
