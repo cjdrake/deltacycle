@@ -80,7 +80,7 @@ class Schedulable(ABC):
         raise NotImplementedError()  # pragma: no cover
 
     @property
-    def sk(self) -> Cancellable:
+    def c(self) -> Cancellable:
         raise NotImplementedError()  # pragma: no cover
 
 
@@ -89,13 +89,13 @@ class Cancellable(Schedulable):
         raise NotImplementedError()  # pragma: no cover
 
     @property
-    def sk(self) -> Cancellable:
+    def c(self) -> Cancellable:
         return self
 
 
 class _Condition(KernelIf):
-    def __init__(self, *items: Schedulable):
-        self._items = items
+    def __init__(self, *sks: Schedulable):
+        self._sks = sks
         self._todo: set[Cancellable] = set()
 
     def clear(self):
@@ -103,8 +103,8 @@ class _Condition(KernelIf):
 
 
 class AllOf(_Condition):
-    def __init__(self, *items: Schedulable):
-        super().__init__(*items)
+    def __init__(self, *sks: Schedulable):
+        super().__init__(*sks)
         self._done: deque[Cancellable] = deque()
 
     def clear(self):
@@ -116,16 +116,16 @@ class AllOf(_Condition):
 
         task = self._kernel.task()
 
-        for item in self._items:
-            if item.schedule(task):
-                self._done.append(item.sk)
+        for sk in self._sks:
+            if sk.schedule(task):
+                self._done.append(sk.c)
             else:
-                self._todo.add(item.sk)
+                self._todo.add(sk.c)
 
         while self._todo:
-            sk = yield from self._kernel.switch_gen()
-            self._todo.remove(sk)
-            self._done.append(sk)
+            c = yield from self._kernel.switch_gen()
+            self._todo.remove(c)
+            self._done.append(c)
 
         return tuple(self._done)
 
@@ -136,19 +136,19 @@ class AnyOf(_Condition):
 
         task = self._kernel.task()
 
-        for item in self._items:
-            if item.schedule(task):
+        for sk in self._sks:
+            if sk.schedule(task):
                 while self._todo:
-                    sk = self._todo.pop()
-                    sk.cancel(task)
-                return item.sk
+                    c = self._todo.pop()
+                    c.cancel(task)
+                return sk.c
             else:
-                self._todo.add(item.sk)
+                self._todo.add(sk.c)
 
         if self._todo:
             self._kernel.fork(task, *self._todo)
-            sk = yield from self._kernel.switch_gen()
-            return sk
+            c = yield from self._kernel.switch_gen()
+            return c
 
 
 class Task(KernelIf, Cancellable):

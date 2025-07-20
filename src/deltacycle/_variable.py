@@ -113,7 +113,7 @@ class PredVar(Schedulable):
         return False
 
     @property
-    def sk(self) -> Cancellable:
+    def c(self) -> Cancellable:
         return self._v
 
 

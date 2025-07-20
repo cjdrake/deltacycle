@@ -231,16 +231,16 @@ class Kernel:
         # Resume
         return value
 
-    def fork(self, task: Task, *sks: Cancellable):
-        self._schedule[task] = set(sks)
+    def fork(self, task: Task, *cs: Cancellable):
+        self._schedule[task] = set(cs)
 
-    def join_any(self, task: Task, sk: Cancellable):
+    def join_any(self, task: Task, c: Cancellable):
         if task in self._schedule:
-            sks = self._schedule[task]
-            sks.remove(sk)
-            while sks:
-                sk = sks.pop()
-                sk.cancel(task)
+            cs = self._schedule[task]
+            cs.remove(c)
+            while cs:
+                c = cs.pop()
+                c.cancel(task)
             del self._schedule[task]
 
     def touch(self, v: Variable):
