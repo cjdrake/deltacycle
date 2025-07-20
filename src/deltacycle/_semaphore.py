@@ -58,6 +58,7 @@ class Semaphore(KernelIf, Schedulable):
         self._waiting = _SemQueue()
 
     async def __aenter__(self) -> Self:
+        # TODO(cjdrake): Give context manager a priority?
         await self.get()
         return self
 
