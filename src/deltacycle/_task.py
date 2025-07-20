@@ -84,13 +84,9 @@ class Schedulable(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class Cancellable(Schedulable):
+class Cancellable(ABC):
     def cancel(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
-
-    @property
-    def c(self) -> Cancellable:
-        return self
 
 
 class _Condition(KernelIf):
@@ -151,7 +147,7 @@ class AnyOf(_Condition):
             return c
 
 
-class Task(KernelIf, Cancellable):
+class Task(KernelIf, Schedulable, Cancellable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -249,6 +245,10 @@ class Task(KernelIf, Cancellable):
             return True
         self.wait_push(task)
         return False
+
+    @property
+    def c(self) -> Task:
+        return self
 
     def cancel(self, task: Task):
         self._waiting.drop(task)

@@ -42,7 +42,7 @@ class _VarQueue(TaskQueue):
         self._items.extend(t for t, p in self._t2p.items() if p())
 
 
-class Variable(KernelIf, Cancellable):
+class Variable(KernelIf, Schedulable, Cancellable):
     """Model component.
 
     Children::
@@ -72,6 +72,10 @@ class Variable(KernelIf, Cancellable):
         # NOTE: Use default predicate
         self.wait_push(self.changed, task)
         return False
+
+    @property
+    def c(self) -> Variable:
+        return self
 
     def cancel(self, task: Task):
         self._waiting.drop(task)

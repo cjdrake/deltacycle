@@ -62,13 +62,7 @@ class Semaphore(KernelIf, Cancellable):
     def wait_push(self, p: int, t: Task):
         self._waiting.push((p, t))
 
-    def schedule(self, task: Task) -> bool:
-        if not self.locked():
-            self._dec()
-            return True
-        # NOTE: Use default priority
-        self.wait_push(0, task)
-        return False
+    # NOTE: NOT Schedulable
 
     def cancel(self, task: Task):
         self._waiting.drop(task)

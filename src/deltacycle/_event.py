@@ -1,13 +1,15 @@
 """Event synchronization primitive"""
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancellable, SchedFifo, Task
+from ._task import Cancellable, SchedFifo, Schedulable, Task
 
 
-class Event(KernelIf, Cancellable):
+class Event(KernelIf, Schedulable, Cancellable):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
@@ -28,6 +30,10 @@ class Event(KernelIf, Cancellable):
             return True
         self._waiting.push(task)
         return False
+
+    @property
+    def c(self) -> Event:
+        return self
 
     def cancel(self, task: Task):
         self._waiting.drop(task)
