@@ -47,30 +47,6 @@ class TaskQueue(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class TaskFifo(TaskQueue):
-    """Tasks wait in FIFO order."""
-
-    def __init__(self):
-        self._items: deque[Task] = deque()
-
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    def push(self, item: Task):
-        task = item
-        task._link(self)
-        self._items.append(task)
-
-    def pop(self) -> Task:
-        task = self._items.popleft()
-        task._unlink(self)
-        return task
-
-    def drop(self, task: Task):
-        self._items.remove(task)
-        task._unlink(self)
-
-
 class SchedFifo(TaskQueue):
     """Tasks wait for variable touch."""
 

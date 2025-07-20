@@ -4,7 +4,31 @@ from collections import deque
 from functools import cached_property
 
 from ._kernel_if import KernelIf
-from ._task import Task, TaskFifo
+from ._task import Task, TaskQueue
+
+
+class _TaskFifo(TaskQueue):
+    """Tasks wait in FIFO order."""
+
+    def __init__(self):
+        self._items: deque[Task] = deque()
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: Task):
+        task = item
+        task._link(self)
+        self._items.append(task)
+
+    def pop(self) -> Task:
+        task = self._items.popleft()
+        task._unlink(self)
+        return task
+
+    def drop(self, task: Task):
+        self._items.remove(task)
+        task._unlink(self)
 
 
 class Queue[T](KernelIf):
@@ -13,8 +37,8 @@ class Queue[T](KernelIf):
     def __init__(self, maxlen: int = 0):
         self._maxlen = maxlen
         self._items: deque[T] = deque()
-        self._wait_not_empty = TaskFifo()
-        self._wait_not_full = TaskFifo()
+        self._wait_not_empty = _TaskFifo()
+        self._wait_not_full = _TaskFifo()
 
     def __len__(self) -> int:
         return len(self._items)
