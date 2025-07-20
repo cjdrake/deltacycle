@@ -5,7 +5,7 @@ from types import TracebackType
 from typing import Self, override
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, Task, TaskQueue
+from ._task import Cancellable, Task, TaskQueue
 
 
 class _SemQueue(TaskQueue):
@@ -45,7 +45,7 @@ class _SemQueue(TaskQueue):
         task._unlink(self)
 
 
-class Semaphore(KernelIf, Schedulable):
+class Semaphore(KernelIf, Cancellable):
     """Semaphore to synchronize tasks.
 
     Permits number of put() > resource count.

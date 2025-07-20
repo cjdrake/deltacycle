@@ -4,17 +4,17 @@ from collections.abc import Generator
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import SchedFifo, Schedulable, Task
+from ._task import Cancellable, SchedFifo, Task
 
 
-class Event(KernelIf, Schedulable):
+class Event(KernelIf, Cancellable):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
         self._flag = False
         self._waiting = SchedFifo()
 
-    def __await__(self) -> Generator[None, Schedulable, Self]:
+    def __await__(self) -> Generator[None, Cancellable, Self]:
         if not self._flag:
             task = self._kernel.task()
             self._waiting.push(task)

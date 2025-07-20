@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Schedulable, SchedulableBase, Task, TaskQueue
+from ._task import Cancellable, Schedulable, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
@@ -42,7 +42,7 @@ class _VarQueue(TaskQueue):
         self._items.extend(t for t, p in self._t2p.items() if p())
 
 
-class Variable(KernelIf, Schedulable):
+class Variable(KernelIf, Cancellable):
     """Model component.
 
     Children::
@@ -57,7 +57,7 @@ class Variable(KernelIf, Schedulable):
     def __init__(self):
         self._waiting = _VarQueue()
 
-    def __await__(self) -> Generator[None, Schedulable, Self]:
+    def __await__(self) -> Generator[None, Cancellable, Self]:
         task = self._kernel.task()
         self._waiting.push((self.changed, task))
         v = yield from self._kernel.switch_gen()
@@ -94,14 +94,14 @@ class Variable(KernelIf, Schedulable):
         raise NotImplementedError()  # pragma: no cover
 
 
-class PredVar(SchedulableBase):
+class PredVar(Schedulable):
     """Predicated Variable."""
 
     def __init__(self, p: Predicate, v: Variable):
         self._p = p
         self._v = v
 
-    def __await__(self) -> Generator[None, Schedulable, Variable]:
+    def __await__(self) -> Generator[None, Cancellable, Variable]:
         task = self._v._kernel.task()
         self._v._waiting.push((self._p, task))
         v = yield from self._v._kernel.switch_gen()
@@ -113,7 +113,7 @@ class PredVar(SchedulableBase):
         return False
 
     @property
-    def sk(self) -> Schedulable:
+    def sk(self) -> Cancellable:
         return self._v
 
 

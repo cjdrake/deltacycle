@@ -15,8 +15,8 @@ from ._kernel_if import KernelIf
 logger = logging.getLogger("deltacycle")
 
 
-type TaskCoro = Coroutine[None, Schedulable | None, Any]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Schedulable | Signal]
+type TaskCoro = Coroutine[None, Cancellable | None, Any]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Cancellable | Signal]
 
 
 class Signal(Exception):
@@ -75,43 +75,43 @@ class SchedFifo(TaskQueue):
         self._items.extend(self._tasks)
 
 
-class SchedulableBase(ABC):
+class Schedulable(ABC):
     def schedule(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
     @property
-    def sk(self) -> Schedulable:
+    def sk(self) -> Cancellable:
         raise NotImplementedError()  # pragma: no cover
 
 
-class Schedulable(SchedulableBase):
+class Cancellable(Schedulable):
     def cancel(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     @property
-    def sk(self) -> Schedulable:
+    def sk(self) -> Cancellable:
         return self
 
 
 class _Condition(KernelIf):
-    def __init__(self, *items: SchedulableBase):
+    def __init__(self, *items: Schedulable):
         self._items = items
-        self._todo: set[Schedulable] = set()
+        self._todo: set[Cancellable] = set()
 
     def clear(self):
         self._todo.clear()
 
 
 class AllOf(_Condition):
-    def __init__(self, *items: SchedulableBase):
+    def __init__(self, *items: Schedulable):
         super().__init__(*items)
-        self._done: deque[Schedulable] = deque()
+        self._done: deque[Cancellable] = deque()
 
     def clear(self):
         super().clear()
         self._done.clear()
 
-    def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
+    def __await__(self) -> Generator[None, Cancellable, tuple[Cancellable, ...]]:
         self.clear()
 
         task = self._kernel.task()
@@ -131,7 +131,7 @@ class AllOf(_Condition):
 
 
 class AnyOf(_Condition):
-    def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
+    def __await__(self) -> Generator[None, Cancellable, Cancellable | None]:
         self.clear()
 
         task = self._kernel.task()
@@ -151,7 +151,7 @@ class AnyOf(_Condition):
             return sk
 
 
-class Task(KernelIf, Schedulable):
+class Task(KernelIf, Cancellable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -232,7 +232,7 @@ class Task(KernelIf, Schedulable):
         self._result: Any = None
         self._exception: Exception | None = None
 
-    def __await__(self) -> Generator[None, Schedulable, Any]:
+    def __await__(self) -> Generator[None, Cancellable, Any]:
         if not self.done():
             task = self._kernel.task()
             self._waiting.push(task)
@@ -325,11 +325,11 @@ class Task(KernelIf, Schedulable):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, Schedulable() as sched):
-                y = self._coro.send(sched)
-            case (self.Command.SIGNAL, Signal() as sig):
+            case (self.Command.RESUME, Cancellable() as c):
+                y = self._coro.send(c)
+            case (self.Command.SIGNAL, Signal() as s):
                 self._signal = False
-                y = self._coro.throw(sig)
+                y = self._coro.throw(s)
             case _:  # pragma: no cover
                 assert False
 

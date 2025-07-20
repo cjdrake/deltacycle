@@ -6,7 +6,7 @@ from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
-from ._task import Schedulable, Task, TaskArgs, TaskCoro, TaskQueue
+from ._task import Cancellable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -25,7 +25,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, Schedulable | None, Schedulable | None]:
+    def __await__(self) -> Generator[None, Cancellable | None, Cancellable | None]:
         # Suspend
         value = yield
         # Resume
@@ -154,7 +154,7 @@ class Kernel:
         self._queue = _PendQueue()
 
         # Serial Tasks
-        self._schedule: dict[Task, set[Schedulable]] = {}
+        self._schedule: dict[Task, set[Cancellable]] = {}
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -215,7 +215,7 @@ class Kernel:
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
-    async def switch_coro(self) -> Schedulable | None:
+    async def switch_coro(self) -> Cancellable | None:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -223,7 +223,7 @@ class Kernel:
         # Resume
         return value
 
-    def switch_gen(self) -> Generator[None, Schedulable, Schedulable]:
+    def switch_gen(self) -> Generator[None, Cancellable, Cancellable]:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -231,10 +231,10 @@ class Kernel:
         # Resume
         return value
 
-    def fork(self, task: Task, *sks: Schedulable):
+    def fork(self, task: Task, *sks: Cancellable):
         self._schedule[task] = set(sks)
 
-    def join_any(self, task: Task, sk: Schedulable):
+    def join_any(self, task: Task, sk: Cancellable):
         if task in self._schedule:
             sks = self._schedule[task]
             sks.remove(sk)
