@@ -63,7 +63,7 @@ class Semaphore(KernelIf, Cancellable):
         self._waiting.push((p, t))
 
     def schedule(self, task: Task) -> bool:
-        if not self._locked():
+        if not self.locked():
             self._dec()
             return True
         # NOTE: Use default priority
@@ -73,7 +73,7 @@ class Semaphore(KernelIf, Cancellable):
     def cancel(self, task: Task):
         self._waiting.drop(task)
 
-    def _locked(self) -> bool:
+    def locked(self) -> bool:
         return self._cnt == 0
 
     def _dec(self):
@@ -96,14 +96,14 @@ class Semaphore(KernelIf, Cancellable):
 
     def try_get(self) -> bool:
         assert self._cnt >= 0
-        if not self._locked():
+        if not self.locked():
             self._dec()
             return True
         return False
 
     async def get(self, priority: int = 0):
         assert self._cnt >= 0
-        if not self._locked():
+        if not self.locked():
             self._dec()
         else:
             task = self._kernel.task()
@@ -130,7 +130,7 @@ class Request(Schedulable):
         self._s.put()
 
     def schedule(self, task: Task) -> bool:
-        if not self._s._locked():
+        if not self._s.locked():
             self._s._dec()
             return True
         self._s.wait_push(self._p, task)

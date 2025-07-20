@@ -46,6 +46,8 @@ Variables
 
     .. automethod:: __getitem__
 
+.. autoclass:: deltacycle.PredVar
+
 
 Tasks
 =====
@@ -96,6 +98,8 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
 
+    .. automethod:: locked
+    .. automethod:: req
     .. automethod:: put
     .. automethod:: try_get
     .. automethod:: get
@@ -107,6 +111,8 @@ Synchronization Primitives
 
 .. autoclass:: deltacycle.Lock
     :show-inheritance:
+
+.. autoclass:: deltacycle.Request
 
 
 Scheduling
