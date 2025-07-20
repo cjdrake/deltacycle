@@ -232,10 +232,13 @@ class Task(KernelIf, Cancellable):
         self._result: Any = None
         self._exception: Exception | None = None
 
+    def wait_push(self, task: Task):
+        self._waiting.push(task)
+
     def __await__(self) -> Generator[None, Cancellable, Any]:
         if not self.done():
             task = self._kernel.task()
-            self._waiting.push(task)
+            self.wait_push(task)
             t = yield from self._kernel.switch_gen()
             assert t is self
 
@@ -244,7 +247,7 @@ class Task(KernelIf, Cancellable):
     def schedule(self, task: Task) -> bool:
         if self.done():
             return True
-        self._waiting.push(task)
+        self.wait_push(task)
         return False
 
     def cancel(self, task: Task):
@@ -490,7 +493,8 @@ class TaskGroup(KernelIf):
         # Start newly created tasks; ignore exceptions handled by parent
         while self._setup_tasks:
             child = self._setup_tasks.pop()
-            if not child.schedule(self._parent):
+            if not child.done():
+                child.wait_push(self._parent)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -534,7 +538,8 @@ class TaskGroup(KernelIf):
         child = self._kernel.create_task(coro, name, priority)
         child.group = self
         if self._setup_done:
-            if not child.schedule(self._parent):
+            if not child.done():
+                child.wait_push(self._parent)
                 self._todo.add(child)
         else:
             self._setup_tasks.add(child)
