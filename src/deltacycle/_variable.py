@@ -57,15 +57,18 @@ class Variable(KernelIf, Cancellable):
     def __init__(self):
         self._waiting = _VarQueue()
 
+    def wait_push(self, p: Predicate, t: Task):
+        self._waiting.push((p, t))
+
     def __await__(self) -> Generator[None, Cancellable, Self]:
         task = self._kernel.task()
-        self._waiting.push((self.changed, task))
+        self.wait_push(self.changed, task)
         v = yield from self._kernel.switch_gen()
         assert v is self
         return self
 
     def schedule(self, task: Task) -> bool:
-        self._waiting.push((self.changed, task))
+        self.wait_push(self.changed, task)
         return False
 
     def cancel(self, task: Task):
@@ -103,13 +106,13 @@ class PredVar(Schedulable):
 
     def __await__(self) -> Generator[None, Cancellable, Variable]:
         task = self._v._kernel.task()
-        self._v._waiting.push((self._p, task))
+        self._v.wait_push(self._p, task)
         v = yield from self._v._kernel.switch_gen()
         assert v is self._v
         return self._v
 
     def schedule(self, task: Task) -> bool:
-        self._v._waiting.push((self._p, task))
+        self._v.wait_push(self._p, task)
         return False
 
     @property
