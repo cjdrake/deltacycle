@@ -92,13 +92,21 @@ class _Schedule(KernelIf):
         self._items = items
         self._todo: set[Schedulable] = set()
 
+    def clear(self):
+        self._todo.clear()
+
 
 class AllOf(_Schedule):
     def __init__(self, *items: Schedulable):
         super().__init__(*items)
         self._done: deque[Schedulable] = deque()
 
-    def _sort_items(self, task: Task):
+    def clear(self):
+        super().clear()
+        self._done.clear()
+
+    def _sort_items(self):
+        task = self._kernel.task()
         for item in self._items:
             if item.schedule(task):
                 self._done.append(item.sk)
@@ -106,8 +114,8 @@ class AllOf(_Schedule):
                 self._todo.add(item.sk)
 
     def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
-        task = self._kernel.task()
-        self._sort_items(task)
+        self.clear()
+        self._sort_items()
         while self._todo:
             sk = yield from self._kernel.switch_gen()
             self._todo.remove(sk)
@@ -115,8 +123,8 @@ class AllOf(_Schedule):
         return tuple(self._done)
 
     def __aiter__(self) -> Self:
-        task = self._kernel.task()
-        self._sort_items(task)
+        self.clear()
+        self._sort_items()
         return self
 
     async def __anext__(self) -> Schedulable:
@@ -134,6 +142,8 @@ class AllOf(_Schedule):
 
 class AnyOf(_Schedule):
     def __await__(self) -> Generator[None, Schedulable, Schedulable | None]:
+        self.clear()
+
         task = self._kernel.task()
 
         for item in self._items:
