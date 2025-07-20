@@ -12,6 +12,7 @@ Variables
     :show-inheritance:
 
     .. automethod:: __await__
+    .. automethod:: pred
     .. automethod:: changed
     .. automethod:: update
 
