@@ -376,10 +376,8 @@ def test_task_all1():
         t2 = create_task(cf(10), name="T2")
         t3 = create_task(cf(15), name="T3")
 
-        ts = []
-        async for t in AllOf(t1, t2, t3):
-            ts.append(t)
-        assert ts == [t1, t2, t3]
+        ts = await AllOf(t1, t2, t3)
+        assert ts == (t1, t2, t3)
         assert now() == 15
 
     run(main())
@@ -396,10 +394,8 @@ def test_task_all2():
 
         await sleep(6)  # t1 is done
 
-        ts = []
-        async for t in AllOf(t1, t2, t3):
-            ts.append(t)
-        assert ts == [t1, t2, t3]
+        ts = await AllOf(t1, t2, t3)
+        assert ts == (t1, t2, t3)
         assert now() == 15
 
     run(main())
@@ -416,10 +412,8 @@ def test_task_all3():
 
         await sleep(20)  # all are done
 
-        ts = set()
-        async for t in AllOf(t1, t2, t3):
-            ts.add(t)
-        assert ts == {t1, t2, t3}
+        ts = await AllOf(t1, t2, t3)
+        assert ts == (t1, t2, t3)
         assert now() == 20
 
     run(main())

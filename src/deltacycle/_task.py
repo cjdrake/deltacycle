@@ -105,39 +105,22 @@ class AllOf(_Schedule):
         super().clear()
         self._done.clear()
 
-    def _sort_items(self):
+    def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
+        self.clear()
+
         task = self._kernel.task()
+
         for item in self._items:
             if item.schedule(task):
                 self._done.append(item.sk)
             else:
                 self._todo.add(item.sk)
 
-    def __await__(self) -> Generator[None, Schedulable, tuple[Schedulable, ...]]:
-        self.clear()
-        self._sort_items()
         while self._todo:
             sk = yield from self._kernel.switch_gen()
             self._todo.remove(sk)
             self._done.append(sk)
         return tuple(self._done)
-
-    def __aiter__(self) -> Self:
-        self.clear()
-        self._sort_items()
-        return self
-
-    async def __anext__(self) -> Schedulable:
-        if self._done:
-            return self._done.popleft()
-
-        if self._todo:
-            sk = await self._kernel.switch_coro()
-            assert isinstance(sk, Schedulable)
-            self._todo.remove(sk)
-            return sk
-
-        raise StopAsyncIteration()
 
 
 class AnyOf(_Schedule):

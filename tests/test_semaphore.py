@@ -223,11 +223,9 @@ def test_schedule_all2():
         t1 = create_task(cf(lock, 0, 10, 10))
 
         await sleep(1)
-        sks = []
-        async for sk in AllOf(t1, lock):
-            sks.append(sk)
+        sks = await AllOf(t1, lock)
 
-        assert sks == [lock, t1]
+        assert sks == (lock, t1)
         assert now() == 20
         assert lock._cnt == 0
         lock.put()
