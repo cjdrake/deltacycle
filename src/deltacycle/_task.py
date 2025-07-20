@@ -98,7 +98,7 @@ class _Condition(KernelIf):
         self._sks = sks
         self._todo: set[Cancellable] = set()
 
-    def clear(self):
+    def _clear(self):
         self._todo.clear()
 
 
@@ -107,12 +107,12 @@ class AllOf(_Condition):
         super().__init__(*sks)
         self._done: deque[Cancellable] = deque()
 
-    def clear(self):
-        super().clear()
+    def _clear(self):
+        super()._clear()
         self._done.clear()
 
     def __await__(self) -> Generator[None, Cancellable, tuple[Cancellable, ...]]:
-        self.clear()
+        self._clear()
 
         task = self._kernel.task()
 
@@ -132,7 +132,7 @@ class AllOf(_Condition):
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Cancellable, Cancellable | None]:
-        self.clear()
+        self._clear()
 
         task = self._kernel.task()
 

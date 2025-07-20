@@ -114,6 +114,9 @@ Synchronization Primitives
 
 .. autoclass:: deltacycle.Request
 
+    .. automethod:: __aenter__
+    .. automethod:: __aexit__
+
 
 Scheduling
 ==========
