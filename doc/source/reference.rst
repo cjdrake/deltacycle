@@ -167,3 +167,6 @@ Kernel
 
 .. autofunction:: deltacycle.now
 .. autofunction:: deltacycle.sleep
+
+.. autofunction:: deltacycle.all_of
+.. autofunction:: deltacycle.any_of

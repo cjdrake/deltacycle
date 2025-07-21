@@ -7,7 +7,17 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import AllOf, BoundedSemaphore, Lock, Semaphore, create_task, now, run, sleep
+from deltacycle import (
+    AllOf,
+    BoundedSemaphore,
+    Lock,
+    Semaphore,
+    all_of,
+    create_task,
+    now,
+    run,
+    sleep,
+)
 
 logger = logging.getLogger("deltacycle")
 
@@ -175,7 +185,7 @@ def test_priority():
         t1 = create_task(request(lock, 1), name="T1")
         t0 = create_task(request(lock, 0), name="T0", priority=-1)
 
-        ts = await AllOf(t3, t2, t1, t0)
+        ts = await all_of(t3, t2, t1, t0)
         assert ts == (t0, t1, t2, t3)
         assert now() == 25
 
@@ -225,7 +235,7 @@ def test_schedule_all2():
         t1 = create_task(cf(lock, 0, 10, 10))
 
         await sleep(1)
-        sks = await AllOf(t1, lock.req())
+        sks = await all_of(t1, lock.req())
 
         assert sks == (lock, t1)
         assert now() == 20

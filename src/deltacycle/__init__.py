@@ -22,6 +22,8 @@ from ._task import (
     TaskGroup,
 )
 from ._top import (
+    all_of,
+    any_of,
     create_task,
     get_current_task,
     get_kernel,
@@ -65,6 +67,8 @@ __all__ = [
     "step",
     "now",
     "sleep",
+    "all_of",
+    "any_of",
     # event
     "Event",
     # queue

@@ -6,7 +6,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import AnyOf, Event, create_task, get_running_kernel, now, run, sleep
+from deltacycle import AnyOf, Event, any_of, create_task, get_running_kernel, now, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -148,7 +148,7 @@ def test_list_any_list():
         create_task(sleep_set(20, e20), name="e20")
         create_task(sleep_set(30, e30), name="e30")
 
-        e = await AnyOf(e10, e20, e30)
+        e = await any_of(e10, e20, e30)
         assert e is e10
 
         kernel = get_running_kernel()

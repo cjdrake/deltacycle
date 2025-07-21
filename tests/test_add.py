@@ -6,7 +6,7 @@ import logging
 
 from pytest import LogCaptureFixture
 
-from deltacycle import AnyOf, create_task, run, sleep
+from deltacycle import any_of, create_task, run, sleep
 
 from .common import Bool
 
@@ -58,7 +58,7 @@ def test_add(caplog: LogCaptureFixture):
 
     async def drv_outputs():
         while True:
-            await AnyOf(a, b, ci)
+            await any_of(a, b, ci)
             g = a.value & b.value
             p = a.value | b.value
             s.next = a.value ^ b.value ^ ci.value

@@ -14,6 +14,8 @@ from deltacycle import (
     Event,
     Interrupt,
     Task,
+    all_of,
+    any_of,
     create_task,
     get_current_task,
     now,
@@ -353,7 +355,7 @@ def test_task_any1():
         t2 = create_task(cf(10), name="T2")
         t3 = create_task(cf(15), name="T3")
 
-        t = await AnyOf(t1, t2, t3)
+        t = await any_of(t1, t2, t3)
         assert t is t1
         assert now() == 5
 
@@ -378,7 +380,7 @@ def test_task_all1():
         t2 = create_task(cf(10), name="T2")
         t3 = create_task(cf(15), name="T3")
 
-        ts = await AllOf(t1, t2, t3)
+        ts = await all_of(t1, t2, t3)
         assert ts == (t1, t2, t3)
         assert now() == 15
 
@@ -414,7 +416,7 @@ def test_task_all3():
 
         await sleep(20)  # all are done
 
-        ts = await AllOf(t1, t2, t3)
+        ts = await all_of(t1, t2, t3)
         assert ts == (t1, t2, t3)
         assert now() == 20
 

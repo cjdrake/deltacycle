@@ -1,10 +1,11 @@
 """Top-level functions."""
 
+from collections import deque
 from collections.abc import Generator
 from typing import Any
 
 from ._kernel import Kernel
-from ._task import Task, TaskCoro
+from ._task import Cancellable, Schedulable, Task, TaskCoro
 
 _kernel: Kernel | None = None
 
@@ -172,3 +173,45 @@ async def sleep(delay: int):
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
     y = await kernel.switch_coro()
     assert y is None
+
+
+async def all_of(*sks: Schedulable) -> tuple[Cancellable, ...]:
+    kernel, task = _get_kt()
+
+    todo: set[Cancellable] = set()
+    done: deque[Cancellable] = deque()
+
+    for sk in sks:
+        if sk.schedule(task):
+            done.append(sk.c)
+        else:
+            todo.add(sk.c)
+
+    while todo:
+        c = await kernel.switch_coro()
+        assert isinstance(c, Cancellable)
+        todo.remove(c)
+        done.append(c)
+
+    return tuple(done)
+
+
+async def any_of(*sks: Schedulable) -> Cancellable | None:
+    kernel, task = _get_kt()
+
+    todo: set[Cancellable] = set()
+
+    for sk in sks:
+        if sk.schedule(task):
+            while todo:
+                c = todo.pop()
+                c.cancel(task)
+            return sk.c
+        else:
+            todo.add(sk.c)
+
+    if todo:
+        kernel.fork(task, *todo)
+        c = await kernel.switch_coro()
+        assert isinstance(c, Cancellable)
+        return c
