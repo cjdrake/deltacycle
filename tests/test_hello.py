@@ -1,5 +1,7 @@
 """Hello, world!"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 import pytest

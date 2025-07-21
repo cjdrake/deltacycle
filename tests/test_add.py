@@ -1,5 +1,7 @@
 """Simulate a 4-bit adder."""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 from pytest import LogCaptureFixture

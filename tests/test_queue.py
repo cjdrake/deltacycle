@@ -1,5 +1,7 @@
 """Test deltacycle.queue"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 from pytest import LogCaptureFixture

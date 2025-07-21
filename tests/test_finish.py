@@ -1,5 +1,7 @@
 """Test deltacycle._kernel.finish"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 from pytest import LogCaptureFixture

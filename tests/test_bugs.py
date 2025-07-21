@@ -1,5 +1,7 @@
 """Test bugs"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 from pytest import LogCaptureFixture

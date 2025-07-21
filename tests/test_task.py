@@ -1,5 +1,7 @@
 """Test deltacycle.Task"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 from random import randint
 

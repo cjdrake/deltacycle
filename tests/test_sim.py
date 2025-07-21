@@ -1,5 +1,7 @@
 """Test seqlogic.sim module."""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 from pytest import LogCaptureFixture

@@ -1,5 +1,7 @@
 """Test deltacycle.Semaphore"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 import pytest

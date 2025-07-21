@@ -1,5 +1,7 @@
 """Test deltacycle.TaskGroup"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 import pytest

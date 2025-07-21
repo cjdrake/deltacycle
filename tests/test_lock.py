@@ -1,5 +1,7 @@
 """Test seqlogic.sim.Lock class."""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 from pytest import LogCaptureFixture

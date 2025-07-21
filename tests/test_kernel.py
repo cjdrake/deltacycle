@@ -1,5 +1,7 @@
 """Test basic kernel functionality"""
 
+# pyright: reportAttributeAccessIssue=false
+
 import logging
 
 import pytest
