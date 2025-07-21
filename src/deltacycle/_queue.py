@@ -34,8 +34,8 @@ class _TaskFifo(TaskQueue):
 class Queue[T](KernelIf):
     """First-in, First-out (FIFO) queue."""
 
-    def __init__(self, maxlen: int = 0):
-        self._maxlen = maxlen
+    def __init__(self, capacity: int = 0):
+        self._capacity = capacity
         self._items: deque[T] = deque()
         self._wait_not_empty = _TaskFifo()
         self._wait_not_full = _TaskFifo()
@@ -45,7 +45,7 @@ class Queue[T](KernelIf):
 
     @cached_property
     def _has_maxlen(self) -> bool:
-        return self._maxlen > 0
+        return self._capacity > 0
 
     def empty(self) -> bool:
         """Return True if the queue is empty."""
@@ -53,7 +53,7 @@ class Queue[T](KernelIf):
 
     def full(self) -> bool:
         """Return True if the queue is full."""
-        return self._has_maxlen and len(self._items) == self._maxlen
+        return self._has_maxlen and len(self._items) == self._capacity
 
     def _put(self, item: T):
         self._items.append(item)

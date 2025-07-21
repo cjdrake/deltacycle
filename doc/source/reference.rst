@@ -16,6 +16,10 @@ Variables
     .. automethod:: changed
     .. automethod:: update
 
+.. autoclass:: deltacycle.PredVar
+
+    .. automethod:: __await__
+
 .. autoclass:: deltacycle.Value
     :show-inheritance:
 
@@ -45,8 +49,6 @@ Variables
 .. autoclass:: deltacycle.AggrValue
 
     .. automethod:: __getitem__
-
-.. autoclass:: deltacycle.PredVar
 
 
 Tasks
@@ -90,8 +92,8 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Event
     :show-inheritance:
 
-    .. automethod:: __bool__
     .. automethod:: __await__
+    .. automethod:: __bool__
     .. automethod:: set
     .. automethod:: clear
 
@@ -104,22 +106,23 @@ Synchronization Primitives
     .. automethod:: try_get
     .. automethod:: get
 
-.. autoclass:: deltacycle.BoundedSemaphore
-    :show-inheritance:
-
-    .. automethod:: put
-
-.. autoclass:: deltacycle.Lock
-    :show-inheritance:
-
 .. autoclass:: deltacycle.Request
 
     .. automethod:: __aenter__
     .. automethod:: __aexit__
 
+.. autoclass:: deltacycle.BoundedSemaphore
+    :show-inheritance:
+
+.. autoclass:: deltacycle.Lock
+    :show-inheritance:
+
 
 Scheduling
 ==========
+
+.. autoclass:: deltacycle.Schedulable
+.. autoclass:: deltacycle.Cancellable
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf
@@ -131,6 +134,7 @@ Queues
 .. autoclass:: deltacycle.Queue
     :show-inheritance:
 
+    .. automethod:: __len__
     .. automethod:: empty
     .. automethod:: full
     .. automethod:: try_put

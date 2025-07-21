@@ -272,7 +272,7 @@ class Kernel:
 
     def _finish(self):
         self._queue.clear()
-        # self._task_deps.clear()
+        self._forks.clear()
         self._touched.clear()
         self._set_state(self.State.FINISHED)
 
