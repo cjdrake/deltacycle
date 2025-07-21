@@ -92,7 +92,7 @@ class Variable(KernelIf, Schedulable, Cancellable):
         self._kernel.touch(self)
 
     def pred(self, p: Predicate) -> PredVar:
-        return PredVar(p, self)
+        return PredVar(self, p)
 
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""
@@ -106,9 +106,9 @@ class Variable(KernelIf, Schedulable, Cancellable):
 class PredVar(Schedulable):
     """Predicated Variable."""
 
-    def __init__(self, p: Predicate, v: Variable):
-        self._p = p
+    def __init__(self, v: Variable, p: Predicate):
         self._v = v
+        self._p = p
 
     def __await__(self) -> Generator[None, Cancellable, Variable]:
         task = self._v._kernel.task()
