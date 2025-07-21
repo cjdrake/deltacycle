@@ -5,7 +5,6 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 """
 
 import logging
-from logging import Filter, LogRecord
 
 from ._event import Event
 from ._kernel import Kernel, finish
@@ -39,8 +38,8 @@ from ._variable import Aggregate, AggrItem, AggrValue, Predicate, PredVar, Singu
 logger = logging.getLogger(__name__)
 
 
-class DeltaCycleFilter(Filter):
-    def filter(self, record: LogRecord) -> bool:
+class DeltaCycleFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
         try:
             kernel = get_running_kernel()
         except RuntimeError:
