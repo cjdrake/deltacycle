@@ -44,7 +44,7 @@ class Queue[T](KernelIf):
         return len(self._items)
 
     @cached_property
-    def _has_maxlen(self) -> bool:
+    def _has_capacity(self) -> bool:
         return self._capacity > 0
 
     def empty(self) -> bool:
@@ -53,7 +53,7 @@ class Queue[T](KernelIf):
 
     def full(self) -> bool:
         """Return True if the queue is full."""
-        return self._has_maxlen and len(self._items) == self._capacity
+        return self._has_capacity and len(self._items) == self._capacity
 
     def _put(self, item: T):
         self._items.append(item)
