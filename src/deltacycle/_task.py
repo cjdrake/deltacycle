@@ -92,57 +92,46 @@ class Cancellable(ABC):
 class _Condition(KernelIf):
     def __init__(self, *sks: Schedulable):
         self._sks = sks
-        self._todo: set[Cancellable] = set()
-
-    def _clear(self):
-        self._todo.clear()
 
 
 class AllOf(_Condition):
-    def __init__(self, *sks: Schedulable):
-        super().__init__(*sks)
-        self._done: deque[Cancellable] = deque()
-
-    def _clear(self):
-        super()._clear()
-        self._done.clear()
-
     def __await__(self) -> Generator[None, Cancellable, tuple[Cancellable, ...]]:
-        self._clear()
-
         task = self._kernel.task()
+
+        todo: set[Cancellable] = set()
+        done: deque[Cancellable] = deque()
 
         for sk in self._sks:
             if sk.schedule(task):
-                self._done.append(sk.c)
+                done.append(sk.c)
             else:
-                self._todo.add(sk.c)
+                todo.add(sk.c)
 
-        while self._todo:
+        while todo:
             c = yield from self._kernel.switch_gen()
-            self._todo.remove(c)
-            self._done.append(c)
+            todo.remove(c)
+            done.append(c)
 
-        return tuple(self._done)
+        return tuple(done)
 
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Cancellable, Cancellable | None]:
-        self._clear()
-
         task = self._kernel.task()
+
+        todo: set[Cancellable] = set()
 
         for sk in self._sks:
             if sk.schedule(task):
-                while self._todo:
-                    c = self._todo.pop()
+                while todo:
+                    c = todo.pop()
                     c.cancel(task)
                 return sk.c
             else:
-                self._todo.add(sk.c)
+                todo.add(sk.c)
 
-        if self._todo:
-            self._kernel.fork(task, *self._todo)
+        if todo:
+            self._kernel.fork(task, *todo)
             c = yield from self._kernel.switch_gen()
             return c
 
