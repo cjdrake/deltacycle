@@ -28,11 +28,11 @@ class Event(KernelIf, Schedulable, Cancellable):
 
         return self
 
-    def schedule(self, task: Task) -> bool:
-        if self._flag:
-            return True
+    def blocking(self) -> bool:
+        return not self._flag
+
+    def schedule(self, task: Task):
         self.wait_push(task)
-        return False
 
     @property
     def c(self) -> Event:

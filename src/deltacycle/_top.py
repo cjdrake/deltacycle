@@ -180,12 +180,12 @@ async def all_of(*sks: Schedulable) -> tuple[Cancellable, ...]:
 
     todo: set[Cancellable] = set()
     done: deque[Cancellable] = deque()
-
     for sk in sks:
-        if sk.schedule(task):
-            done.append(sk.c)
-        else:
+        if sk.blocking():
             todo.add(sk.c)
+            sk.schedule(task)
+        else:
+            done.append(sk.c)
 
     while todo:
         c = await kernel.switch_coro()
@@ -197,21 +197,22 @@ async def all_of(*sks: Schedulable) -> tuple[Cancellable, ...]:
 
 
 async def any_of(*sks: Schedulable) -> Cancellable | None:
-    kernel, task = _get_kt()
+    # Empty
+    if not sks:
+        return None
 
-    todo: set[Cancellable] = set()
-
+    # Return first non-blocking
     for sk in sks:
-        if sk.schedule(task):
-            while todo:
-                c = todo.pop()
-                c.cancel(task)
+        if not sk.blocking():
             return sk.c
-        else:
-            todo.add(sk.c)
 
-    if todo:
-        kernel.fork(task, *todo)
-        c = await kernel.switch_coro()
-        assert isinstance(c, Cancellable)
-        return c
+    # All blocking: fork=>join
+    kernel, task = _get_kt()
+    todo: list[Cancellable] = []
+    for sk in sks:
+        todo.append(sk.c)
+        sk.schedule(task)
+    kernel.fork(task, *todo)
+    c = await kernel.switch_coro()
+    assert isinstance(c, Cancellable)
+    return c

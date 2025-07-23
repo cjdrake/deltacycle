@@ -76,7 +76,10 @@ class SchedFifo(TaskQueue):
 
 
 class Schedulable(ABC):
-    def schedule(self, task: Task) -> bool:
+    def blocking(self) -> bool:
+        raise NotImplementedError()  # pragma: no cover
+
+    def schedule(self, task: Task):
         raise NotImplementedError()  # pragma: no cover
 
     @property
@@ -100,12 +103,12 @@ class AllOf(_Condition):
 
         todo: set[Cancellable] = set()
         done: deque[Cancellable] = deque()
-
         for sk in self._sks:
-            if sk.schedule(task):
-                done.append(sk.c)
-            else:
+            if sk.blocking():
                 todo.add(sk.c)
+                sk.schedule(task)
+            else:
+                done.append(sk.c)
 
         while todo:
             c = yield from self._kernel.switch_gen()
@@ -117,23 +120,24 @@ class AllOf(_Condition):
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Cancellable, Cancellable | None]:
-        task = self._kernel.task()
+        # Empty
+        if not self._sks:
+            return None
 
-        todo: set[Cancellable] = set()
-
+        # Return first non-blocking
         for sk in self._sks:
-            if sk.schedule(task):
-                while todo:
-                    c = todo.pop()
-                    c.cancel(task)
+            if not sk.blocking():
                 return sk.c
-            else:
-                todo.add(sk.c)
 
-        if todo:
-            self._kernel.fork(task, *todo)
-            c = yield from self._kernel.switch_gen()
-            return c
+        # All blocking: fork=>join
+        task = self._kernel.task()
+        todo: list[Cancellable] = []
+        for sk in self._sks:
+            todo.append(sk.c)
+            sk.schedule(task)
+        self._kernel.fork(task, *todo)
+        c = yield from self._kernel.switch_gen()
+        return c
 
 
 class Task(KernelIf, Schedulable, Cancellable):
@@ -229,11 +233,11 @@ class Task(KernelIf, Schedulable, Cancellable):
 
         return self.result()
 
-    def schedule(self, task: Task) -> bool:
-        if self.done():
-            return True
+    def blocking(self) -> bool:
+        return not self.done()
+
+    def schedule(self, task: Task):
         self.wait_push(task)
-        return False
 
     @property
     def c(self) -> Task:

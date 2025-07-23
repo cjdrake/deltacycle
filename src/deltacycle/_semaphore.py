@@ -123,12 +123,11 @@ class Request(Schedulable):
     ):
         self._s.put()
 
-    def schedule(self, task: Task) -> bool:
-        if not self._s.locked():
-            self._s._dec()
-            return True
+    def blocking(self) -> bool:
+        return self._s.locked()
+
+    def schedule(self, task: Task):
         self._s.wait_push(self._p, task)
-        return False
 
     @property
     def c(self) -> Cancellable:
