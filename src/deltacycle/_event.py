@@ -16,10 +16,13 @@ class Event(KernelIf, Schedulable, Cancellable):
         self._flag = False
         self._waiting = SchedFifo()
 
+    def wait_push(self, task: Task):
+        self._waiting.push(task)
+
     def __await__(self) -> Generator[None, Cancellable, Self]:
         if not self._flag:
             task = self._kernel.task()
-            self._waiting.push(task)
+            self.wait_push(task)
             e = yield from self._kernel.switch_gen()
             assert e is self
 
@@ -28,7 +31,7 @@ class Event(KernelIf, Schedulable, Cancellable):
     def schedule(self, task: Task) -> bool:
         if self._flag:
             return True
-        self._waiting.push(task)
+        self.wait_push(task)
         return False
 
     @property
