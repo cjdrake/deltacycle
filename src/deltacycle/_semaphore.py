@@ -55,7 +55,7 @@ class Semaphore(KernelIf, Cancellable):
 
     def __init__(self, value: int = 1):
         if value < 1:
-            raise ValueError(f"Expected value >= 1, got {value}")
+            raise ValueError(f"Expected value ≥ 1, got {value}")
         self._cnt = value
         self._waiting = _SemWaitQ()
 
