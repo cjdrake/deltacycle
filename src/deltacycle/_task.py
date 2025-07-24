@@ -79,7 +79,7 @@ class Schedulable(ABC):
     def blocking(self) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
-    def schedule(self, task: Task):
+    def schedule(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     @property
