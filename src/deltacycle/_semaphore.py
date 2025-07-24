@@ -10,7 +10,7 @@ from ._kernel_if import KernelIf
 from ._task import Cancellable, Schedulable, Task, TaskQueue
 
 
-class _SemQueue(TaskQueue):
+class _SemWaitQ(TaskQueue):
     """Priority queue for ordering task execution."""
 
     def __init__(self):
@@ -57,7 +57,7 @@ class Semaphore(KernelIf, Cancellable):
         if value < 1:
             raise ValueError(f"Expected value >= 1, got {value}")
         self._cnt = value
-        self._waiting = _SemQueue()
+        self._waiting = _SemWaitQ()
 
     def wait_push(self, p: int, t: Task):
         self._waiting.push((p, t))

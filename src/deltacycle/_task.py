@@ -47,7 +47,7 @@ class TaskQueue(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class SchedFifo(TaskQueue):
+class _TaskWaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -212,7 +212,7 @@ class Task(KernelIf, Schedulable, Cancellable):
         self._refcnts: Counter[TaskQueue] = Counter()
 
         # Other tasks waiting for this task to complete
-        self._waiting = SchedFifo()
+        self._waiting = _TaskWaitQ()
 
         # Flag to avoid multiple signals
         self._signal = False

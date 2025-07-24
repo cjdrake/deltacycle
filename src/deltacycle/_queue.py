@@ -7,7 +7,7 @@ from ._kernel_if import KernelIf
 from ._task import Task, TaskQueue
 
 
-class _TaskFifo(TaskQueue):
+class _WaitQ(TaskQueue):
     """Tasks wait in FIFO order."""
 
     def __init__(self):
@@ -37,8 +37,8 @@ class Queue[T](KernelIf):
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
         self._items: deque[T] = deque()
-        self._wait_not_empty = _TaskFifo()
-        self._wait_not_full = _TaskFifo()
+        self._wait_not_empty = _WaitQ()
+        self._wait_not_full = _WaitQ()
 
     def __len__(self) -> int:
         return len(self._items)

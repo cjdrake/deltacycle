@@ -13,7 +13,7 @@ from ._task import Cancellable, Schedulable, Task, TaskQueue
 type Predicate = Callable[[], bool]
 
 
-class _VarQueue(TaskQueue):
+class _VarWaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -55,7 +55,7 @@ class Variable(KernelIf, Schedulable, Cancellable):
     """
 
     def __init__(self):
-        self._waiting = _VarQueue()
+        self._waiting = _VarWaitQ()
 
     def wait_push(self, p: Predicate, t: Task):
         self._waiting.push((p, t))

@@ -2,11 +2,40 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict, deque
 from collections.abc import Generator
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancellable, SchedFifo, Schedulable, Task
+from ._task import Cancellable, Schedulable, Task, TaskQueue
+
+
+class _EventWaitQ(TaskQueue):
+    """Tasks wait for variable touch."""
+
+    def __init__(self):
+        self._tasks: OrderedDict[Task, None] = OrderedDict()
+        self._items: deque[Task] = deque()
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: Task):
+        item._link(self)
+        self._tasks[item] = None
+
+    def pop(self) -> Task:
+        task = self._items.popleft()
+        self.drop(task)
+        return task
+
+    def drop(self, task: Task):
+        del self._tasks[task]
+        task._unlink(self)
+
+    def load(self):
+        assert not self._items
+        self._items.extend(self._tasks)
 
 
 class Event(KernelIf, Schedulable, Cancellable):
@@ -14,7 +43,7 @@ class Event(KernelIf, Schedulable, Cancellable):
 
     def __init__(self):
         self._flag = False
-        self._waiting = SchedFifo()
+        self._waiting = _EventWaitQ()
 
     def wait_push(self, task: Task):
         self._waiting.push(task)

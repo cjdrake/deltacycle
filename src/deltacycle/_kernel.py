@@ -36,7 +36,7 @@ class _Finish(Exception):
     """Force the simulation to stop."""
 
 
-class _PendQueue(TaskQueue):
+class _PendQ(TaskQueue):
     """Priority queue for ordering task execution."""
 
     def __init__(self):
@@ -151,7 +151,7 @@ class Kernel:
         self._task_index = 0
 
         # Task queue
-        self._queue = _PendQueue()
+        self._queue = _PendQ()
 
         # Serial Tasks
         self._forks: dict[Task, set[Cancellable]] = {}
