@@ -59,8 +59,8 @@ class Semaphore(KernelIf, Cancellable):
         self._cnt = value
         self._waiting = _SemWaitQ()
 
-    def wait_push(self, p: int, t: Task):
-        self._waiting.push((p, t))
+    def wait_push(self, task: Task, priority: int):
+        self._waiting.push((priority, task))
 
     # NOTE: NOT Schedulable
 
@@ -101,7 +101,7 @@ class Semaphore(KernelIf, Cancellable):
             self._dec()
         else:
             task = self._kernel.task()
-            self.wait_push(priority, task)
+            self.wait_push(task, priority)
             s = await self._kernel.switch_coro()
             assert s is self
 
@@ -127,7 +127,7 @@ class ReqSemaphore(Schedulable):
         return self._s.locked()
 
     def schedule(self, task: Task):
-        self._s.wait_push(self._p, task)
+        self._s.wait_push(task, self._p)
 
     @property
     def c(self) -> Cancellable:
