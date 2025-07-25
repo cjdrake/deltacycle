@@ -76,8 +76,8 @@ class Semaphore(KernelIf, Cancellable):
     def _inc(self):
         self._cnt += 1
 
-    def req(self, priority: int = 0) -> Request:
-        return Request(self, priority)
+    def req(self, priority: int = 0) -> ReqSemaphore:
+        return ReqSemaphore(self, priority)
 
     def put(self):
         assert self._cnt >= 0
@@ -106,7 +106,7 @@ class Semaphore(KernelIf, Cancellable):
             assert s is self
 
 
-class Request(Schedulable):
+class ReqSemaphore(Schedulable):
     def __init__(self, s: Semaphore, p: int):
         self._s = s
         self._p = p

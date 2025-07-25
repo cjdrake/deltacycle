@@ -106,7 +106,7 @@ Synchronization Primitives
     .. automethod:: try_get
     .. automethod:: get
 
-.. autoclass:: deltacycle.Request
+.. autoclass:: deltacycle.ReqSemaphore
 
     .. automethod:: __aenter__
     .. automethod:: __aexit__
