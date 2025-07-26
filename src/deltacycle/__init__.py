@@ -6,6 +6,7 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 
 import logging
 
+from ._credit_pool import CreditPool, ReqCredit
 from ._event import Event
 from ._kernel import Kernel, finish
 from ._queue import Queue
@@ -73,6 +74,9 @@ __all__ = [
     "Event",
     # queue
     "Queue",
+    # credit_pool
+    "CreditPool",
+    "ReqCredit",
     # semaphore
     "Semaphore",
     "ReqSemaphore",

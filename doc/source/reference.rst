@@ -117,6 +117,20 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Lock
     :show-inheritance:
 
+.. autoclass:: deltacycle.CreditPool
+    :show-inheritance:
+
+    .. automethod:: __len__
+    .. automethod:: req
+    .. automethod:: put
+    .. automethod:: try_get
+    .. automethod:: get
+
+.. autoclass:: deltacycle.ReqCredit
+
+    .. automethod:: __aenter__
+    .. automethod:: __aexit__
+
 
 Scheduling
 ==========
