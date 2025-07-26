@@ -127,7 +127,7 @@ class ReqCredit(Schedulable):
         self._credits.put(self._n)
 
     def blocking(self) -> bool:
-        return len(self._credits) >= self._n
+        return len(self._credits) < self._n
 
     def schedule(self, task: Task):
         self._credits.wait_push(task, self._n, self._priority)
