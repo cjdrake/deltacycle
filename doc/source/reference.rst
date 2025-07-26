@@ -112,9 +112,6 @@ Synchronization Primitives
     .. automethod:: __aenter__
     .. automethod:: __aexit__
 
-.. autoclass:: deltacycle.BoundedSemaphore
-    :show-inheritance:
-
 .. autoclass:: deltacycle.Lock
     :show-inheritance:
 

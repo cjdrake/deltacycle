@@ -10,7 +10,7 @@ from ._credit_pool import CreditPool, ReqCredit
 from ._event import Event
 from ._kernel import Kernel, finish
 from ._queue import Queue
-from ._semaphore import BoundedSemaphore, Lock, ReqSemaphore, Semaphore
+from ._semaphore import Lock, ReqSemaphore, Semaphore
 from ._task import (
     AllOf,
     AnyOf,
@@ -80,7 +80,6 @@ __all__ = [
     # semaphore
     "Semaphore",
     "ReqSemaphore",
-    "BoundedSemaphore",
     "Lock",
     # task
     "TaskCoro",

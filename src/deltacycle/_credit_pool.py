@@ -52,9 +52,13 @@ class _WaitQ(TaskQueue):
 
 
 class CreditPool(KernelIf, Cancellable):
-    def __init__(self, capacity: int = 0):
+    def __init__(self, value: int = 0, capacity: int = 0):
         self._capacity = capacity
-        self._cnt = 0
+        if value < 0:
+            raise ValueError(f"Expected value ≥ 0, got {value}")
+        if self._has_capacity and value > capacity:
+            raise ValueError(f"Expected value ≤ {capacity}, got {value}")
+        self._cnt = value
         self._waiting = _WaitQ()
 
     def __len__(self) -> int:

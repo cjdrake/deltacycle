@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import heapq
+from functools import cached_property
 from types import TracebackType
-from typing import Self, override
+from typing import Self
 
 from ._kernel_if import KernelIf
 from ._task import Cancellable, Schedulable, Task, TaskQueue
@@ -53,14 +54,21 @@ class Semaphore(KernelIf, Cancellable):
     Permits number of put() > resource count.
     """
 
-    def __init__(self, value: int = 1):
-        if value < 1:
-            raise ValueError(f"Expected value ≥ 1, got {value}")
+    def __init__(self, value: int = 0, capacity: int = 0):
+        self._capacity = capacity
+        if value < 0:
+            raise ValueError(f"Expected value ≥ 0, got {value}")
+        if self._has_capacity and value > capacity:
+            raise ValueError(f"Expected value ≤ {capacity}, got {value}")
         self._cnt = value
         self._waiting = _WaitQ()
 
     def __len__(self) -> int:
         return self._cnt
+
+    @cached_property
+    def _has_capacity(self) -> bool:
+        return self._capacity > 0
 
     def wait_push(self, task: Task, priority: int):
         self._waiting.push((priority, task))
@@ -75,6 +83,9 @@ class Semaphore(KernelIf, Cancellable):
 
     def put(self):
         assert self._cnt >= 0
+
+        if self._has_capacity and self._cnt == self._capacity:
+            raise OverflowError(f"{self._cnt} + 1 > {self._capacity}")
 
         if self._waiting:
             task = self._waiting.pop()
@@ -131,32 +142,8 @@ class ReqSemaphore(Schedulable):
         return self._sem
 
 
-class BoundedSemaphore(Semaphore):
-    """Bounded Semaphore to synchronize tasks.
-
-    Like Semaphore, but raises ValueError when
-    number of put() > resource count.
-    """
-
-    def __init__(self, value: int = 1):
-        super().__init__(value)
-        self._maxcnt = value
-
-    @override
-    def put(self):
-        assert self._cnt >= 0
-        if self._waiting:
-            task = self._waiting.pop()
-            self._kernel.join_any(task, self)
-            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
-        else:
-            if self._cnt == self._maxcnt:
-                raise ValueError("Cannot put")
-            self._cnt += 1
-
-
-class Lock(BoundedSemaphore):
+class Lock(Semaphore):
     """Mutex lock to synchronize tasks."""
 
     def __init__(self):
-        super().__init__(value=1)
+        super().__init__(value=1, capacity=1)

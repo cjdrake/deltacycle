@@ -9,7 +9,6 @@ from pytest import LogCaptureFixture
 
 from deltacycle import (
     AllOf,
-    BoundedSemaphore,
     Lock,
     Semaphore,
     all_of,
@@ -153,7 +152,7 @@ def test_unbounded():
 
 def test_bounded():
     async def use_bounded():
-        sem = BoundedSemaphore(2)
+        sem = Semaphore(value=2, capacity=2)
 
         await sem.get()
         await sem.get()
@@ -194,7 +193,7 @@ def test_priority():
 
 def test_init_bad_values():
     with pytest.raises(ValueError):
-        _ = Semaphore(0)
+        _ = Semaphore(value=5, capacity=4)
 
     with pytest.raises(ValueError):
         _ = Semaphore(-1)
