@@ -73,12 +73,6 @@ class Semaphore(KernelIf, Cancellable):
     def locked(self) -> bool:
         return self._cnt == 0
 
-    def _dec(self):
-        self._cnt -= 1
-
-    def _inc(self):
-        self._cnt += 1
-
     def req(self, priority: int = 0) -> ReqSemaphore:
         return ReqSemaphore(self, priority)
 
@@ -89,19 +83,19 @@ class Semaphore(KernelIf, Cancellable):
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         else:
-            self._inc()
+            self._cnt += 1
 
     def try_get(self) -> bool:
         assert self._cnt >= 0
         if not self.locked():
-            self._dec()
+            self._cnt -= 1
             return True
         return False
 
     async def get(self, priority: int = 0):
         assert self._cnt >= 0
         if not self.locked():
-            self._dec()
+            self._cnt -= 1
         else:
             task = self._kernel.task()
             self.wait_push(task, priority)
@@ -158,7 +152,7 @@ class BoundedSemaphore(Semaphore):
         else:
             if self._cnt == self._maxcnt:
                 raise ValueError("Cannot put")
-            self._inc()
+            self._cnt += 1
 
 
 class Lock(BoundedSemaphore):
