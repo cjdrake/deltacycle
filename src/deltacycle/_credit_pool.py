@@ -92,6 +92,7 @@ class CreditPool(KernelIf, Cancellable):
 
     def try_get(self, n: int = 1) -> bool:
         assert self._cnt >= 0
+
         if self._cnt >= n:
             self._cnt -= n
             return True
@@ -99,6 +100,7 @@ class CreditPool(KernelIf, Cancellable):
 
     async def get(self, n: int = 1, priority: int = 0):
         assert self._cnt >= 0
+
         if self._cnt >= n:
             self._cnt -= n
         else:

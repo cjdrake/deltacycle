@@ -70,14 +70,12 @@ class Semaphore(KernelIf, Cancellable):
     def cancel(self, task: Task):
         self._waiting.drop(task)
 
-    def locked(self) -> bool:
-        return self._cnt == 0
-
     def req(self, priority: int = 0) -> ReqSemaphore:
         return ReqSemaphore(self, priority)
 
     def put(self):
         assert self._cnt >= 0
+
         if self._waiting:
             task = self._waiting.pop()
             self._kernel.join_any(task, self)
@@ -87,14 +85,16 @@ class Semaphore(KernelIf, Cancellable):
 
     def try_get(self) -> bool:
         assert self._cnt >= 0
-        if not self.locked():
+
+        if self._cnt > 0:
             self._cnt -= 1
             return True
         return False
 
     async def get(self, priority: int = 0):
         assert self._cnt >= 0
-        if not self.locked():
+
+        if self._cnt > 0:
             self._cnt -= 1
         else:
             task = self._kernel.task()
@@ -121,7 +121,7 @@ class ReqSemaphore(Schedulable):
         self._sem.put()
 
     def blocking(self) -> bool:
-        return self._sem.locked()
+        return len(self._sem) == 0
 
     def schedule(self, task: Task):
         self._sem.wait_push(task, self._priority)
