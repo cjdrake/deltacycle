@@ -59,6 +59,9 @@ class Semaphore(KernelIf, Cancellable):
         self._cnt = value
         self._waiting = _WaitQ()
 
+    def __len__(self) -> int:
+        return self._cnt
+
     def wait_push(self, task: Task, priority: int):
         self._waiting.push((priority, task))
 

@@ -100,6 +100,7 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
 
+    .. automethod:: __len__
     .. automethod:: locked
     .. automethod:: req
     .. automethod:: put
