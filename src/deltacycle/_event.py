@@ -10,7 +10,7 @@ from ._kernel_if import KernelIf
 from ._task import Cancellable, Schedulable, Task, TaskQueue
 
 
-class _EventWaitQ(TaskQueue):
+class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -43,7 +43,7 @@ class Event(KernelIf, Schedulable, Cancellable):
 
     def __init__(self):
         self._flag = False
-        self._waiting = _EventWaitQ()
+        self._waiting = _WaitQ()
 
     def wait_push(self, task: Task):
         self._waiting.push(task)

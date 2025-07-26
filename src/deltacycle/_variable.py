@@ -13,7 +13,7 @@ from ._task import Cancellable, Schedulable, Task, TaskQueue
 type Predicate = Callable[[], bool]
 
 
-class _VarWaitQ(TaskQueue):
+class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -23,8 +23,8 @@ class _VarWaitQ(TaskQueue):
     def __bool__(self) -> bool:
         return bool(self._items)
 
-    def push(self, item: tuple[Predicate, Task]):
-        p, task = item
+    def push(self, item: tuple[Task, Predicate]):
+        task, p = item
         task._link(self)
         self._t2p[task] = p
 
@@ -55,10 +55,10 @@ class Variable(KernelIf, Schedulable, Cancellable):
     """
 
     def __init__(self):
-        self._waiting = _VarWaitQ()
+        self._waiting = _WaitQ()
 
     def wait_push(self, task: Task, p: Predicate):
-        self._waiting.push((p, task))
+        self._waiting.push((task, p))
 
     def __await__(self) -> Generator[None, Cancellable, Self]:
         task = self._kernel.task()

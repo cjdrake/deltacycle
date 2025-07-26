@@ -47,7 +47,7 @@ class TaskQueue(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
-class _TaskWaitQ(TaskQueue):
+class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -212,7 +212,7 @@ class Task(KernelIf, Schedulable, Cancellable):
         self._refcnts: Counter[TaskQueue] = Counter()
 
         # Other tasks waiting for this task to complete
-        self._waiting = _TaskWaitQ()
+        self._waiting = _WaitQ()
 
         # Flag to avoid multiple signals
         self._signal = False
