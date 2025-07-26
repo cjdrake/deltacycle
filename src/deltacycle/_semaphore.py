@@ -104,12 +104,12 @@ class Semaphore(KernelIf, Cancellable):
 
 
 class ReqSemaphore(Schedulable):
-    def __init__(self, s: Semaphore, p: int):
-        self._s = s
-        self._p = p
+    def __init__(self, sem: Semaphore, priority: int):
+        self._sem = sem
+        self._priority = priority
 
     async def __aenter__(self) -> Self:
-        await self._s.get(self._p)
+        await self._sem.get(self._priority)
         return self
 
     async def __aexit__(
@@ -118,17 +118,17 @@ class ReqSemaphore(Schedulable):
         exc: Exception,
         traceback: TracebackType,
     ):
-        self._s.put()
+        self._sem.put()
 
     def blocking(self) -> bool:
-        return self._s.locked()
+        return self._sem.locked()
 
     def schedule(self, task: Task):
-        self._s.wait_push(task, self._p)
+        self._sem.wait_push(task, self._priority)
 
     @property
     def c(self) -> Cancellable:
-        return self._s
+        return self._sem
 
 
 class BoundedSemaphore(Semaphore):

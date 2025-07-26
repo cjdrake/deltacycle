@@ -108,26 +108,26 @@ class Variable(KernelIf, Schedulable, Cancellable):
 class PredVar(Schedulable):
     """Predicated Variable."""
 
-    def __init__(self, v: Variable, p: Predicate):
-        self._v = v
+    def __init__(self, var: Variable, p: Predicate):
+        self._var = var
         self._p = p
 
     def __await__(self) -> Generator[None, Cancellable, Variable]:
-        task = self._v._kernel.task()
-        self._v.wait_push(task, self._p)
-        v = yield from self._v._kernel.switch_gen()
-        assert v is self._v
-        return self._v
+        task = self._var._kernel.task()
+        self._var.wait_push(task, self._p)
+        v = yield from self._var._kernel.switch_gen()
+        assert v is self._var
+        return self._var
 
     def blocking(self) -> bool:
         return True
 
     def schedule(self, task: Task):
-        self._v.wait_push(task, self._p)
+        self._var.wait_push(task, self._p)
 
     @property
     def c(self) -> Cancellable:
-        return self._v
+        return self._var
 
 
 class Value[T](ABC):
