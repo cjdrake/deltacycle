@@ -1,4 +1,4 @@
-"""TODO(cjdrake): Write docstring."""
+"""Test deltacycle.CreditPool"""
 
 from deltacycle import CreditPool, run
 
