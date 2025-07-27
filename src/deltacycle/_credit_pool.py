@@ -68,7 +68,7 @@ class CreditPool(KernelIf, Cancellable):
     def _has_capacity(self) -> bool:
         return self._capacity > 0
 
-    def wait_push(self, task: Task, n: int, priority: int):
+    def wait_push(self, priority: int, task: Task, n: int):
         self._waiting.push((priority, task, n))
 
     # NOTE: NOT Schedulable
@@ -109,7 +109,7 @@ class CreditPool(KernelIf, Cancellable):
             self._cnt -= n
         else:
             task = self._kernel.task()
-            self.wait_push(task, n, priority)
+            self.wait_push(priority, task, n)
             credits = await self._kernel.switch_coro()
             assert credits is self
 
@@ -136,7 +136,7 @@ class ReqCredit(Schedulable):
         if self._credits.try_get(self._n):
             return True
 
-        self._credits.wait_push(task, self._n, self._priority)
+        self._credits.wait_push(self._priority, task, self._n)
         return False
 
     @property

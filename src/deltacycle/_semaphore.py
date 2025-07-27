@@ -70,7 +70,7 @@ class Semaphore(KernelIf, Cancellable):
     def _has_capacity(self) -> bool:
         return self._capacity > 0
 
-    def wait_push(self, task: Task, priority: int):
+    def wait_push(self, priority: int, task: Task):
         self._waiting.push((priority, task))
 
     # NOTE: NOT Schedulable
@@ -109,7 +109,7 @@ class Semaphore(KernelIf, Cancellable):
             self._cnt -= 1
         else:
             task = self._kernel.task()
-            self.wait_push(task, priority)
+            self.wait_push(priority, task)
             s = await self._kernel.switch_coro()
             assert s is self
 
@@ -135,7 +135,7 @@ class ReqSemaphore(Schedulable):
         if self._sem.try_get():
             return True
 
-        self._sem.wait_push(task, self._priority)
+        self._sem.wait_push(self._priority, task)
         return False
 
     @property
