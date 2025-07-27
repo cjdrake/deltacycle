@@ -101,7 +101,6 @@ Synchronization Primitives
     :show-inheritance:
 
     .. automethod:: __len__
-    .. automethod:: locked
     .. automethod:: req
     .. automethod:: put
     .. automethod:: try_get
