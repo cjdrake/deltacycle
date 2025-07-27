@@ -6,7 +6,7 @@ from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
-from ._task import Cancellable, Task, TaskArgs, TaskCoro, TaskQueue
+from ._task import Cancelable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -25,7 +25,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, Cancellable | None, Cancellable | None]:
+    def __await__(self) -> Generator[None, Cancelable | None, Cancelable | None]:
         # Suspend
         value = yield
         # Resume
@@ -154,7 +154,7 @@ class Kernel:
         self._queue = _PendQ()
 
         # Serial Tasks
-        self._forks: dict[Task, set[Cancellable]] = {}
+        self._forks: dict[Task, set[Cancelable]] = {}
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -215,7 +215,7 @@ class Kernel:
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
-    async def switch_coro(self) -> Cancellable | None:
+    async def switch_coro(self) -> Cancelable | None:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -223,7 +223,7 @@ class Kernel:
         # Resume
         return value
 
-    def switch_gen(self) -> Generator[None, Cancellable, Cancellable]:
+    def switch_gen(self) -> Generator[None, Cancelable, Cancelable]:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -231,10 +231,10 @@ class Kernel:
         # Resume
         return value
 
-    def fork(self, task: Task, *cs: Cancellable):
+    def fork(self, task: Task, *cs: Cancelable):
         self._forks[task] = set(cs)
 
-    def join_any(self, task: Task, c: Cancellable):
+    def join_any(self, task: Task, c: Cancelable):
         if task in self._forks:
             cs = self._forks[task]
             cs.remove(c)

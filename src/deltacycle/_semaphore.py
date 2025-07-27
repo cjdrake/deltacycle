@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancellable, Schedulable, Task, TaskQueue
+from ._task import Cancelable, Schedulable, Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
@@ -48,7 +48,7 @@ class _WaitQ(TaskQueue):
         task._unlink(self)
 
 
-class Semaphore(KernelIf, Cancellable):
+class Semaphore(KernelIf, Cancelable):
     """Semaphore to synchronize tasks.
 
     Permits number of put() > resource count.
@@ -139,7 +139,7 @@ class ReqSemaphore(Schedulable):
         return False
 
     @property
-    def c(self) -> Cancellable:
+    def c(self) -> Cancelable:
         return self._sem
 
 

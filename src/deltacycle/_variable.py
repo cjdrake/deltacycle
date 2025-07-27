@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancellable, Schedulable, Task, TaskQueue
+from ._task import Cancelable, Schedulable, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
@@ -42,7 +42,7 @@ class _WaitQ(TaskQueue):
         self._items.extend(t for t, p in self._t2p.items() if p())
 
 
-class Variable(KernelIf, Schedulable, Cancellable):
+class Variable(KernelIf, Schedulable, Cancelable):
     """Model component.
 
     Children::
@@ -60,7 +60,7 @@ class Variable(KernelIf, Schedulable, Cancellable):
     def wait_push(self, task: Task, p: Predicate):
         self._waiting.push((task, p))
 
-    def __await__(self) -> Generator[None, Cancellable, Self]:
+    def __await__(self) -> Generator[None, Cancelable, Self]:
         task = self._kernel.task()
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
@@ -110,7 +110,7 @@ class PredVar(Schedulable):
         self._var = var
         self._p = p
 
-    def __await__(self) -> Generator[None, Cancellable, Variable]:
+    def __await__(self) -> Generator[None, Cancelable, Variable]:
         task = self._var._kernel.task()
         self._var.wait_push(task, self._p)
         v = yield from self._var._kernel.switch_gen()
@@ -122,7 +122,7 @@ class PredVar(Schedulable):
         return False
 
     @property
-    def c(self) -> Cancellable:
+    def c(self) -> Cancelable:
         return self._var
 
 

@@ -15,8 +15,8 @@ from ._kernel_if import KernelIf
 logger = logging.getLogger("deltacycle")
 
 
-type TaskCoro = Coroutine[None, Cancellable | None, Any]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Cancellable | Signal]
+type TaskCoro = Coroutine[None, Cancelable | None, Any]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Cancelable | Signal]
 
 
 class Signal(Exception):
@@ -80,11 +80,11 @@ class Schedulable(ABC):
         raise NotImplementedError()  # pragma: no cover
 
     @property
-    def c(self) -> Cancellable:
+    def c(self) -> Cancelable:
         raise NotImplementedError()  # pragma: no cover
 
 
-class Cancellable(ABC):
+class Cancelable(ABC):
     def cancel(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
@@ -95,11 +95,11 @@ class _Condition(KernelIf):
 
 
 class AllOf(_Condition):
-    def __await__(self) -> Generator[None, Cancellable, tuple[Cancellable, ...]]:
+    def __await__(self) -> Generator[None, Cancelable, tuple[Cancelable, ...]]:
         task = self._kernel.task()
 
-        todo: set[Cancellable] = set()
-        done: deque[Cancellable] = deque()
+        todo: set[Cancelable] = set()
+        done: deque[Cancelable] = deque()
 
         for sk in self._sks:
             if sk.schedule(task):
@@ -116,10 +116,10 @@ class AllOf(_Condition):
 
 
 class AnyOf(_Condition):
-    def __await__(self) -> Generator[None, Cancellable, Cancellable | None]:
+    def __await__(self) -> Generator[None, Cancelable, Cancelable | None]:
         task = self._kernel.task()
 
-        todo: set[Cancellable] = set()
+        todo: set[Cancelable] = set()
 
         for sk in self._sks:
             if sk.schedule(task):
@@ -136,7 +136,7 @@ class AnyOf(_Condition):
             return c
 
 
-class Task(KernelIf, Schedulable, Cancellable):
+class Task(KernelIf, Schedulable, Cancelable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -223,7 +223,7 @@ class Task(KernelIf, Schedulable, Cancellable):
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
-    def __await__(self) -> Generator[None, Cancellable, Any]:
+    def __await__(self) -> Generator[None, Cancelable, Any]:
         if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
@@ -321,7 +321,7 @@ class Task(KernelIf, Schedulable, Cancellable):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, Cancellable() as c):
+            case (self.Command.RESUME, Cancelable() as c):
                 y = self._coro.send(c)
             case (self.Command.SIGNAL, Signal() as s):
                 self._signal = False

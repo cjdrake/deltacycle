@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancellable, Schedulable, Task, TaskQueue
+from ._task import Cancelable, Schedulable, Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
@@ -51,7 +51,7 @@ class _WaitQ(TaskQueue):
         return self._items[0][-1]
 
 
-class CreditPool(KernelIf, Cancellable):
+class CreditPool(KernelIf, Cancelable):
     def __init__(self, value: int = 0, capacity: int = 0):
         self._capacity = capacity
         if value < 0:
@@ -140,5 +140,5 @@ class ReqCredit(Schedulable):
         return False
 
     @property
-    def c(self) -> Cancellable:
+    def c(self) -> Cancelable:
         return self._credits

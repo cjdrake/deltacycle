@@ -14,7 +14,7 @@ from ._semaphore import Lock, ReqSemaphore, Semaphore
 from ._task import (
     AllOf,
     AnyOf,
-    Cancellable,
+    Cancelable,
     Interrupt,
     Schedulable,
     Signal,
@@ -86,7 +86,7 @@ __all__ = [
     "Signal",
     "Interrupt",
     "Schedulable",
-    "Cancellable",
+    "Cancelable",
     "AnyOf",
     "AllOf",
     "Task",

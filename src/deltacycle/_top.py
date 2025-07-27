@@ -5,7 +5,7 @@ from collections.abc import Generator
 from typing import Any
 
 from ._kernel import Kernel
-from ._task import Cancellable, Schedulable, Task, TaskCoro
+from ._task import Cancelable, Schedulable, Task, TaskCoro
 
 _kernel: Kernel | None = None
 
@@ -175,11 +175,11 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(*sks: Schedulable) -> tuple[Cancellable, ...]:
+async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
     kernel, task = _get_kt()
 
-    todo: set[Cancellable] = set()
-    done: deque[Cancellable] = deque()
+    todo: set[Cancelable] = set()
+    done: deque[Cancelable] = deque()
 
     for sk in sks:
         if sk.schedule(task):
@@ -189,17 +189,17 @@ async def all_of(*sks: Schedulable) -> tuple[Cancellable, ...]:
 
     while todo:
         c = await kernel.switch_coro()
-        assert isinstance(c, Cancellable)
+        assert isinstance(c, Cancelable)
         todo.remove(c)
         done.append(c)
 
     return tuple(done)
 
 
-async def any_of(*sks: Schedulable) -> Cancellable | None:
+async def any_of(*sks: Schedulable) -> Cancelable | None:
     kernel, task = _get_kt()
 
-    todo: set[Cancellable] = set()
+    todo: set[Cancelable] = set()
 
     for sk in sks:
         if sk.schedule(task):
@@ -213,5 +213,5 @@ async def any_of(*sks: Schedulable) -> Cancellable | None:
     if todo:
         kernel.fork(task, *todo)
         c = await kernel.switch_coro()
-        assert isinstance(c, Cancellable)
+        assert isinstance(c, Cancelable)
         return c
