@@ -13,8 +13,10 @@ _kernel: Kernel | None = None
 def get_running_kernel() -> Kernel:
     """Return currently running kernel.
 
+    May be used by a simulation task to access kernel state.
+
     Returns:
-        Kernel instance
+        Kernel instance.
 
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
@@ -27,12 +29,30 @@ def get_running_kernel() -> Kernel:
 
 
 def get_kernel() -> Kernel | None:
-    """Get the current kernel."""
+    """Get the current kernel.
+
+    DeltaCycle only supports one simulation kernel at a time.
+    This function gets the handle to that kernel, which may be ``None``.
+
+    May be used by high level code to manage multiple kernels.
+
+    Returns:
+        Kernel instance or ``None``.
+    """
     return _kernel
 
 
 def set_kernel(kernel: Kernel | None = None):
-    """Set the current kernel."""
+    """Set the current kernel.
+
+    DeltaCycle only supports one simulation kernel at a time.
+    This function sets the handle to that kernel, which may be ``None``.
+
+    May be used by high level code to manage multiple kernels.
+
+    Args:
+        kernel: Kernel instance or ``None``.
+    """
     global _kernel  # noqa: PLW0603
     _kernel = kernel
 
@@ -47,7 +67,7 @@ def get_current_task() -> Task:
     """Return currently running task.
 
     Returns:
-        Task instance
+        Task instance.
 
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
@@ -61,7 +81,23 @@ def create_task(
     name: str | None = None,
     priority: int = 0,
 ) -> Task:
-    """Create a task, and schedule it to start soon."""
+    """Create a task, and schedule it to start soon.
+
+    Args:
+        coro: Coroutine function instance.
+        name: Identify the task for logging/debugging purposes.
+            Overrides the ``taskName`` attribute in Python's ``logging.LogRecord``.
+            If not given, a default name like ``Task-{index}`` will be assigned.
+            Not guaranteed to be unique.
+        priority: Specify task execution order within the same timeslot.
+            A lower number indicates higher priority.
+
+    Returns:
+        Created Task instance.
+
+    Raises:
+        RuntimeError: No kernel, or kernel is not currently running.
+    """
     kernel = get_running_kernel()
     return kernel.create_task(coro, name, priority)
 
@@ -70,7 +106,7 @@ def now() -> int:
     """Return current simulation time.
 
     Returns:
-        int time
+        Current simulation time.
 
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
@@ -101,12 +137,12 @@ def run(
 ) -> Any:
     """Run a simulation.
 
-    If a simulation hits the run limit, it will exit and return None.
+    If a simulation hits the run limit, it will exit and return ``None``.
     That simulation may be resumed any number of times.
     If all tasks are exhausted, return the main coroutine result.
 
     Args:
-        coro: Optional main coroutine.
+        coro: Main coroutine function instance.
             Required if creating a new kernel.
             Ignored if using an existing kernel.
         kernel: Optional Kernel instance.
@@ -121,8 +157,7 @@ def run(
         Otherwise, return ``None``.
 
     Raises:
-        ValueError: Creating a new kernel, but no coro provided.
-        TypeError: ticks and until args conflict.
+        ValueError: Creating a new kernel, but no main coroutine provided.
         RuntimeError: The kernel is in an invalid state.
     """
     kernel = _run_pre(coro, kernel)
@@ -143,21 +178,20 @@ def step(
     If all tasks are exhausted, return the main coroutine result.
 
     Args:
-        coro: Optional main coroutine.
+        coro: Main coroutine function instance.
             Required if creating a new kernel.
             Ignored if using an existing kernel.
         kernel: Optional Kernel instance.
             If not provided, a new kernel will be created.
 
     Yields:
-        int time immediately *before* the next time slot executes.
+        Time immediately *before* the next time slot executes.
 
     Returns:
-        main coroutine result.
+        Main coroutine result.
 
     Raises:
-        ValueError: Creating a new kernel, but no coro provided.
-        TypeError: ticks and until args conflict.
+        ValueError: Creating a new kernel, but no main coroutine provided.
         RuntimeError: The kernel is in an invalid state.
     """
     kernel = _run_pre(coro, kernel)
@@ -168,7 +202,7 @@ def step(
 
 
 async def sleep(delay: int):
-    """Suspend the task, and wake up after a delay."""
+    """Suspend the current task, and wake up after a delay."""
     kernel, task = _get_kt()
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
     y = await kernel.switch_coro()
@@ -176,6 +210,14 @@ async def sleep(delay: int):
 
 
 async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
+    """Block forward progress until all items are unblocked.
+
+    Args:
+        sks: Sequence of schedulable items.
+
+    Returns:
+        Return a tuple of items in unblocking order.
+    """
     kernel, task = _get_kt()
 
     todo: set[Cancelable] = set()
@@ -197,6 +239,15 @@ async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
 
 
 async def any_of(*sks: Schedulable) -> Cancelable | None:
+    """Block forward progress until at least one item is unblocked.
+
+    Args:
+        sks: Sequence of schedulable items.
+
+    Returns:
+        If the input is empty, return ``None``.
+        Otherwise, return the item that unblocked first.
+    """
     if not sks:
         return None
 
