@@ -133,7 +133,7 @@ Scheduling
 ==========
 
 .. autoclass:: deltacycle.Schedulable
-.. autoclass:: deltacycle.Cancellable
+.. autoclass:: deltacycle.Cancelable
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf
