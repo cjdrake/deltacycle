@@ -76,11 +76,6 @@ def test_limits(caplog: LogCaptureFixture):
     run(kernel=kernel, ticks=102, until=401)
     assert kernel.time() == 400
 
-    with pytest.raises(TypeError):
-        run(kernel=kernel, ticks=101.0, until=501)  # pyright: ignore[reportArgumentType]
-    with pytest.raises(TypeError):
-        run(kernel=kernel, ticks=101, until=501.0)  # pyright: ignore[reportArgumentType]
-
 
 def test_nocoro():
     with pytest.raises(ValueError):

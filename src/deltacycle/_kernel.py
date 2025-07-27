@@ -349,22 +349,15 @@ class Kernel:
 
     def __call__(self, ticks: int | None = None, until: int | None = None):
         # Determine the run limit
-        match ticks, until:
-            # Run until no tasks left
-            case None, None:
-                limit = None
-            # Run until an absolute time
-            case None, int():
-                limit = until
-            # Run until a number of ticks in the future
-            case int(), None:
-                limit = max(self.start_time, self._time) + ticks
-            case int(), int():
-                limit = max(self.start_time, self._time) + ticks
+        if ticks is None:
+            # Run until absolute limit, or no tasks left
+            limit = until if until is not None else None
+        else:
+            # Run until relative limit
+            limit = max(self.start_time, self._time) + ticks
+            if until is not None:
+                # Both relative & absolute given; clamp to soonest
                 limit = min(limit, until)
-            case _:
-                s = "Expected either ticks or until to be int | None"
-                raise TypeError(s)
 
         self._call(limit)
 
