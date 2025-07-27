@@ -8,6 +8,17 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.25.0
+==============
+
+* Added ``any_of`` and ``all_of`` top-level async funtions.
+* Renamed ``Request`` class to ``ReqSemaphore``.
+* Added a ``CreditPool`` type, similar to ``Semaphore``,
+  but supports put/get multiple credits.
+* ``Semaphore`` now implements ``__len__``, removed ``locked`` method.
+* Removed ``BoundedSemaphore`` class. Functionality incorporated into ``Semaphore``.
+
+
 Version 0.24.0
 ==============
 
