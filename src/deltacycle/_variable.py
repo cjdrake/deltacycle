@@ -43,7 +43,11 @@ class _WaitQ(TaskQueue):
 
 
 class Variable(KernelIf, Blocking, Sendable):
-    """Model component.
+    """Model component that changes over time.
+
+    The instantaneous state of a simulation is represented by a collection of variables.
+
+    There are two types of variables: *singular*, and *aggregate*.
 
     Children::
 
@@ -52,6 +56,14 @@ class Variable(KernelIf, Blocking, Sendable):
            +------+------+
            |             |
         Singular     Aggregate
+
+    * A singular variable has one *value*.
+    * An aggregate variable is a mapping of key, *value* pairs.
+
+    Variables are *always* blocking.
+    Tasks may schedule updates to variables.
+    Changes to variable values may unblock tasks,
+    which may in turn schedule updates to other variables.
     """
 
     def __init__(self):
@@ -61,24 +73,21 @@ class Variable(KernelIf, Blocking, Sendable):
         self._waiting.push((task, p))
 
     def __await__(self) -> Generator[None, Sendable, Self]:
+        """Await variable change:
+
+        For variable ``v``:
+
+        1. Suspend the current task.
+        2. When another task invokes ``v.set_next(...)`` *and*
+           ``v.changed()`` evaluates to ``True``,
+           unblock all tasks waiting for that event.
+        """
         task = self._kernel.task()
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
         v = yield from self._kernel.switch_gen()
         assert v is self
         return self
-
-    def try_block(self, task: Task) -> bool:
-        # NOTE: Use default predicate
-        self.wait_push(task, self.changed)
-        return True
-
-    @property
-    def s(self) -> Variable:
-        return self
-
-    def cancel(self, task: Task):
-        self._waiting.drop(task)
 
     def _set(self):
         self._waiting.load()
@@ -92,6 +101,14 @@ class Variable(KernelIf, Blocking, Sendable):
         self._kernel.touch(self)
 
     def pred(self, p: Predicate) -> PredVar:
+        """Return blocking, predicated variable.
+
+        Args:
+            p: Prediate function w/ no args and ``bool`` return type.
+
+        Returns:
+            Predicated Variable (``PredVar``) object.
+        """
         return PredVar(self, p)
 
     def changed(self) -> bool:
@@ -99,24 +116,60 @@ class Variable(KernelIf, Blocking, Sendable):
         raise NotImplementedError()  # pragma: no cover
 
     def update(self) -> None:
-        """Kernel callback."""
         raise NotImplementedError()  # pragma: no cover
+
+    # Blocking
+    def try_block(self, task: Task) -> bool:
+        # NOTE: Use default predicate
+        self.wait_push(task, self.changed)
+        return True
+
+    @property
+    def s(self) -> Variable:
+        return self
+
+    # Sendable
+    def cancel(self, task: Task):
+        self._waiting.drop(task)
 
 
 class PredVar(Blocking):
-    """Predicated Variable."""
+    """Predicated Variable.
+
+    A lightweight wrapper around a Variable instance.
+    Implements ``Awaitable`` and ``Blocking``.
+    Can be used in ``await``, ``await AllOf`` and ``await AnyOf`` statements.
+
+    Predicate functions allow fine-grained control of variable dependencies.
+    Sometimes waiting tasks can be woken up when there is any change to the
+    variables's value. However, it is often desirable to only trigger on
+    particular types of changes. For example, in digital logic a flip-flop
+    might only update its state when 1) reset is inactive, 2) clock is
+    transitioning from low to high (a positive edge), AND 3) a data enable
+    signal is active. A predicate function may be used to evaluate when
+    those conditions are all true.
+    """
 
     def __init__(self, var: Variable, p: Predicate):
         self._var = var
         self._p = p
 
     def __await__(self) -> Generator[None, Sendable, Variable]:
+        """Await variable change:
+
+        For variable ``v``, and predicate function ``p``:
+
+        1. Suspend the current task.
+        2. When another task invokes ``v.set_next(...)`` *and* ``p`` evaluates
+           to ``True``, unblock all tasks waiting for that event.
+        """
         task = self._var._kernel.task()
         self._var.wait_push(task, self._p)
         v = yield from self._var._kernel.switch_gen()
         assert v is self._var
         return self._var
 
+    # Blocking
     def try_block(self, task: Task) -> bool:
         self._var.wait_push(task, self._p)
         return True
@@ -130,11 +183,13 @@ class Value[T](ABC):
     """Variable value."""
 
     def get_prev(self) -> T:
+        """Return value at the end of the previous timeslot."""
         raise NotImplementedError()  # pragma: no cover
 
     prev = property(fget=get_prev)
 
     def set_next(self, value: T) -> None:
+        """Schedule update to value in the current timeslot."""
         raise NotImplementedError()  # pragma: no cover
 
     next = property(fset=set_next)
@@ -166,6 +221,11 @@ class Singular[T](Variable, Value[T]):
 
     # Variable
     def get_value(self) -> T:
+        """Return present value.
+
+        When performing multiple updates to a variable during the same timeslot,
+        this method will always return the value of the *latest* update.
+        """
         return self._next
 
     value = property(fget=get_value)
@@ -191,6 +251,7 @@ class Aggregate[T](Variable):
         return AggrItem(self, key)
 
     def get_prev(self, key: Hashable) -> T:
+        """Return value at the end of the previous timeslot."""
         return self._prevs[key]
 
     def get_next(self, key: Hashable) -> T:
@@ -200,6 +261,7 @@ class Aggregate[T](Variable):
             return self._prevs[key]
 
     def set_next(self, key: Hashable, value: T):
+        """Schedule update to value in the current timeslot."""
         if value != self.get_next(key):
             self._nexts[key] = value
 
@@ -208,6 +270,11 @@ class Aggregate[T](Variable):
 
     # Variable
     def get_value(self) -> AggrValue[T]:
+        """Return present value.
+
+        When performing multiple updates to a variable during the same timeslot,
+        this method will always return the value of the *latest* update.
+        """
         return AggrValue(self)
 
     value = property(fget=get_value)

@@ -14,7 +14,6 @@ Variables
     .. automethod:: __await__
     .. automethod:: pred
     .. automethod:: changed
-    .. automethod:: update
 
 .. autoclass:: deltacycle.PredVar
 
