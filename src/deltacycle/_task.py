@@ -98,21 +98,21 @@ class AllOf(_Condition):
     def __await__(self) -> Generator[None, Cancelable, tuple[Cancelable, ...]]:
         task = self._kernel.task()
 
-        todo: set[Cancelable] = set()
-        done: deque[Cancelable] = deque()
+        blocked: set[Cancelable] = set()
+        unblocked: deque[Cancelable] = deque()
 
         for b in self._bs:
             if b.try_block(task):
-                todo.add(b.c)
+                blocked.add(b.c)
             else:
-                done.append(b.c)
+                unblocked.append(b.c)
 
-        while todo:
+        while blocked:
             c = yield from self._kernel.switch_gen()
-            todo.remove(c)
-            done.append(c)
+            blocked.remove(c)
+            unblocked.append(c)
 
-        return tuple(done)
+        return tuple(unblocked)
 
 
 class AnyOf(_Condition):
@@ -122,18 +122,18 @@ class AnyOf(_Condition):
 
         task = self._kernel.task()
 
-        todo: set[Cancelable] = set()
+        blocked: set[Cancelable] = set()
 
         for b in self._bs:
             if b.try_block(task):
-                todo.add(b.c)
+                blocked.add(b.c)
             else:
-                while todo:
-                    c = todo.pop()
+                while blocked:
+                    c = blocked.pop()
                     c.cancel(task)
                 return b.c
 
-        self._kernel.fork(task, *todo)
+        self._kernel.fork(task, *blocked)
         c = yield from self._kernel.switch_gen()
         return c
 

@@ -220,22 +220,22 @@ async def all_of(*bs: Blocking) -> tuple[Cancelable, ...]:
     """
     kernel, task = _get_kt()
 
-    todo: set[Cancelable] = set()
-    done: deque[Cancelable] = deque()
+    blocked: set[Cancelable] = set()
+    unblocked: deque[Cancelable] = deque()
 
     for b in bs:
         if b.try_block(task):
-            todo.add(b.c)
+            blocked.add(b.c)
         else:
-            done.append(b.c)
+            unblocked.append(b.c)
 
-    while todo:
+    while blocked:
         c = await kernel.switch_coro()
         assert isinstance(c, Cancelable)
-        todo.remove(c)
-        done.append(c)
+        blocked.remove(c)
+        unblocked.append(c)
 
-    return tuple(done)
+    return tuple(unblocked)
 
 
 async def any_of(*bs: Blocking) -> Cancelable | None:
@@ -253,18 +253,18 @@ async def any_of(*bs: Blocking) -> Cancelable | None:
 
     kernel, task = _get_kt()
 
-    todo: set[Cancelable] = set()
+    blocked: set[Cancelable] = set()
 
     for b in bs:
         if b.try_block(task):
-            todo.add(b.c)
+            blocked.add(b.c)
         else:
-            while todo:
-                c = todo.pop()
+            while blocked:
+                c = blocked.pop()
                 c.cancel(task)
             return b.c
 
-    kernel.fork(task, *todo)
+    kernel.fork(task, *blocked)
     c = await kernel.switch_coro()
     assert isinstance(c, Cancelable)
     return c
