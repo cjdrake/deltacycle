@@ -76,10 +76,7 @@ class _WaitQ(TaskQueue):
 
 
 class Schedulable(ABC):
-    def blocking(self) -> bool:
-        raise NotImplementedError()  # pragma: no cover
-
-    def schedule(self, task: Task) -> None:
+    def schedule(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
     @property
@@ -103,12 +100,12 @@ class AllOf(_Condition):
 
         todo: set[Cancellable] = set()
         done: deque[Cancellable] = deque()
+
         for sk in self._sks:
-            if sk.blocking():
-                todo.add(sk.c)
-                sk.schedule(task)
-            else:
+            if sk.schedule(task):
                 done.append(sk.c)
+            else:
+                todo.add(sk.c)
 
         while todo:
             c = yield from self._kernel.switch_gen()
@@ -120,24 +117,23 @@ class AllOf(_Condition):
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Cancellable, Cancellable | None]:
-        # Empty
-        if not self._sks:
-            return None
-
-        # Return first non-blocking
-        for sk in self._sks:
-            if not sk.blocking():
-                return sk.c
-
-        # All blocking: fork=>join
         task = self._kernel.task()
-        todo: list[Cancellable] = []
+
+        todo: set[Cancellable] = set()
+
         for sk in self._sks:
-            todo.append(sk.c)
-            sk.schedule(task)
-        self._kernel.fork(task, *todo)
-        c = yield from self._kernel.switch_gen()
-        return c
+            if sk.schedule(task):
+                while todo:
+                    c = todo.pop()
+                    c.cancel(task)
+                return sk.c
+            else:
+                todo.add(sk.c)
+
+        if todo:
+            self._kernel.fork(task, *todo)
+            c = yield from self._kernel.switch_gen()
+            return c
 
 
 class Task(KernelIf, Schedulable, Cancellable):
@@ -233,11 +229,12 @@ class Task(KernelIf, Schedulable, Cancellable):
 
         return self.result()
 
-    def blocking(self) -> bool:
-        return not self.done()
+    def schedule(self, task: Task) -> bool:
+        if self.done():
+            return True
 
-    def schedule(self, task: Task):
         self.wait_push(task)
+        return False
 
     @property
     def c(self) -> Task:

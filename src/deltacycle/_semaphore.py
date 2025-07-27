@@ -131,11 +131,12 @@ class ReqSemaphore(Schedulable):
     ):
         self._sem.put()
 
-    def blocking(self) -> bool:
-        return len(self._sem) == 0
+    def schedule(self, task: Task) -> bool:
+        if self._sem.try_get():
+            return True
 
-    def schedule(self, task: Task):
         self._sem.wait_push(task, self._priority)
+        return False
 
     @property
     def c(self) -> Cancellable:

@@ -132,11 +132,12 @@ class ReqCredit(Schedulable):
     ):
         self._credits.put(self._n)
 
-    def blocking(self) -> bool:
-        return len(self._credits) < self._n
+    def schedule(self, task: Task) -> bool:
+        if self._credits.try_get(self._n):
+            return True
 
-    def schedule(self, task: Task):
         self._credits.wait_push(task, self._n, self._priority)
+        return False
 
     @property
     def c(self) -> Cancellable:
