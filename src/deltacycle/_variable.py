@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancelable, Schedulable, Task, TaskQueue
+from ._task import Blocking, Cancelable, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
@@ -42,7 +42,7 @@ class _WaitQ(TaskQueue):
         self._items.extend(t for t, p in self._t2p.items() if p())
 
 
-class Variable(KernelIf, Schedulable, Cancelable):
+class Variable(KernelIf, Blocking, Cancelable):
     """Model component.
 
     Children::
@@ -103,7 +103,7 @@ class Variable(KernelIf, Schedulable, Cancelable):
         raise NotImplementedError()  # pragma: no cover
 
 
-class PredVar(Schedulable):
+class PredVar(Blocking):
     """Predicated Variable."""
 
     def __init__(self, var: Variable, p: Predicate):

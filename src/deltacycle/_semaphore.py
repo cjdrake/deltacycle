@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancelable, Schedulable, Task, TaskQueue
+from ._task import Blocking, Cancelable, Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
@@ -73,7 +73,7 @@ class Semaphore(KernelIf, Cancelable):
     def wait_push(self, priority: int, task: Task):
         self._waiting.push((priority, task))
 
-    # NOTE: NOT Schedulable
+    # NOTE: NOT Blocking
 
     def cancel(self, task: Task):
         self._waiting.drop(task)
@@ -114,7 +114,7 @@ class Semaphore(KernelIf, Cancelable):
             assert s is self
 
 
-class ReqSemaphore(Schedulable):
+class ReqSemaphore(Blocking):
     def __init__(self, sem: Semaphore, priority: int):
         self._sem = sem
         self._priority = priority

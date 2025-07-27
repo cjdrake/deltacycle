@@ -8,7 +8,7 @@ from types import TracebackType
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Cancelable, Schedulable, Task, TaskQueue
+from ._task import Blocking, Cancelable, Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
@@ -71,7 +71,7 @@ class CreditPool(KernelIf, Cancelable):
     def wait_push(self, priority: int, task: Task, n: int):
         self._waiting.push((priority, task, n))
 
-    # NOTE: NOT Schedulable
+    # NOTE: NOT Blocking
 
     def cancel(self, task: Task):
         self._waiting.drop(task)
@@ -114,7 +114,7 @@ class CreditPool(KernelIf, Cancelable):
             assert credits is self
 
 
-class ReqCredit(Schedulable):
+class ReqCredit(Blocking):
     def __init__(self, credits: CreditPool, n: int, priority: int):
         self._credits = credits
         self._n = n

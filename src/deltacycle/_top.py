@@ -5,7 +5,7 @@ from collections.abc import Generator
 from typing import Any
 
 from ._kernel import Kernel
-from ._task import Cancelable, Schedulable, Task, TaskCoro
+from ._task import Blocking, Cancelable, Task, TaskCoro
 
 _kernel: Kernel | None = None
 
@@ -209,11 +209,11 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
+async def all_of(*bs: Blocking) -> tuple[Cancelable, ...]:
     """Block forward progress until all items are unblocked.
 
     Args:
-        sks: Sequence of schedulable items.
+        bs: Sequence of blocking items.
 
     Returns:
         Return a tuple of items in unblocking order.
@@ -223,11 +223,11 @@ async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
     todo: set[Cancelable] = set()
     done: deque[Cancelable] = deque()
 
-    for sk in sks:
-        if sk.schedule(task):
-            done.append(sk.c)
+    for b in bs:
+        if b.schedule(task):
+            done.append(b.c)
         else:
-            todo.add(sk.c)
+            todo.add(b.c)
 
     while todo:
         c = await kernel.switch_coro()
@@ -238,31 +238,31 @@ async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
     return tuple(done)
 
 
-async def any_of(*sks: Schedulable) -> Cancelable | None:
+async def any_of(*bs: Blocking) -> Cancelable | None:
     """Block forward progress until at least one item is unblocked.
 
     Args:
-        sks: Sequence of schedulable items.
+        bs: Sequence of blocking items.
 
     Returns:
         If the input is empty, return ``None``.
         Otherwise, return the item that unblocked first.
     """
-    if not sks:
+    if not bs:
         return None
 
     kernel, task = _get_kt()
 
     todo: set[Cancelable] = set()
 
-    for sk in sks:
-        if sk.schedule(task):
+    for b in bs:
+        if b.schedule(task):
             while todo:
                 c = todo.pop()
                 c.cancel(task)
-            return sk.c
+            return b.c
         else:
-            todo.add(sk.c)
+            todo.add(b.c)
 
     kernel.fork(task, *todo)
     c = await kernel.switch_coro()

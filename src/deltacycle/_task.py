@@ -75,7 +75,7 @@ class _WaitQ(TaskQueue):
         self._items.extend(self._tasks)
 
 
-class Schedulable(ABC):
+class Blocking(ABC):
     def schedule(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
@@ -90,8 +90,8 @@ class Cancelable(ABC):
 
 
 class _Condition(KernelIf):
-    def __init__(self, *sks: Schedulable):
-        self._sks = sks
+    def __init__(self, *bs: Blocking):
+        self._bs = bs
 
 
 class AllOf(_Condition):
@@ -101,11 +101,11 @@ class AllOf(_Condition):
         todo: set[Cancelable] = set()
         done: deque[Cancelable] = deque()
 
-        for sk in self._sks:
-            if sk.schedule(task):
-                done.append(sk.c)
+        for b in self._bs:
+            if b.schedule(task):
+                done.append(b.c)
             else:
-                todo.add(sk.c)
+                todo.add(b.c)
 
         while todo:
             c = yield from self._kernel.switch_gen()
@@ -117,28 +117,28 @@ class AllOf(_Condition):
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Cancelable, Cancelable | None]:
-        if not self._sks:
+        if not self._bs:
             return None
 
         task = self._kernel.task()
 
         todo: set[Cancelable] = set()
 
-        for sk in self._sks:
-            if sk.schedule(task):
+        for b in self._bs:
+            if b.schedule(task):
                 while todo:
                     c = todo.pop()
                     c.cancel(task)
-                return sk.c
+                return b.c
             else:
-                todo.add(sk.c)
+                todo.add(b.c)
 
         self._kernel.fork(task, *todo)
         c = yield from self._kernel.switch_gen()
         return c
 
 
-class Task(KernelIf, Schedulable, Cancelable):
+class Task(KernelIf, Blocking, Cancelable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.

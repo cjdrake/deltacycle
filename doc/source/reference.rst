@@ -132,7 +132,7 @@ Synchronization Primitives
 Scheduling
 ==========
 
-.. autoclass:: deltacycle.Schedulable
+.. autoclass:: deltacycle.Blocking
 .. autoclass:: deltacycle.Cancelable
 
 .. autoclass:: deltacycle.AllOf
