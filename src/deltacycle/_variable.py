@@ -68,10 +68,10 @@ class Variable(KernelIf, Blocking, Cancelable):
         assert v is self
         return self
 
-    def schedule(self, task: Task) -> bool:
+    def try_block(self, task: Task) -> bool:
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
-        return False
+        return True
 
     @property
     def c(self) -> Variable:
@@ -117,9 +117,9 @@ class PredVar(Blocking):
         assert v is self._var
         return self._var
 
-    def schedule(self, task: Task) -> bool:
+    def try_block(self, task: Task) -> bool:
         self._var.wait_push(task, self._p)
-        return False
+        return True
 
     @property
     def c(self) -> Cancelable:

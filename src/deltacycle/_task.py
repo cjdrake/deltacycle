@@ -76,7 +76,7 @@ class _WaitQ(TaskQueue):
 
 
 class Blocking(ABC):
-    def schedule(self, task: Task) -> bool:
+    def try_block(self, task: Task) -> bool:
         raise NotImplementedError()  # pragma: no cover
 
     @property
@@ -102,10 +102,10 @@ class AllOf(_Condition):
         done: deque[Cancelable] = deque()
 
         for b in self._bs:
-            if b.schedule(task):
-                done.append(b.c)
-            else:
+            if b.try_block(task):
                 todo.add(b.c)
+            else:
+                done.append(b.c)
 
         while todo:
             c = yield from self._kernel.switch_gen()
@@ -125,13 +125,13 @@ class AnyOf(_Condition):
         todo: set[Cancelable] = set()
 
         for b in self._bs:
-            if b.schedule(task):
+            if b.try_block(task):
+                todo.add(b.c)
+            else:
                 while todo:
                     c = todo.pop()
                     c.cancel(task)
                 return b.c
-            else:
-                todo.add(b.c)
 
         self._kernel.fork(task, *todo)
         c = yield from self._kernel.switch_gen()
@@ -234,11 +234,10 @@ class Task(KernelIf, Blocking, Cancelable):
 
         return self.result()
 
-    def schedule(self, task: Task) -> bool:
-        if not self._blocking():
+    def try_block(self, task: Task) -> bool:
+        if self._blocking():
+            self.wait_push(task)
             return True
-
-        self.wait_push(task)
         return False
 
     @property

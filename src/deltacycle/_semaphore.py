@@ -131,12 +131,12 @@ class ReqSemaphore(Blocking):
     ):
         self._sem.put()
 
-    def schedule(self, task: Task) -> bool:
+    def try_block(self, task: Task) -> bool:
         if self._sem.try_get():
-            return True
+            return False
 
         self._sem.wait_push(self._priority, task)
-        return False
+        return True
 
     @property
     def c(self) -> Cancelable:

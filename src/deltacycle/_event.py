@@ -60,11 +60,10 @@ class Event(KernelIf, Blocking, Cancelable):
 
         return self
 
-    def schedule(self, task: Task) -> bool:
-        if not self._blocking():
+    def try_block(self, task: Task) -> bool:
+        if self._blocking():
+            self.wait_push(task)
             return True
-
-        self.wait_push(task)
         return False
 
     @property

@@ -224,10 +224,10 @@ async def all_of(*bs: Blocking) -> tuple[Cancelable, ...]:
     done: deque[Cancelable] = deque()
 
     for b in bs:
-        if b.schedule(task):
-            done.append(b.c)
-        else:
+        if b.try_block(task):
             todo.add(b.c)
+        else:
+            done.append(b.c)
 
     while todo:
         c = await kernel.switch_coro()
@@ -256,13 +256,13 @@ async def any_of(*bs: Blocking) -> Cancelable | None:
     todo: set[Cancelable] = set()
 
     for b in bs:
-        if b.schedule(task):
+        if b.try_block(task):
+            todo.add(b.c)
+        else:
             while todo:
                 c = todo.pop()
                 c.cancel(task)
             return b.c
-        else:
-            todo.add(b.c)
 
     kernel.fork(task, *todo)
     c = await kernel.switch_coro()
