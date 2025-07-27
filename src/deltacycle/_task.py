@@ -117,6 +117,9 @@ class AllOf(_Condition):
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Cancelable, Cancelable | None]:
+        if not self._sks:
+            return None
+
         task = self._kernel.task()
 
         todo: set[Cancelable] = set()
@@ -130,10 +133,9 @@ class AnyOf(_Condition):
             else:
                 todo.add(sk.c)
 
-        if todo:
-            self._kernel.fork(task, *todo)
-            c = yield from self._kernel.switch_gen()
-            return c
+        self._kernel.fork(task, *todo)
+        c = yield from self._kernel.switch_gen()
+        return c
 
 
 class Task(KernelIf, Schedulable, Cancelable):

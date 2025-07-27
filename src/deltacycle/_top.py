@@ -197,6 +197,9 @@ async def all_of(*sks: Schedulable) -> tuple[Cancelable, ...]:
 
 
 async def any_of(*sks: Schedulable) -> Cancelable | None:
+    if not sks:
+        return None
+
     kernel, task = _get_kt()
 
     todo: set[Cancelable] = set()
@@ -210,8 +213,7 @@ async def any_of(*sks: Schedulable) -> Cancelable | None:
         else:
             todo.add(sk.c)
 
-    if todo:
-        kernel.fork(task, *todo)
-        c = await kernel.switch_coro()
-        assert isinstance(c, Cancelable)
-        return c
+    kernel.fork(task, *todo)
+    c = await kernel.switch_coro()
+    assert isinstance(c, Cancelable)
+    return c
