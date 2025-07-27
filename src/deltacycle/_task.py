@@ -217,11 +217,14 @@ class Task(KernelIf, Schedulable, Cancellable):
         self._result: Any = None
         self._exception: Exception | None = None
 
+    def _blocking(self) -> bool:
+        return not self.done()
+
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
     def __await__(self) -> Generator[None, Cancellable, Any]:
-        if not self.done():
+        if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
             t = yield from self._kernel.switch_gen()
@@ -230,7 +233,7 @@ class Task(KernelIf, Schedulable, Cancellable):
         return self.result()
 
     def schedule(self, task: Task) -> bool:
-        if self.done():
+        if not self._blocking():
             return True
 
         self.wait_push(task)

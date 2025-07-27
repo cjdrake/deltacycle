@@ -45,11 +45,14 @@ class Event(KernelIf, Schedulable, Cancellable):
         self._flag = False
         self._waiting = _WaitQ()
 
+    def _blocking(self) -> bool:
+        return not self._flag
+
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
     def __await__(self) -> Generator[None, Cancellable, Self]:
-        if not self._flag:
+        if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
             e = yield from self._kernel.switch_gen()
@@ -58,7 +61,7 @@ class Event(KernelIf, Schedulable, Cancellable):
         return self
 
     def schedule(self, task: Task) -> bool:
-        if self._flag:
+        if not self._blocking():
             return True
 
         self.wait_push(task)
