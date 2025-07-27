@@ -98,7 +98,7 @@ class Variable(KernelIf, Blocking, Sendable):
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
         # Add variable to update set
-        self._kernel.touch(self)
+        self._kernel.touch_var(self)
 
     def pred(self, p: Predicate) -> PredVar:
         """Return blocking, predicated variable.

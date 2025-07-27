@@ -157,7 +157,7 @@ class Kernel:
         self._forks: dict[Task, set[Sendable]] = {}
 
         # Model variables
-        self._touched: set[Variable] = set()
+        self._dirty_vars: set[Variable] = set()
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]
@@ -243,12 +243,12 @@ class Kernel:
                 s.cancel(task)
             del self._forks[task]
 
-    def touch(self, v: Variable):
-        self._touched.add(v)
+    def touch_var(self, v: Variable):
+        self._dirty_vars.add(v)
 
-    def _update(self):
-        while self._touched:
-            v = self._touched.pop()
+    def _update_vars(self):
+        while self._dirty_vars:
+            v = self._dirty_vars.pop()
             v.update()
 
     def _start(self):
@@ -273,7 +273,7 @@ class Kernel:
     def _finish(self):
         self._queue.clear()
         self._forks.clear()
-        self._touched.clear()
+        self._dirty_vars.clear()
         self._set_state(self.State.FINISHED)
 
     def _call(self, limit: int | None):
@@ -307,7 +307,7 @@ class Kernel:
                     task._do_except(exc)
 
             # Update simulation state
-            self._update()
+            self._update_vars()
 
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
@@ -342,7 +342,7 @@ class Kernel:
                     task._do_except(exc)
 
             # Update simulation state
-            self._update()
+            self._update_vars()
 
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
