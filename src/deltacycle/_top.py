@@ -5,7 +5,7 @@ from collections.abc import Generator
 from typing import Any
 
 from ._kernel import Kernel
-from ._task import Blocking, Cancelable, Task, TaskCoro
+from ._task import Blocking, Sendable, Task, TaskCoro
 
 _kernel: Kernel | None = None
 
@@ -209,7 +209,7 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(*bs: Blocking) -> tuple[Cancelable, ...]:
+async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
     """Block forward progress until all items are unblocked.
 
     Args:
@@ -220,25 +220,25 @@ async def all_of(*bs: Blocking) -> tuple[Cancelable, ...]:
     """
     kernel, task = _get_kt()
 
-    blocked: set[Cancelable] = set()
-    unblocked: deque[Cancelable] = deque()
+    blocked: set[Sendable] = set()
+    unblocked: deque[Sendable] = deque()
 
     for b in bs:
         if b.try_block(task):
-            blocked.add(b.c)
+            blocked.add(b.s)
         else:
-            unblocked.append(b.c)
+            unblocked.append(b.s)
 
     while blocked:
-        c = await kernel.switch_coro()
-        assert isinstance(c, Cancelable)
-        blocked.remove(c)
-        unblocked.append(c)
+        s = await kernel.switch_coro()
+        assert isinstance(s, Sendable)
+        blocked.remove(s)
+        unblocked.append(s)
 
     return tuple(unblocked)
 
 
-async def any_of(*bs: Blocking) -> Cancelable | None:
+async def any_of(*bs: Blocking) -> Sendable | None:
     """Block forward progress until at least one item is unblocked.
 
     Args:
@@ -253,18 +253,18 @@ async def any_of(*bs: Blocking) -> Cancelable | None:
 
     kernel, task = _get_kt()
 
-    blocked: set[Cancelable] = set()
+    blocked: set[Sendable] = set()
 
     for b in bs:
         if b.try_block(task):
-            blocked.add(b.c)
+            blocked.add(b.s)
         else:
             while blocked:
-                c = blocked.pop()
-                c.cancel(task)
-            return b.c
+                s = blocked.pop()
+                s.cancel(task)
+            return b.s
 
     kernel.fork(task, *blocked)
-    c = await kernel.switch_coro()
-    assert isinstance(c, Cancelable)
-    return c
+    s = await kernel.switch_coro()
+    assert isinstance(s, Sendable)
+    return s

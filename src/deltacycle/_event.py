@@ -7,7 +7,7 @@ from collections.abc import Generator
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Cancelable, Task, TaskQueue
+from ._task import Blocking, Sendable, Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
@@ -38,7 +38,7 @@ class _WaitQ(TaskQueue):
         self._items.extend(self._tasks)
 
 
-class Event(KernelIf, Blocking, Cancelable):
+class Event(KernelIf, Blocking, Sendable):
     """Notify multiple tasks that some event has happened."""
 
     def __init__(self):
@@ -51,7 +51,7 @@ class Event(KernelIf, Blocking, Cancelable):
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
-    def __await__(self) -> Generator[None, Cancelable, Self]:
+    def __await__(self) -> Generator[None, Sendable, Self]:
         if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
@@ -67,7 +67,7 @@ class Event(KernelIf, Blocking, Cancelable):
         return False
 
     @property
-    def c(self) -> Event:
+    def s(self) -> Event:
         return self
 
     def cancel(self, task: Task):

@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Cancelable, Task, TaskQueue
+from ._task import Blocking, Sendable, Task, TaskQueue
 
 type Predicate = Callable[[], bool]
 
@@ -42,7 +42,7 @@ class _WaitQ(TaskQueue):
         self._items.extend(t for t, p in self._t2p.items() if p())
 
 
-class Variable(KernelIf, Blocking, Cancelable):
+class Variable(KernelIf, Blocking, Sendable):
     """Model component.
 
     Children::
@@ -60,7 +60,7 @@ class Variable(KernelIf, Blocking, Cancelable):
     def wait_push(self, task: Task, p: Predicate):
         self._waiting.push((task, p))
 
-    def __await__(self) -> Generator[None, Cancelable, Self]:
+    def __await__(self) -> Generator[None, Sendable, Self]:
         task = self._kernel.task()
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
@@ -74,7 +74,7 @@ class Variable(KernelIf, Blocking, Cancelable):
         return True
 
     @property
-    def c(self) -> Variable:
+    def s(self) -> Variable:
         return self
 
     def cancel(self, task: Task):
@@ -110,7 +110,7 @@ class PredVar(Blocking):
         self._var = var
         self._p = p
 
-    def __await__(self) -> Generator[None, Cancelable, Variable]:
+    def __await__(self) -> Generator[None, Sendable, Variable]:
         task = self._var._kernel.task()
         self._var.wait_push(task, self._p)
         v = yield from self._var._kernel.switch_gen()
@@ -122,7 +122,7 @@ class PredVar(Blocking):
         return True
 
     @property
-    def c(self) -> Cancelable:
+    def s(self) -> Sendable:
         return self._var
 
 

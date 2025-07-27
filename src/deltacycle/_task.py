@@ -15,8 +15,8 @@ from ._kernel_if import KernelIf
 logger = logging.getLogger("deltacycle")
 
 
-type TaskCoro = Coroutine[None, Cancelable | None, Any]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Cancelable | Signal]
+type TaskCoro = Coroutine[None, Sendable | None, Any]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Signal]
 
 
 class Signal(Exception):
@@ -80,11 +80,11 @@ class Blocking(ABC):
         raise NotImplementedError()  # pragma: no cover
 
     @property
-    def c(self) -> Cancelable:
+    def s(self) -> Sendable:
         raise NotImplementedError()  # pragma: no cover
 
 
-class Cancelable(ABC):
+class Sendable(ABC):
     def cancel(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
@@ -95,50 +95,50 @@ class _Condition(KernelIf):
 
 
 class AllOf(_Condition):
-    def __await__(self) -> Generator[None, Cancelable, tuple[Cancelable, ...]]:
+    def __await__(self) -> Generator[None, Sendable, tuple[Sendable, ...]]:
         task = self._kernel.task()
 
-        blocked: set[Cancelable] = set()
-        unblocked: deque[Cancelable] = deque()
+        blocked: set[Sendable] = set()
+        unblocked: deque[Sendable] = deque()
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.add(b.c)
+                blocked.add(b.s)
             else:
-                unblocked.append(b.c)
+                unblocked.append(b.s)
 
         while blocked:
-            c = yield from self._kernel.switch_gen()
-            blocked.remove(c)
-            unblocked.append(c)
+            s = yield from self._kernel.switch_gen()
+            blocked.remove(s)
+            unblocked.append(s)
 
         return tuple(unblocked)
 
 
 class AnyOf(_Condition):
-    def __await__(self) -> Generator[None, Cancelable, Cancelable | None]:
+    def __await__(self) -> Generator[None, Sendable, Sendable | None]:
         if not self._bs:
             return None
 
         task = self._kernel.task()
 
-        blocked: set[Cancelable] = set()
+        blocked: set[Sendable] = set()
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.add(b.c)
+                blocked.add(b.s)
             else:
                 while blocked:
-                    c = blocked.pop()
-                    c.cancel(task)
-                return b.c
+                    s = blocked.pop()
+                    s.cancel(task)
+                return b.s
 
         self._kernel.fork(task, *blocked)
-        c = yield from self._kernel.switch_gen()
-        return c
+        s = yield from self._kernel.switch_gen()
+        return s
 
 
-class Task(KernelIf, Blocking, Cancelable):
+class Task(KernelIf, Blocking, Sendable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -225,7 +225,7 @@ class Task(KernelIf, Blocking, Cancelable):
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
-    def __await__(self) -> Generator[None, Cancelable, Any]:
+    def __await__(self) -> Generator[None, Sendable, Any]:
         if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
@@ -241,7 +241,7 @@ class Task(KernelIf, Blocking, Cancelable):
         return False
 
     @property
-    def c(self) -> Task:
+    def s(self) -> Task:
         return self
 
     def cancel(self, task: Task):
@@ -322,8 +322,8 @@ class Task(KernelIf, Blocking, Cancelable):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, Cancelable() as c):
-                y = self._coro.send(c)
+            case (self.Command.RESUME, Sendable() as s):
+                y = self._coro.send(s)
             case (self.Command.SIGNAL, Signal() as s):
                 self._signal = False
                 y = self._coro.throw(s)

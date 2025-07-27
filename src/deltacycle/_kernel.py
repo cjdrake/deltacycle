@@ -6,7 +6,7 @@ from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
-from ._task import Cancelable, Task, TaskArgs, TaskCoro, TaskQueue
+from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
 
 logger = logging.getLogger("deltacycle")
@@ -25,7 +25,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, Cancelable | None, Cancelable | None]:
+    def __await__(self) -> Generator[None, Sendable | None, Sendable | None]:
         # Suspend
         value = yield
         # Resume
@@ -154,7 +154,7 @@ class Kernel:
         self._queue = _PendQ()
 
         # Serial Tasks
-        self._forks: dict[Task, set[Cancelable]] = {}
+        self._forks: dict[Task, set[Sendable]] = {}
 
         # Model variables
         self._touched: set[Variable] = set()
@@ -215,7 +215,7 @@ class Kernel:
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
-    async def switch_coro(self) -> Cancelable | None:
+    async def switch_coro(self) -> Sendable | None:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -223,7 +223,7 @@ class Kernel:
         # Resume
         return value
 
-    def switch_gen(self) -> Generator[None, Cancelable, Cancelable]:
+    def switch_gen(self) -> Generator[None, Sendable, Sendable]:
         assert self._task is not None
         # Suspend
         self._task._set_state(Task.State.PENDING)
@@ -231,16 +231,16 @@ class Kernel:
         # Resume
         return value
 
-    def fork(self, task: Task, *cs: Cancelable):
-        self._forks[task] = set(cs)
+    def fork(self, task: Task, *ss: Sendable):
+        self._forks[task] = set(ss)
 
-    def join_any(self, task: Task, c: Cancelable):
+    def join_any(self, task: Task, s: Sendable):
         if task in self._forks:
-            cs = self._forks[task]
-            cs.remove(c)
-            while cs:
-                c = cs.pop()
-                c.cancel(task)
+            ss = self._forks[task]
+            ss.remove(s)
+            while ss:
+                s = ss.pop()
+                s.cancel(task)
             del self._forks[task]
 
     def touch(self, v: Variable):

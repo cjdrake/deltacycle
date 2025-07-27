@@ -133,7 +133,7 @@ Scheduling
 ==========
 
 .. autoclass:: deltacycle.Blocking
-.. autoclass:: deltacycle.Cancelable
+.. autoclass:: deltacycle.Sendable
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf
