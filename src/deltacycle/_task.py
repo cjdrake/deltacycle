@@ -306,7 +306,7 @@ class Task(KernelIf, Blocking, Sendable):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    def _do_run(self, args: TaskArgs):
+    def do_run(self, args: TaskArgs):
         self._set_state(self.State.RUNNING)
 
         match args:

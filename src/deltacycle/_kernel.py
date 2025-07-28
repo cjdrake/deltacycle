@@ -304,7 +304,7 @@ class Kernel:
             for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(args)
+                    task.do_run(args)
                 except _Finish:
                     self._finish()
                     return
@@ -339,7 +339,7 @@ class Kernel:
             for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(args)
+                    task.do_run(args)
                 except _Finish:
                     self._finish()
                     return
