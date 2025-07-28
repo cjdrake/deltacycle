@@ -1,6 +1,7 @@
 """Test deltacycle.Event"""
 
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportPrivateUsage=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownVariableType=false
 
