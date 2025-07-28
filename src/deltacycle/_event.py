@@ -70,7 +70,7 @@ class Event(KernelIf, Blocking, Sendable):
         if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
-            e = yield from self._kernel.switch_gen()
+            e = yield from task.switch_gen()
             assert e is self
 
         return self

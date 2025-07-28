@@ -89,6 +89,26 @@ class Sendable(ABC):
         raise NotImplementedError()  # pragma: no cover
 
 
+class _SuspendResume:
+    """Suspend/Resume current task.
+
+    Use case:
+    1. Current task A suspends itself: RUNNING => WAITING
+    2. Kernel chooses PENDING tasks ..., T
+    3. ... Task T wakes up task A w/ value X: WAITING => PENDING
+    4. Kernel chooses PENDING tasks ..., A: PENDING => RUNNING
+    5. Task A resumes with value X
+
+    The value X can be used to pass information to the task.
+    """
+
+    def __await__(self) -> Generator[None, Sendable | None, Sendable | None]:
+        # Suspend
+        value = yield
+        # Resume
+        return value
+
+
 class _Condition(KernelIf):
     def __init__(self, *bs: Blocking):
         self._bs = bs
@@ -108,7 +128,7 @@ class AllOf(_Condition):
                 unblocked.append(b.s)
 
         while blocked:
-            s = yield from self._kernel.switch_gen()
+            s = yield from task.switch_gen()
             blocked.remove(s)
             unblocked.append(s)
 
@@ -134,7 +154,7 @@ class AnyOf(_Condition):
                 return b.s
 
         self._kernel.fork(task, *blocked)
-        s = yield from self._kernel.switch_gen()
+        s = yield from task.switch_gen()
         return s
 
 
@@ -229,7 +249,7 @@ class Task(KernelIf, Blocking, Sendable):
         if self._blocking():
             task = self._kernel.task()
             self.wait_push(task)
-            t = yield from self._kernel.switch_gen()
+            t = yield from task.switch_gen()
             assert t is self
 
         return self.result()
@@ -305,6 +325,22 @@ class Task(KernelIf, Blocking, Sendable):
             while self._refcnts[tq]:
                 tq.drop(self)
             del self._refcnts[tq]
+
+    async def switch_coro(self) -> Sendable | None:
+        self._set_state(Task.State.PENDING)
+
+        # Suspend
+        value = await _SuspendResume()
+        # Resume
+        return value
+
+    def switch_gen(self) -> Generator[None, Sendable, Sendable]:
+        self._set_state(self.State.PENDING)
+
+        # Suspend
+        value = yield
+        # Resume
+        return value
 
     def do_run(self, args: TaskArgs):
         self._set_state(self.State.RUNNING)
@@ -504,7 +540,7 @@ class TaskGroup(KernelIf):
             for child in self._todo:
                 child.kill()
             while self._todo:
-                child = await self._kernel.switch_coro()
+                child = await self._parent.switch_coro()
                 assert isinstance(child, Task)
                 self._todo.remove(child)
 
@@ -516,7 +552,7 @@ class TaskGroup(KernelIf):
         child_excs: list[Exception] = []
         killed: set[Task] = set()
         while self._todo:
-            child = await self._kernel.switch_coro()
+            child = await self._parent.switch_coro()
             assert isinstance(child, Task)
             self._todo.remove(child)
             if child in killed:

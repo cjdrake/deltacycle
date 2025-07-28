@@ -85,7 +85,7 @@ class Queue[T](KernelIf):
         if self.full():
             task = self._kernel.task()
             self._putq.push(task)
-            y = await self._kernel.switch_coro()
+            y = await task.switch_coro()
             assert y is None
 
         self._put(item)
@@ -115,7 +115,7 @@ class Queue[T](KernelIf):
         if self.empty():
             task = self._kernel.task()
             self._getq.push(task)
-            y = await self._kernel.switch_coro()
+            y = await task.switch_coro()
             assert y is None
 
         return self._get()

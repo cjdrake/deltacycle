@@ -110,7 +110,7 @@ class CreditPool(KernelIf, Sendable):
         else:
             task = self._kernel.task()
             self.wait_push(priority, task, n)
-            credits = await self._kernel.switch_coro()
+            credits = await task.switch_coro()
             assert credits is self
 
 

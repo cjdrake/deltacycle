@@ -85,7 +85,7 @@ class Variable(KernelIf, Blocking, Sendable):
         task = self._kernel.task()
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
-        v = yield from self._kernel.switch_gen()
+        v = yield from task.switch_gen()
         assert v is self
         return self
 
@@ -165,7 +165,7 @@ class PredVar(KernelIf, Blocking):
         """
         task = self._kernel.task()
         self._var.wait_push(task, self._p)
-        v = yield from self._kernel.switch_gen()
+        v = yield from task.switch_gen()
         assert v is self._var
         return self._var
 

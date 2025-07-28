@@ -205,7 +205,7 @@ async def sleep(delay: int):
     """Suspend the current task, and wake up after a delay."""
     kernel, task = _get_kt()
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
-    y = await kernel.switch_coro()
+    y = await task.switch_coro()
     assert y is None
 
 
@@ -218,7 +218,7 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
     Returns:
         Return a tuple of items in unblocking order.
     """
-    kernel, task = _get_kt()
+    _, task = _get_kt()
 
     blocked: set[Sendable] = set()
     unblocked: deque[Sendable] = deque()
@@ -230,7 +230,7 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
             unblocked.append(b.s)
 
     while blocked:
-        s = await kernel.switch_coro()
+        s = await task.switch_coro()
         assert isinstance(s, Sendable)
         blocked.remove(s)
         unblocked.append(s)
@@ -265,6 +265,6 @@ async def any_of(*bs: Blocking) -> Sendable | None:
             return b.s
 
     kernel.fork(task, *blocked)
-    s = await kernel.switch_coro()
+    s = await task.switch_coro()
     assert isinstance(s, Sendable)
     return s

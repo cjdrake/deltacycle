@@ -100,7 +100,7 @@ class Semaphore(KernelIf, Sendable):
         else:
             task = self._kernel.task()
             self.wait_push(priority, task)
-            s = await self._kernel.switch_coro()
+            s = await task.switch_coro()
             assert s is self
 
     # NOTE: NOT Blocking

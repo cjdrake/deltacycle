@@ -12,26 +12,6 @@ from ._variable import Variable
 logger = logging.getLogger("deltacycle")
 
 
-class _SuspendResume:
-    """Suspend/Resume current task.
-
-    Use case:
-    1. Current task A suspends itself: RUNNING => WAITING
-    2. Kernel chooses PENDING tasks ..., T
-    3. ... Task T wakes up task A w/ value X: WAITING => PENDING
-    4. Kernel chooses PENDING tasks ..., A: PENDING => RUNNING
-    5. Task A resumes with value X
-
-    The value X can be used to pass information to the task.
-    """
-
-    def __await__(self) -> Generator[None, Sendable | None, Sendable | None]:
-        # Suspend
-        value = yield
-        # Resume
-        return value
-
-
 class _Finish(Exception):
     """Force the simulation to stop."""
 
@@ -221,22 +201,6 @@ class Kernel:
         task = Task(coro, name, priority)
         self.call_soon(task, args=(Task.Command.START,))
         return task
-
-    async def switch_coro(self) -> Sendable | None:
-        assert self._task is not None
-        # Suspend
-        self._task._set_state(Task.State.PENDING)
-        value = await _SuspendResume()
-        # Resume
-        return value
-
-    def switch_gen(self) -> Generator[None, Sendable, Sendable]:
-        assert self._task is not None
-        # Suspend
-        self._task._set_state(Task.State.PENDING)
-        value = yield
-        # Resume
-        return value
 
     def fork(self, task: Task, *ss: Sendable):
         self._forks[task] = set(ss)
