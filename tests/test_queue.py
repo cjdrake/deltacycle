@@ -39,7 +39,7 @@ EXP1 = {
 def test_prod_cons1(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    q = Queue()
+    q: Queue[int] = Queue()
 
     async def prod():
         for i in range(10):
@@ -91,7 +91,7 @@ EXP2 = {
 def test_prod_cons2(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
-    q = Queue(2)
+    q: Queue[int] = Queue(2)
 
     async def prod():
         for i in range(10):
@@ -116,7 +116,7 @@ def test_prod_cons2(caplog: LogCaptureFixture):
 
 
 def test_prod_cons3():
-    q = Queue(2)
+    q: Queue[int] = Queue(2)
     assert len(q) == 0
 
     async def prod():
