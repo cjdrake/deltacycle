@@ -76,7 +76,7 @@ class CreditPool(KernelIf, Sendable):
     def cancel(self, task: Task):
         self._waiting.drop(task)
 
-    def req(self, n: int, priority: int = 0) -> ReqCredit:
+    def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         return ReqCredit(self, n, priority)
 
     def put(self, n: int = 1):
