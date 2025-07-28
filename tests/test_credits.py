@@ -255,6 +255,47 @@ def test_async_with(caplog: LogCaptureFixture):
     assert msgs == EXP1
 
 
+def test_bounded():
+    async def use_bounded():
+        credits = CreditPool(value=5, capacity=5)
+
+        await credits.get(n=2)
+        await credits.get(n=3)
+
+        credits.put(n=2)
+        credits.put(n=3)
+
+        # Exception!
+        with pytest.raises(OverflowError):
+            credits.put(n=1)
+
+    async def main():
+        create_task(use_bounded())
+
+    run(main())
+
+
+def test_priority():
+    async def request(credits: CreditPool, p: int):
+        await sleep(5)
+        await credits.get(n=2, priority=p)
+        await sleep(5)
+        credits.put()
+
+    async def main():
+        credits = CreditPool(value=2, capacity=2)
+        t3 = create_task(request(credits, 3), name="T3")
+        t2 = create_task(request(credits, 2), name="T2")
+        t1 = create_task(request(credits, 1), name="T1")
+        t0 = create_task(request(credits, 0), name="T0", priority=-1)
+
+        ts = await all_of(t3, t2, t1, t0)
+        assert ts == (t0, t1, t2, t3)
+        assert now() == 25
+
+    run(main())
+
+
 def test_init_bad_values():
     with pytest.raises(ValueError):
         _ = CreditPool(value=5, capacity=4)

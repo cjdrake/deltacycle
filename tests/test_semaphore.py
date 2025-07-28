@@ -179,7 +179,7 @@ def test_bounded():
         sem.put()
 
         # Exception!
-        with pytest.raises(ValueError):
+        with pytest.raises(OverflowError):
             sem.put()
 
     async def main():
