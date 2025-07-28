@@ -3,6 +3,8 @@
 import random
 from enum import Enum, auto
 
+from pytest import CaptureFixture
+
 from deltacycle import Lock, create_task, now, run, sleep
 
 # Number of philosophers
@@ -190,7 +192,7 @@ OUTPUT = """\
 """
 
 
-def test_dp(capsys):
+def test_dp(capsys: CaptureFixture[str]):
     """This is a random algorithm, so we're only doing some basic checks."""
     random.seed(42)
     init()

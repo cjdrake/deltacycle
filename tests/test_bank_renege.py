@@ -11,6 +11,8 @@ Reference:
 
 import random
 
+from pytest import CaptureFixture
+
 from deltacycle import AnyOf, Lock, create_task, now, run, sleep
 
 RANDOM_SEED = 42
@@ -81,7 +83,7 @@ Bank Renege
 """
 
 
-def test_bank_renege(capsys):
+def test_bank_renege(capsys: CaptureFixture[str]):
     # Setup and start the simulation
     print("Bank Renege")
     random.seed(RANDOM_SEED)
