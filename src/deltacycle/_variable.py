@@ -133,7 +133,7 @@ class Variable(KernelIf, Blocking, Sendable):
         self._waiting.drop(task)
 
 
-class PredVar(Blocking):
+class PredVar(KernelIf, Blocking):
     """Predicated Variable.
 
     A lightweight wrapper around a Variable instance.
@@ -163,9 +163,9 @@ class PredVar(Blocking):
         2. When another task invokes ``v.set_next(...)`` *and* ``p`` evaluates
            to ``True``, unblock all tasks waiting for that event.
         """
-        task = self._var._kernel.task()
+        task = self._kernel.task()
         self._var.wait_push(task, self._p)
-        v = yield from self._var._kernel.switch_gen()
+        v = yield from self._kernel.switch_gen()
         assert v is self._var
         return self._var
 
