@@ -32,13 +32,24 @@ class _WaitQ(TaskQueue):
 
 
 class Queue[T](KernelIf):
-    """First-in, First-out (FIFO) queue."""
+    """Producer / Consumer FIFO Queue.
+
+    Has both blocking and non-blocking put and get interfaces.
+    If capacity is a positive number, the queue has *capacity* slots.
+    If capacity is zero or a negative number, the queue has infinite slots.
+
+    The queue's put interface will block only when it is full.
+    The queue's get interface will block only when it is empty.
+
+    An infinite queue will never be full.
+    Its size is subject only to the machine's memory limitations.
+    """
 
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
         self._items: deque[T] = deque()
-        self._wait_not_empty = _WaitQ()
-        self._wait_not_full = _WaitQ()
+        self._getq = _WaitQ()
+        self._putq = _WaitQ()
 
     def __len__(self) -> int:
         return len(self._items)
@@ -57,8 +68,8 @@ class Queue[T](KernelIf):
 
     def _put(self, item: T):
         self._items.append(item)
-        if self._wait_not_empty:
-            task = self._wait_not_empty.pop()
+        if self._getq:
+            task = self._getq.pop()
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
 
     def try_put(self, item: T) -> bool:
@@ -73,7 +84,7 @@ class Queue[T](KernelIf):
         """Block until there is space to put the item."""
         if self.full():
             task = self._kernel.task()
-            self._wait_not_full.push(task)
+            self._putq.push(task)
             y = await self._kernel.switch_coro()
             assert y is None
 
@@ -81,13 +92,18 @@ class Queue[T](KernelIf):
 
     def _get(self) -> T:
         item = self._items.popleft()
-        if self._wait_not_full:
-            task = self._wait_not_full.pop()
+        if self._putq:
+            task = self._putq.pop()
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         return item
 
     def try_get(self) -> tuple[bool, T | None]:
-        """Nonblocking get: Return True if a get attempt is successful."""
+        """Nonblocking get.
+
+        Returns:
+            If the get is successful, ``(True, item)``;
+            If unsuccessful, ``(False, None)``.
+        """
         if self.empty():
             return False, None
 
@@ -98,7 +114,7 @@ class Queue[T](KernelIf):
         """Block until an item is available to get."""
         if self.empty():
             task = self._kernel.task()
-            self._wait_not_empty.push(task)
+            self._getq.push(task)
             y = await self._kernel.switch_coro()
             assert y is None
 
