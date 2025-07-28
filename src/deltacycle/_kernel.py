@@ -86,12 +86,12 @@ class Kernel:
 
     Responsible for:
 
-    * Scheduling and executing all tasks
-    * Updating all model state
+    * Scheduling and executing tasks
+    * Updating model state
 
     This is a low level API.
     User code is not expected to interact with it directly.
-    To run a simulation, use the run and step functions.
+    To run a simulation, use the ``run`` and ``step`` functions.
     """
 
     _index = 0
@@ -184,6 +184,13 @@ class Kernel:
         return self._task
 
     def done(self) -> bool:
+        """Return True if the kernel is done.
+
+        A kernel that is "done" either:
+
+        * Exhaused all tasks (COMPLETED), or
+        * Called ``finish`` (FINISHED)
+        """
         return bool(self._state & self._done)
 
     # Scheduling methods
