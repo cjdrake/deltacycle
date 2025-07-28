@@ -339,7 +339,7 @@ class Task(KernelIf, Blocking, Sendable):
         self._set()
         assert self._refcnts.total() == 0
 
-    def _do_except(self, exc: Exception):
+    def do_except(self, exc: Exception):
         self._exception = exc
         self._set_state(self.State.EXCEPTED)
         self._set()

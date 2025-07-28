@@ -311,7 +311,7 @@ class Kernel:
                 except StopIteration as exc:
                     task.do_result(exc)
                 except Exception as exc:
-                    task._do_except(exc)
+                    task.do_except(exc)
 
             # Update simulation state
             self._update_vars()
@@ -346,7 +346,7 @@ class Kernel:
                 except StopIteration as exc:
                     task.do_result(exc)
                 except Exception as exc:
-                    task._do_except(exc)
+                    task.do_except(exc)
 
             # Update simulation state
             self._update_vars()
