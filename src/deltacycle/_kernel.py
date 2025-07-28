@@ -309,7 +309,7 @@ class Kernel:
                     self._finish()
                     return
                 except StopIteration as exc:
-                    task._do_result(exc)
+                    task.do_result(exc)
                 except Exception as exc:
                     task._do_except(exc)
 
@@ -344,7 +344,7 @@ class Kernel:
                     self._finish()
                     return
                 except StopIteration as exc:
-                    task._do_result(exc)
+                    task.do_result(exc)
                 except Exception as exc:
                     task._do_except(exc)
 

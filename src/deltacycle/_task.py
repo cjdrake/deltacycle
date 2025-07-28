@@ -333,7 +333,7 @@ class Task(KernelIf, Blocking, Sendable):
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 
-    def _do_result(self, exc: StopIteration):
+    def do_result(self, exc: StopIteration):
         self._result = exc.value
         self._set_state(self.State.RETURNED)
         self._set()
