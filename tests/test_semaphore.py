@@ -21,6 +21,24 @@ from deltacycle import (
 logger = logging.getLogger("deltacycle")
 
 
+def test_len():
+    async def main():
+        sem = Semaphore(capacity=5)
+        assert len(sem) == 0
+        sem.put()
+        assert len(sem) == 1
+        sem.put()
+        assert len(sem) == 2
+        assert sem
+        await sem.get()
+        assert len(sem) == 1
+        await sem.get()
+        assert len(sem) == 0
+        assert not sem
+
+    run(main())
+
+
 async def use_acquire_release(sem: Semaphore, t1: int, t2: int):
     logger.info("enter")
 
