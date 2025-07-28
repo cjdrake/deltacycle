@@ -27,7 +27,7 @@ class _WaitQ(TaskQueue):
 
     def push(self, item: tuple[int, Task]):
         priority, task = item
-        task._link(self)
+        task.link(self)
         heapq.heappush(self._items, (priority, self._index, task))
         self._index += 1
 

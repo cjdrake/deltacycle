@@ -18,7 +18,7 @@ class _WaitQ(TaskQueue):
 
     def push(self, item: Task):
         task = item
-        task._link(self)
+        task.link(self)
         self._items.append(task)
 
     def pop(self) -> Task:

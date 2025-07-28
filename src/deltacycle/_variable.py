@@ -25,7 +25,7 @@ class _WaitQ(TaskQueue):
 
     def push(self, item: tuple[Task, Predicate]):
         task, p = item
-        task._link(self)
+        task.link(self)
         self._t2p[task] = p
 
     def pop(self) -> Task:

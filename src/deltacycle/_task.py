@@ -58,7 +58,7 @@ class _WaitQ(TaskQueue):
         return bool(self._items)
 
     def push(self, item: Task):
-        item._link(self)
+        item.link(self)
         self._tasks[item] = None
 
     def pop(self) -> Task:
@@ -291,7 +291,7 @@ class Task(KernelIf, Blocking, Sendable):
     def state(self) -> State:
         return self._state
 
-    def _link(self, tq: TaskQueue):
+    def link(self, tq: TaskQueue):
         self._refcnts[tq] += 1
 
     def _unlink(self, tq: TaskQueue):

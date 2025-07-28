@@ -52,7 +52,7 @@ class _PendQ(TaskQueue):
 
     def push(self, item: tuple[int, Task, Any]):
         time, task, value = item
-        task._link(self)
+        task.link(self)
         heapq.heappush(self._items, (time, task.priority, self._index, task, value))
         self._index += 1
 

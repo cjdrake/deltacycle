@@ -21,7 +21,7 @@ class _WaitQ(TaskQueue):
         return bool(self._items)
 
     def push(self, item: Task):
-        item._link(self)
+        item.link(self)
         self._tasks[item] = None
 
     def pop(self) -> Task:
