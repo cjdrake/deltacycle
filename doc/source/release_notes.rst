@@ -8,6 +8,14 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.26.0
+==============
+
+* Renamed ``Schedulable`` / ``Cancelable`` to ``Blocking`` / ``Sendable``.
+* Updated unit tests, bumped test coverage, and minor fixes.
+* Upgraded type checking to strict.
+
+
 Version 0.25.0
 ==============
 
