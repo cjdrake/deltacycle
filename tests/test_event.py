@@ -1,6 +1,8 @@
 """Test deltacycle.Event"""
 
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 
 import logging
 

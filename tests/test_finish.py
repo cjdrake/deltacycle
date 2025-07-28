@@ -1,6 +1,8 @@
 """Test deltacycle._kernel.finish"""
 
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 
 import logging
 

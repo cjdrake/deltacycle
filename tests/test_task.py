@@ -1,6 +1,8 @@
 """Test deltacycle.Task"""
 
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 
 import logging
 from random import randint

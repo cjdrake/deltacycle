@@ -1,6 +1,8 @@
 """Simulate a 4-bit adder."""
 
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 
 import logging
 

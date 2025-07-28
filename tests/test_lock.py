@@ -1,6 +1,8 @@
 """Test seqlogic.sim.Lock class."""
 
 # pyright: reportAttributeAccessIssue=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownVariableType=false
 
 import logging
 
