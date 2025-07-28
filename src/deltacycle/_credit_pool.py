@@ -1,4 +1,4 @@
-"""Credit Pool"""
+"""Credit Pool synchronization primitive"""
 
 from __future__ import annotations
 
