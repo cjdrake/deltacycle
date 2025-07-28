@@ -23,12 +23,12 @@ class _WaitQ(TaskQueue):
 
     def pop(self) -> Task:
         task = self._items.popleft()
-        task._unlink(self)
+        task.unlink(self)
         return task
 
     def drop(self, task: Task):
         self._items.remove(task)
-        task._unlink(self)
+        task.unlink(self)
 
 
 class Queue[T](KernelIf):

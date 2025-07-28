@@ -35,7 +35,7 @@ class _WaitQ(TaskQueue):
 
     def drop(self, task: Task):
         del self._t2p[task]
-        task._unlink(self)
+        task.unlink(self)
 
     def load(self):
         assert not self._items

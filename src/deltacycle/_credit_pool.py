@@ -33,7 +33,7 @@ class _WaitQ(TaskQueue):
 
     def pop(self) -> tuple[Task, int]:
         _, _, task, n = heapq.heappop(self._items)
-        task._unlink(self)
+        task.unlink(self)
         return task, n
 
     def _find(self, task: Task) -> int:
@@ -45,7 +45,7 @@ class _WaitQ(TaskQueue):
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
-        task._unlink(self)
+        task.unlink(self)
 
     def peek(self):
         return self._items[0][-1]

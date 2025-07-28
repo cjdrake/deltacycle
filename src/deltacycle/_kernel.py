@@ -58,7 +58,7 @@ class _PendQ(TaskQueue):
 
     def pop(self) -> tuple[Task, Any]:
         _, _, _, task, value = heapq.heappop(self._items)
-        task._unlink(self)
+        task.unlink(self)
         return (task, value)
 
     def _find(self, task: Task) -> int:
@@ -70,7 +70,7 @@ class _PendQ(TaskQueue):
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
-        task._unlink(self)
+        task.unlink(self)
 
     def peek(self) -> int:
         return self._items[0][0]

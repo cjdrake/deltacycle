@@ -68,7 +68,7 @@ class _WaitQ(TaskQueue):
 
     def drop(self, task: Task):
         del self._tasks[task]
-        task._unlink(self)
+        task.unlink(self)
 
     def load(self):
         assert not self._items
@@ -294,7 +294,7 @@ class Task(KernelIf, Blocking, Sendable):
     def link(self, tq: TaskQueue):
         self._refcnts[tq] += 1
 
-    def _unlink(self, tq: TaskQueue):
+    def unlink(self, tq: TaskQueue):
         assert self._refcnts[tq] > 0
         self._refcnts[tq] -= 1
 
