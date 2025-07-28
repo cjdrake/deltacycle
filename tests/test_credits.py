@@ -7,7 +7,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import CreditPool, create_task, run, sleep
+from deltacycle import AllOf, CreditPool, all_of, create_task, now, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -162,3 +162,49 @@ def test_init_bad_values():
 
     with pytest.raises(ValueError):
         _ = CreditPool(value=-1)
+
+
+def test_schedule_all1():
+    async def cf(credits: CreditPool, t1: int, t2: int, t3: int):
+        await sleep(t1)
+        await credits.get(n=10)
+        await sleep(t2)
+        credits.put(n=10)
+        await sleep(t3)
+
+    async def main():
+        credits = CreditPool(value=10, capacity=10)
+        t1 = create_task(cf(credits, 0, 10, 10))
+
+        await sleep(1)
+        ys = await AllOf(t1, credits.req(n=10))
+
+        assert ys == (credits, t1)
+        assert now() == 20
+        assert not credits
+        credits.put(n=2)
+
+    run(main())
+
+
+def test_schedule_all2():
+    async def cf(credits: CreditPool, t1: int, t2: int, t3: int):
+        await sleep(t1)
+        await credits.get(n=10)
+        await sleep(t2)
+        credits.put(n=10)
+        await sleep(t3)
+
+    async def main():
+        credits = CreditPool(value=10, capacity=10)
+        t1 = create_task(cf(credits, 0, 10, 10))
+
+        await sleep(1)
+        ys = await all_of(t1, credits.req(n=10))
+
+        assert ys == (credits, t1)
+        assert now() == 20
+        assert not credits
+        credits.put(n=10)
+
+    run(main())
