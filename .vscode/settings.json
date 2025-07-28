@@ -1,5 +1,5 @@
 {
-    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.typeCheckingMode": "strict",
     "python.testing.pytestEnabled": true,
     "python.testing.pytestArgs": ["--cov=src/deltacycle", "--cov-branch"],
     "python.testing.unittestEnabled": false,
