@@ -39,7 +39,7 @@ def test_len():
     run(main())
 
 
-async def use_acquire_release(sem: Semaphore, t1: int, t2: int):
+async def use_get_put(sem: Semaphore, t1: int, t2: int):
     logger.info("enter")
 
     await sleep(t1)
@@ -125,13 +125,13 @@ EXP = {
 }
 
 
-def test_acquire_release(caplog: LogCaptureFixture):
+def test_get_put(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         sem = Semaphore(4)
         for i in range(8):
-            create_task(use_acquire_release(sem, i + 10, 10), name=f"{i}")
+            create_task(use_get_put(sem, i + 10, 10), name=f"{i}")
 
     run(main())
 

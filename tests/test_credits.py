@@ -30,7 +30,7 @@ def test_len():
     run(main())
 
 
-async def use_acquire_release(credits: CreditPool, t1: int, t2: int):
+async def use_get_put(credits: CreditPool, t1: int, t2: int):
     logger.info("enter")
 
     await sleep(t1)
@@ -128,13 +128,13 @@ EXP1 = {
 }
 
 
-def test_acquire_release(caplog: LogCaptureFixture):
+def test_get_put(caplog: LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
         credits = CreditPool(10)
         for i in range(10):
-            create_task(use_acquire_release(credits, i + 10, 10), name=f"{i}")
+            create_task(use_get_put(credits, i + 10, 10), name=f"{i}")
 
     run(main())
 
