@@ -20,7 +20,7 @@ type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Signal]
 
 
 class Signal(Exception):
-    pass
+    """Throw a signal to a task."""
 
 
 class Interrupt(Signal):
@@ -234,19 +234,6 @@ class Task(KernelIf, Blocking, Sendable):
 
         return self.result()
 
-    def try_block(self, task: Task) -> bool:
-        if self._blocking():
-            self.wait_push(task)
-            return True
-        return False
-
-    @property
-    def s(self) -> Task:
-        return self
-
-    def cancel(self, task: Task):
-        self._waiting.drop(task)
-
     @property
     def coro(self) -> TaskCoro:
         """Wrapped coroutine."""
@@ -284,6 +271,11 @@ class Task(KernelIf, Blocking, Sendable):
         return self._priority
 
     def _get_group(self) -> TaskGroup | None:
+        """Return TaskGroup, or None.
+
+        If the task was started by a TaskGroup's create_task method,
+        it will assign this property to point to the TaskGroup instance.
+        """
         return self._group
 
     def _set_group(self, group: TaskGroup):
@@ -458,6 +450,21 @@ class Task(KernelIf, Blocking, Sendable):
 
         # Success
         return True
+
+    # Blocking
+    def try_block(self, task: Task) -> bool:
+        if self._blocking():
+            self.wait_push(task)
+            return True
+        return False
+
+    @property
+    def s(self) -> Task:
+        return self
+
+    # Sendable
+    def cancel(self, task: Task):
+        self._waiting.drop(task)
 
 
 class TaskGroup(KernelIf):
