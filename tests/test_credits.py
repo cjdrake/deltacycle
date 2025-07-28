@@ -4,7 +4,7 @@
 
 import logging
 
-# import pytest
+import pytest
 from pytest import LogCaptureFixture
 
 from deltacycle import CreditPool, create_task, run, sleep
@@ -154,3 +154,11 @@ def test_async_with(caplog: LogCaptureFixture):
 
     msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
     assert msgs == EXP1
+
+
+def test_init_bad_values():
+    with pytest.raises(ValueError):
+        _ = CreditPool(value=5, capacity=4)
+
+    with pytest.raises(ValueError):
+        _ = CreditPool(value=-1)
