@@ -85,7 +85,7 @@ class Blocking(ABC):
 
 
 class Sendable(ABC):
-    def cancel(self, task: Task) -> None:
+    def wait_drop(self, task: Task) -> None:
         raise NotImplementedError()  # pragma: no cover
 
 
@@ -150,7 +150,7 @@ class AnyOf(_Condition):
             else:
                 while blocked:
                     s = blocked.pop()
-                    s.cancel(task)
+                    s.wait_drop(task)
                 return b.s
 
         self._kernel.fork(task, *blocked)
@@ -244,6 +244,9 @@ class Task(KernelIf, Blocking, Sendable):
 
     def wait_push(self, task: Task):
         self._waiting.push(task)
+
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
 
     def __await__(self) -> Generator[None, Sendable, Any]:
         if self._blocking():
@@ -497,10 +500,6 @@ class Task(KernelIf, Blocking, Sendable):
     @property
     def s(self) -> Task:
         return self
-
-    # Sendable
-    def cancel(self, task: Task):
-        self._waiting.drop(task)
 
 
 class TaskGroup(KernelIf):

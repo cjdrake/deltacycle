@@ -65,6 +65,9 @@ class Event(KernelIf, Blocking, Sendable):
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
+
     def __await__(self) -> Generator[None, Sendable, Self]:
         """Await event set."""
         if self._blocking():
@@ -103,7 +106,3 @@ class Event(KernelIf, Blocking, Sendable):
     @property
     def s(self) -> Event:
         return self
-
-    # Sendable
-    def cancel(self, task: Task):
-        self._waiting.drop(task)

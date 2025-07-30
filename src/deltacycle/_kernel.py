@@ -211,7 +211,7 @@ class Kernel:
             ss.remove(s)
             while ss:
                 s = ss.pop()
-                s.cancel(task)
+                s.wait_drop(task)
             del self._forks[task]
 
     def touch_var(self, v: Variable):

@@ -71,10 +71,10 @@ class CreditPool(KernelIf, Sendable):
     def wait_push(self, priority: int, task: Task, n: int):
         self._waiting.push((priority, task, n))
 
-    # NOTE: NOT Blocking
-
-    def cancel(self, task: Task):
+    def wait_drop(self, task: Task):
         self._waiting.drop(task)
+
+    # NOTE: NOT Blocking
 
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         return ReqCredit(self, n, priority)

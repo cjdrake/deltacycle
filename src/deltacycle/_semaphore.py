@@ -68,6 +68,9 @@ class Semaphore(KernelIf, Sendable):
     def wait_push(self, priority: int, task: Task):
         self._waiting.push((priority, task))
 
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
+
     def req(self, priority: int = 0) -> ReqSemaphore:
         return ReqSemaphore(self, priority)
 
@@ -104,10 +107,6 @@ class Semaphore(KernelIf, Sendable):
             assert s is self
 
     # NOTE: NOT Blocking
-
-    # Sendable
-    def cancel(self, task: Task):
-        self._waiting.drop(task)
 
 
 class ReqSemaphore(Blocking):

@@ -72,6 +72,9 @@ class Variable(KernelIf, Blocking, Sendable):
     def wait_push(self, task: Task, p: Predicate):
         self._waiting.push((task, p))
 
+    def wait_drop(self, task: Task):
+        self._waiting.drop(task)
+
     def __await__(self) -> Generator[None, Sendable, Self]:
         """Await variable change:
 
@@ -127,10 +130,6 @@ class Variable(KernelIf, Blocking, Sendable):
     @property
     def s(self) -> Variable:
         return self
-
-    # Sendable
-    def cancel(self, task: Task):
-        self._waiting.drop(task)
 
 
 class PredVar(KernelIf, Blocking):
