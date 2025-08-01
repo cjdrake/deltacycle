@@ -93,6 +93,7 @@ class Semaphore(KernelIf, Sendable):
         if self._cnt > 0:
             self._cnt -= 1
             return True
+
         return False
 
     async def get(self, priority: int = 0):

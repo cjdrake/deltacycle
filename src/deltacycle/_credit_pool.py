@@ -100,6 +100,7 @@ class CreditPool(KernelIf, Sendable):
         if self._cnt >= n:
             self._cnt -= n
             return True
+
         return False
 
     async def get(self, n: int = 1, priority: int = 0):

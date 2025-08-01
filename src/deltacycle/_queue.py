@@ -38,8 +38,8 @@ class Queue[T](KernelIf):
     If capacity is a positive number, the queue has *capacity* slots.
     If capacity is zero or a negative number, the queue has infinite slots.
 
-    The queue's put interface will block only when it is full.
-    The queue's get interface will block only when it is empty.
+    The put interface will block only when it is full.
+    The get interface will block only when it is empty.
 
     An infinite queue will never be full.
     Its size is subject only to the machine's memory limitations.
