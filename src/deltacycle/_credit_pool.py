@@ -74,15 +74,16 @@ class CreditPool(KernelIf, Sendable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
-    def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
-        if n < 1:
-            raise ValueError(f"Expected n ≥ 1, got {n}")
+    def _check_n(self, n: int):
+        if n < 1 or self._has_capacity and n > self._capacity:
+            raise ValueError(f"Expected 1 ≤ n ≤ {self._capacity}, got {n}")
 
+    def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
+        self._check_n(n)
         return ReqCredit(self, n, priority)
 
     def put(self, n: int = 1):
-        if n < 1:
-            raise ValueError(f"Expected n ≥ 1, got {n}")
+        self._check_n(n)
 
         # NOTE: Do NOT support deposit bypass
         if self._has_capacity and self._cnt + n > self._capacity:
@@ -100,8 +101,7 @@ class CreditPool(KernelIf, Sendable):
             self._cnt -= n
 
     def try_get(self, n: int = 1) -> bool:
-        if n < 1:
-            raise ValueError(f"Expected n ≥ 1, got {n}")
+        self._check_n(n)
 
         if 0 <= self._cnt < n:
             # Deny credit
@@ -115,8 +115,7 @@ class CreditPool(KernelIf, Sendable):
         assert False  # pragma: no cover
 
     async def get(self, n: int = 1, priority: int = 0):
-        if n < 1:
-            raise ValueError(f"Expected n ≥ 1, got {n}")
+        self._check_n(n)
 
         if 0 <= self._cnt < n:
             # Await credit

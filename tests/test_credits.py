@@ -386,14 +386,22 @@ def test_overflow1():
 
 def test_put_get_value_errors():
     async def main():
-        credits = CreditPool(42)
+        credits = CreditPool(value=42, capacity=42)
         with pytest.raises(ValueError):
             credits.req(0)
         with pytest.raises(ValueError):
+            credits.req(43)
+        with pytest.raises(ValueError):
             credits.put(0)
+        with pytest.raises(ValueError):
+            credits.put(43)
         with pytest.raises(ValueError):
             credits.try_get(0)
         with pytest.raises(ValueError):
+            credits.try_get(43)
+        with pytest.raises(ValueError):
             await credits.get(0)
+        with pytest.raises(ValueError):
+            await credits.get(43)
 
     run(main())
