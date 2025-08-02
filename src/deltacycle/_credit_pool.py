@@ -81,14 +81,15 @@ class CreditPool(KernelIf, Sendable):
         assert self._cnt >= 0
 
         cnt = self._cnt + n
-        if self._has_capacity and cnt > self._capacity:
-            raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
 
         while self._waiting and (cnt >= self._waiting.peek()):
             task, n = self._waiting.pop()
-            cnt -= n
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+            cnt -= n
+
+        if self._has_capacity and cnt > self._capacity:
+            raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
 
         self._cnt = cnt
 

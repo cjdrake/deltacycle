@@ -9,7 +9,7 @@ import logging
 import pytest
 from pytest import LogCaptureFixture
 
-from deltacycle import AllOf, CreditPool, all_of, create_task, now, run, sleep
+from deltacycle import AllOf, CreditPool, TaskGroup, all_of, create_task, now, run, sleep
 
 logger = logging.getLogger("deltacycle")
 
@@ -348,5 +348,31 @@ def test_schedule_all2():
         assert now() == 20
         assert not credits
         credits.put(n=10)
+
+    run(main())
+
+
+def test_overflow1():
+    async def a(credits: CreditPool):
+        credits.put(5)
+        await sleep(5)
+
+        # b gets 10
+        await sleep(5)
+
+        credits.put(7)  # 5 + 7 - 10 should NOT overflow
+
+    async def b(credits: CreditPool):
+        # a puts 5
+        await sleep(5)
+
+        await credits.get(10)
+        await sleep(5)
+
+    async def main():
+        credits = CreditPool(capacity=10)
+        async with TaskGroup() as tg:
+            tg.create_task(a(credits))
+            tg.create_task(b(credits))
 
     run(main())
