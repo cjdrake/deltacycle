@@ -75,9 +75,15 @@ class CreditPool(KernelIf, Sendable):
         self._waiting.drop(task)
 
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
+        if n < 1:
+            raise ValueError(f"Expected n ≥ 1, got {n}")
+
         return ReqCredit(self, n, priority)
 
     def put(self, n: int = 1):
+        if n < 1:
+            raise ValueError(f"Expected n ≥ 1, got {n}")
+
         assert self._cnt >= 0
 
         cnt = self._cnt + n
@@ -94,6 +100,9 @@ class CreditPool(KernelIf, Sendable):
         self._cnt = cnt
 
     def try_get(self, n: int = 1) -> bool:
+        if n < 1:
+            raise ValueError(f"Expected n ≥ 1, got {n}")
+
         assert self._cnt >= 0
 
         if self._cnt < n:
@@ -103,6 +112,9 @@ class CreditPool(KernelIf, Sendable):
         return True
 
     async def get(self, n: int = 1, priority: int = 0):
+        if n < 1:
+            raise ValueError(f"Expected n ≥ 1, got {n}")
+
         assert self._cnt >= 0
 
         if self._cnt < n:

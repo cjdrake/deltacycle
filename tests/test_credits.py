@@ -376,3 +376,18 @@ def test_overflow1():
             tg.create_task(b(credits))
 
     run(main())
+
+
+def test_put_get_value_errors():
+    async def main():
+        credits = CreditPool(42)
+        with pytest.raises(ValueError):
+            credits.req(0)
+        with pytest.raises(ValueError):
+            credits.put(0)
+        with pytest.raises(ValueError):
+            credits.try_get(0)
+        with pytest.raises(ValueError):
+            await credits.get(0)
+
+    run(main())
