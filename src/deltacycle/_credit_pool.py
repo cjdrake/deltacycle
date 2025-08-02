@@ -74,6 +74,10 @@ class CreditPool(KernelIf, Sendable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
+    def _check_cnt(self):
+        assert self._cnt >= 0
+        assert not self._has_capacity or self._cnt <= self._capacity
+
     def _check_n(self, n: int):
         if n < 1:
             raise ValueError(f"Expected n ≥ 1, got {n}")
@@ -85,14 +89,13 @@ class CreditPool(KernelIf, Sendable):
         return ReqCredit(self, n, priority)
 
     def put(self, n: int = 1):
+        self._check_cnt()
         self._check_n(n)
 
-        # NOTE: Do NOT support deposit bypass
-        if self._has_capacity and self._cnt + n > self._capacity:
+        if self._has_capacity and (self._cnt + n) > self._capacity:
             raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
 
-        # Deposit credit
-        assert self._cnt >= 0
+        # Put credit
         self._cnt += n
 
         while self._waiting and (self._cnt >= self._waiting.peek()):
@@ -103,33 +106,28 @@ class CreditPool(KernelIf, Sendable):
             self._cnt -= n
 
     def try_get(self, n: int = 1) -> bool:
+        self._check_cnt()
         self._check_n(n)
 
-        if 0 <= self._cnt < n:
-            # Deny credit
+        if self._cnt < n:
             return False
 
-        if self._cnt >= n:
-            # Withdraw credit
-            self._cnt -= n
-            return True
-
-        assert False  # pragma: no cover
+        # Get credit
+        self._cnt -= n
+        return True
 
     async def get(self, n: int = 1, priority: int = 0):
+        self._check_cnt()
         self._check_n(n)
 
-        if 0 <= self._cnt < n:
-            # Await credit
+        if self._cnt < n:
             task = self._kernel.task()
             self.wait_push(priority, task, n)
             credits = await task.switch_coro()
             assert credits is self
-        elif self._cnt >= n:
-            # Withdraw credit
-            self._cnt -= n
         else:
-            assert False  # pragma: no cover
+            # Get credit
+            self._cnt -= n
 
 
 class ReqCredit(Blocking):

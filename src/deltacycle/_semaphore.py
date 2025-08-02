@@ -71,15 +71,20 @@ class Semaphore(KernelIf, Sendable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
+    def _check_cnt(self):
+        assert self._cnt >= 0
+        assert not self._has_capacity or self._cnt <= self._capacity
+
     def req(self, priority: int = 0) -> ReqSemaphore:
         return ReqSemaphore(self, priority)
 
     def put(self):
+        self._check_cnt()
+
         if self._has_capacity and self._cnt == self._capacity:
             raise OverflowError(f"{self._cnt} + 1 > {self._capacity}")
 
-        # Deposit credit
-        assert self._cnt >= 0
+        # Put credit
         self._cnt += 1
 
         if self._waiting:
@@ -91,29 +96,26 @@ class Semaphore(KernelIf, Sendable):
             self._cnt -= 1
 
     def try_get(self) -> bool:
+        self._check_cnt()
+
         if self._cnt == 0:
-            # Deny credit
             return False
 
-        if self._cnt > 0:
-            # Withdraw credit
-            self._cnt -= 1
-            return True
-
-        assert False  # pragma: no cover
+        # Get credit
+        self._cnt -= 1
+        return True
 
     async def get(self, priority: int = 0):
+        self._check_cnt()
+
         if self._cnt == 0:
-            # Await credit
             task = self._kernel.task()
             self.wait_push(priority, task)
             s = await task.switch_coro()
             assert s is self
-        elif self._cnt > 0:
-            # Withdraw credit
-            self._cnt -= 1
         else:
-            assert False  # pragma: no cover
+            # Get credit
+            self._cnt -= 1
 
 
 class ReqSemaphore(Blocking):
