@@ -75,8 +75,10 @@ class CreditPool(KernelIf, Sendable):
         self._waiting.drop(task)
 
     def _check_n(self, n: int):
-        if n < 1 or self._has_capacity and n > self._capacity:
-            raise ValueError(f"Expected 1 ≤ n ≤ {self._capacity}, got {n}")
+        if n < 1:
+            raise ValueError(f"Expected n ≥ 1, got {n}")
+        if self._has_capacity and n > self._capacity:
+            raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
 
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         self._check_n(n)
