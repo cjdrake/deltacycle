@@ -77,13 +77,12 @@ class Semaphore(KernelIf, Sendable):
     def put(self):
         assert self._cnt >= 0
 
-        if self._has_capacity and self._cnt == self._capacity:
-            raise OverflowError(f"{self._cnt} + 1 > {self._capacity}")
-
         if self._waiting:
             task = self._waiting.pop()
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+        elif self._has_capacity and self._cnt == self._capacity:
+            raise OverflowError(f"{self._cnt} + 1 > {self._capacity}")
         else:
             self._cnt += 1
 
