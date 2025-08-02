@@ -90,24 +90,22 @@ class Semaphore(KernelIf, Sendable):
     def try_get(self) -> bool:
         assert self._cnt >= 0
 
-        if self._cnt > 0:
-            self._cnt -= 1
-            return True
+        if self._cnt == 0:
+            return False
 
-        return False
+        self._cnt -= 1
+        return True
 
     async def get(self, priority: int = 0):
         assert self._cnt >= 0
 
-        if self._cnt > 0:
-            self._cnt -= 1
-        else:
+        if self._cnt == 0:
             task = self._kernel.task()
             self.wait_push(priority, task)
             s = await task.switch_coro()
             assert s is self
-
-    # NOTE: NOT Blocking
+        else:
+            self._cnt -= 1
 
 
 class ReqSemaphore(Blocking):

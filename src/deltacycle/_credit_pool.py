@@ -74,8 +74,6 @@ class CreditPool(KernelIf, Sendable):
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
-    # NOTE: NOT Blocking
-
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         return ReqCredit(self, n, priority)
 
@@ -97,22 +95,22 @@ class CreditPool(KernelIf, Sendable):
     def try_get(self, n: int = 1) -> bool:
         assert self._cnt >= 0
 
-        if self._cnt >= n:
-            self._cnt -= n
-            return True
+        if self._cnt < n:
+            return False
 
-        return False
+        self._cnt -= n
+        return True
 
     async def get(self, n: int = 1, priority: int = 0):
         assert self._cnt >= 0
 
-        if self._cnt >= n:
-            self._cnt -= n
-        else:
+        if self._cnt < n:
             task = self._kernel.task()
             self.wait_push(priority, task, n)
             credits = await task.switch_coro()
             assert credits is self
+        else:
+            self._cnt -= n
 
 
 class ReqCredit(Blocking):

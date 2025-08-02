@@ -59,11 +59,9 @@ class Queue[T](KernelIf):
         return self._capacity > 0
 
     def empty(self) -> bool:
-        """Return True if the queue is empty."""
         return not self._items
 
     def full(self) -> bool:
-        """Return True if the queue is full."""
         return self._has_capacity and len(self._items) == self._capacity
 
     def _put(self, item: T):
@@ -81,7 +79,7 @@ class Queue[T](KernelIf):
         return True
 
     async def put(self, item: T):
-        """Block until there is space to put the item."""
+        """Block until there is space for an item."""
         if self.full():
             task = self._kernel.task()
             self._putq.push(task)
@@ -111,7 +109,7 @@ class Queue[T](KernelIf):
         return True, item
 
     async def get(self) -> T:
-        """Block until an item is available to get."""
+        """Block until an item is available."""
         if self.empty():
             task = self._kernel.task()
             self._getq.push(task)
