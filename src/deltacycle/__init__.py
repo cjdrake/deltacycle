@@ -6,6 +6,7 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 
 import logging
 
+from ._container import Container
 from ._credit_pool import CreditPool, ReqCredit
 from ._event import Event
 from ._kernel import Kernel, finish
@@ -70,6 +71,8 @@ __all__ = [
     "sleep",
     "all_of",
     "any_of",
+    # container
+    "Container",
     # event
     "Event",
     # queue

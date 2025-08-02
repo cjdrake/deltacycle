@@ -153,6 +153,19 @@ Queues
     .. automethod:: get
 
 
+Container
+=========
+
+.. autoclass:: deltacycle.Container
+    :show-inheritance:
+
+    .. automethod:: __len__
+    .. automethod:: try_put
+    .. automethod:: put
+    .. automethod:: try_get
+    .. automethod:: get
+
+
 Kernel
 ======
 
