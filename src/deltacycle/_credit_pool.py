@@ -84,46 +84,51 @@ class CreditPool(KernelIf, Sendable):
         if n < 1:
             raise ValueError(f"Expected n ≥ 1, got {n}")
 
+        # NOTE: Do NOT support deposit bypass
+        if self._has_capacity and self._cnt + n > self._capacity:
+            raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
+
+        # Deposit credit
         assert self._cnt >= 0
+        self._cnt += n
 
-        cnt = self._cnt + n
-
-        while self._waiting and (cnt >= self._waiting.peek()):
+        while self._waiting and (self._cnt >= self._waiting.peek()):
+            # Transfer credit
             task, n = self._waiting.pop()
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
-            cnt -= n
-
-        if self._has_capacity and cnt > self._capacity:
-            raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
-
-        self._cnt = cnt
+            self._cnt -= n
 
     def try_get(self, n: int = 1) -> bool:
         if n < 1:
             raise ValueError(f"Expected n ≥ 1, got {n}")
 
-        assert self._cnt >= 0
-
-        if self._cnt < n:
+        if 0 <= self._cnt < n:
+            # Deny credit
             return False
 
-        self._cnt -= n
-        return True
+        if self._cnt >= n:
+            # Withdraw credit
+            self._cnt -= n
+            return True
+
+        assert False  # pragma: no cover
 
     async def get(self, n: int = 1, priority: int = 0):
         if n < 1:
             raise ValueError(f"Expected n ≥ 1, got {n}")
 
-        assert self._cnt >= 0
-
-        if self._cnt < n:
+        if 0 <= self._cnt < n:
+            # Await credit
             task = self._kernel.task()
             self.wait_push(priority, task, n)
             credits = await task.switch_coro()
             assert credits is self
-        else:
+        elif self._cnt >= n:
+            # Withdraw credit
             self._cnt -= n
+        else:
+            assert False  # pragma: no cover
 
 
 class ReqCredit(Blocking):

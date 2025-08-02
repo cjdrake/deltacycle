@@ -360,7 +360,8 @@ def test_overflow1():
         # b gets 10
         await sleep(5)
 
-        credits.put(7)  # 5 + 7 - 10 should NOT overflow
+        # 5 + 7 > 10 should overflow, despite the -10 from b
+        credits.put(7)
 
     async def b(credits: CreditPool):
         # a puts 5
@@ -371,9 +372,14 @@ def test_overflow1():
 
     async def main():
         credits = CreditPool(capacity=10)
-        async with TaskGroup() as tg:
-            tg.create_task(a(credits))
-            tg.create_task(b(credits))
+
+        with pytest.raises(ExceptionGroup) as e:
+            async with TaskGroup() as tg:
+                tg.create_task(a(credits))
+                tg.create_task(b(credits))
+
+        excs = e.value.args[1]
+        assert isinstance(excs[0], OverflowError)
 
     run(main())
 
