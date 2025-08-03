@@ -42,7 +42,7 @@ The *fast* clock prints the current time every time step.
 The *slow* clock prints the current time every two time steps.
 
 ```python
->>> from deltacycle import create_task, now, run, sleep
+>>> from deltacycle import TaskGroup, now, run, sleep
 
 >>> async def clock(name: str, period: int):
 ...     while True:
@@ -50,8 +50,9 @@ The *slow* clock prints the current time every two time steps.
 ...         await sleep(period)
 
 >>> async def main():
-...     create_task(clock("fast", 1))
-...     create_task(clock("slow", 2))
+...     with TaskGroup() as tg:
+...         tg.create_task(clock("fast", 1))
+...         tg.create_task(clock("slow", 2))
 
 >>> run(main(), until=7)
 0: fast
