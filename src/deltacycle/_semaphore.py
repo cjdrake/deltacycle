@@ -61,6 +61,10 @@ class Semaphore(KernelIf, Sendable):
     def __len__(self) -> int:
         return self._cnt
 
+    @property
+    def capacity(self) -> int | None:
+        return self._capacity if self._has_capacity else None
+
     @cached_property
     def _has_capacity(self) -> bool:
         return self._capacity > 0

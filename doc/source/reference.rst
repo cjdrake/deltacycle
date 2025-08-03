@@ -100,6 +100,7 @@ Synchronization Primitives
     :show-inheritance:
 
     .. automethod:: __len__
+    .. autoproperty:: capacity
     .. automethod:: req
     .. automethod:: put
     .. automethod:: try_get
@@ -117,6 +118,7 @@ Synchronization Primitives
     :show-inheritance:
 
     .. automethod:: __len__
+    .. autoproperty:: capacity
     .. automethod:: req
     .. automethod:: put
     .. automethod:: try_get
@@ -160,6 +162,7 @@ Container
     :show-inheritance:
 
     .. automethod:: __len__
+    .. autoproperty:: capacity
     .. automethod:: try_put
     .. automethod:: put
     .. automethod:: try_get
