@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.27.0
+==============
+
+Added a ``Container`` data type.
+It acts like a combination of ``CreditPool`` and ``Queue``.
+
+
 Version 0.26.0
 ==============
 
