@@ -26,6 +26,7 @@ logger = logging.getLogger("deltacycle")
 def test_len():
     async def main():
         sem = Semaphore(capacity=5)
+        assert sem.capacity == 5
         assert len(sem) == 0
         sem.put()
         assert len(sem) == 1

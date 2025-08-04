@@ -95,6 +95,8 @@ def test_prod_cons2(caplog: LogCaptureFixture):
 
     q: Queue[int] = Queue(2)
 
+    assert q.capacity == 2
+
     async def prod():
         for i in range(10):
             logger.info("%d", i)

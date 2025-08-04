@@ -17,6 +17,7 @@ logger = logging.getLogger("deltacycle")
 def test_len():
     async def main():
         container = Container(capacity=10)
+        assert container.capacity == 10
         assert len(container) == 0
         await container.put(1)
         assert len(container) == 1
