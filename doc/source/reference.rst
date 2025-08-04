@@ -147,6 +147,7 @@ Queues
     :show-inheritance:
 
     .. automethod:: __len__
+    .. autoproperty:: capacity
     .. automethod:: empty
     .. automethod:: full
     .. automethod:: try_put
