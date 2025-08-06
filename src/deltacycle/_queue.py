@@ -1,5 +1,6 @@
 """Queue synchronization primitive."""
 
+import heapq
 from collections import deque
 from functools import cached_property
 
@@ -8,26 +9,39 @@ from ._task import Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
-    """Tasks wait in FIFO order."""
+    """Priority queue for ordering task execution."""
 
     def __init__(self):
-        self._items: deque[Task] = deque()
+        # priority, index, task
+        self._items: list[tuple[int, int, Task]] = []
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
 
     def __bool__(self) -> bool:
         return bool(self._items)
 
-    def push(self, item: Task):
-        task = item
+    def push(self, item: tuple[int, Task]):
+        priority, task = item
         task.link(self)
-        self._items.append(task)
+        heapq.heappush(self._items, (priority, self._index, task))
+        self._index += 1
 
     def pop(self) -> Task:
-        task = self._items.popleft()
+        _, _, task = heapq.heappop(self._items)
         task.unlink(self)
         return task
 
+    def _find(self, task: Task) -> int:
+        for i, (_, _, t) in enumerate(self._items):
+            if t is task:
+                return i
+        assert False  # pragma: no cover
+
     def drop(self, task: Task):
-        self._items.remove(task)
+        index = self._find(task)
+        self._items.pop(index)
         task.unlink(self)
 
 
@@ -82,11 +96,11 @@ class Queue[T](KernelIf):
         self._put(item)
         return True
 
-    async def put(self, item: T):
+    async def put(self, item: T, priority: int = 0):
         """Block until there is space for an item."""
         if self.full():
             task = self._kernel.task()
-            self._putq.push(task)
+            self._putq.push((priority, task))
             y = await task.switch_coro()
             assert y is None
 
@@ -112,11 +126,11 @@ class Queue[T](KernelIf):
         item = self._get()
         return True, item
 
-    async def get(self) -> T:
+    async def get(self, priority: int = 0) -> T:
         """Block until an item is available."""
         if self.empty():
             task = self._kernel.task()
-            self._getq.push(task)
+            self._getq.push((priority, task))
             y = await task.switch_coro()
             assert y is None
 
