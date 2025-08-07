@@ -133,7 +133,7 @@ class Kernel:
         # Task queue
         self._queue = _PendQ()
 
-        # Serial Tasks
+        # Forked Tasks
         self._forks: dict[Task, set[Sendable]] = {}
 
         # Model variables
