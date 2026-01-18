@@ -1,10 +1,6 @@
 """Common simulation data types"""
 
-import logging
-
 from deltacycle import Aggregate, Singular
-
-logger = logging.getLogger("deltacycle")
 
 
 class Bool(Singular[bool]):
