@@ -4,8 +4,6 @@ Credit to David Beazley's "Build Your Own Async" tutorial for inspiration:
 https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 """
 
-import logging
-
 from ._container import Container
 from ._credit_pool import CreditPool, ReqCredit
 from ._event import Event
@@ -37,26 +35,6 @@ from ._top import (
     step,
 )
 from ._variable import Aggregate, AggrItem, AggrValue, Predicate, PredVar, Singular, Value, Variable
-
-# Customize logging
-logger = logging.getLogger(__name__)
-
-
-class DeltaCycleFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        try:
-            kernel = get_running_kernel()
-        except RuntimeError:
-            record.time = -1
-            record.taskName = None
-        else:
-            record.time = kernel.time()
-            record.taskName = kernel.task().name
-        return True
-
-
-logger.addFilter(DeltaCycleFilter())
-
 
 __all__ = [
     # kernel

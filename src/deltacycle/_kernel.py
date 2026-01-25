@@ -1,15 +1,12 @@
 """Execution Kernel"""
 
 import heapq
-import logging
 from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
 
 from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
-
-logger = logging.getLogger("deltacycle")
 
 
 class _Finish(Exception):
@@ -141,7 +138,6 @@ class Kernel:
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]
-        logger.debug("%s: %s => %s", self._name, self._state.name, state.name)
         self._state = state
 
     def state(self) -> State:

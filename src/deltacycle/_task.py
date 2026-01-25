@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from abc import ABC
 from collections import Counter, OrderedDict, deque
 from collections.abc import Coroutine, Generator
@@ -11,9 +10,6 @@ from types import TracebackType
 from typing import Any, Self
 
 from ._kernel_if import KernelIf
-
-logger = logging.getLogger("deltacycle")
-
 
 type TaskCoro = Coroutine[None, Sendable | None, Any]
 type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Signal]
@@ -308,7 +304,6 @@ class Task(KernelIf, Blocking, Sendable):
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]
-        logger.debug("%s: %s => %s", self.name, self._state.name, state.name)
         self._state = state
 
     def state(self) -> State:
