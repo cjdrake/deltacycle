@@ -8,6 +8,15 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.28.0
+==============
+
+Removed logger implementation from deltacycle namespace.
+If you use ``logging.getLogger("deltacycle")``,
+it will no longer include a custom filter that adds ``time`` and ``taskName`` to
+the log record.
+
+
 Version 0.27.0
 ==============
 

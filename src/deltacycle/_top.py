@@ -86,7 +86,6 @@ def create_task(
     Args:
         coro: Coroutine function instance.
         name: Identify the task for logging/debugging purposes.
-            Overrides the ``taskName`` attribute in Python's ``logging.LogRecord``.
             If not given, a default name like ``Task-{index}`` will be assigned.
             Not guaranteed to be unique.
         priority: Specify task execution order within the same timeslot.
