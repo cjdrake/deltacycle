@@ -1,10 +1,6 @@
 """Test variables"""
 
-import logging
-
 from deltacycle import Singular, create_task, run, sleep
-
-logger = logging.getLogger("deltacycle")
 
 
 def test_var_await():
