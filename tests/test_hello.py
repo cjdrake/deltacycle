@@ -1,37 +1,36 @@
 """Hello, world!"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
 import pytest
-from pytest import LogCaptureFixture
+from pytest import CaptureFixture
 
-from deltacycle import Kernel, get_kernel, run, sleep
-
-logger = logging.getLogger("deltacycle")
+from deltacycle import Kernel, get_kernel, get_running_kernel, run, sleep
 
 
-EXP = [
-    (-1, "Before Time"),
-    (2, "Hello"),
-    (4, "World"),
-]
+def tprint(*args: str):
+    try:
+        kernel = get_running_kernel()
+    except RuntimeError:
+        print("[  -1]", *args)
+    else:
+        print(f"[{kernel.time():4}]", *args)
 
 
-def test_hello(caplog: LogCaptureFixture):
+EXP = """\
+[  -1] Before Time
+[   2] Hello
+[   4] World
+"""
+
+
+def test_hello(capsys: CaptureFixture[str]):
     """Test basic async/await hello world functionality."""
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
-    logger.info("Before Time")
+    tprint("Before Time")
 
     async def hello():
         await sleep(2)
-        logger.info("Hello")
+        tprint("Hello")
         await sleep(2)
-        logger.info("World")
+        tprint("World")
         return 42
 
     ret = run(hello())
@@ -44,5 +43,5 @@ def test_hello(caplog: LogCaptureFixture):
     with pytest.raises(RuntimeError):
         run(kernel=kernel)
 
-    msgs = [(r.time, r.getMessage()) for r in caplog.records]
-    assert msgs == EXP
+    cap = capsys.readouterr()
+    assert cap.out == EXP
