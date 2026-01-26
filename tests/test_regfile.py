@@ -1,19 +1,10 @@
 """Simulate a register file."""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
+from pytest import CaptureFixture
 
 from deltacycle import any_of, create_task, run, sleep
 
-from .common import Bool, Int, IntMem
-
-logger = logging.getLogger("deltacycle")
-
+from .common import Bool, Int, IntMem, tprint
 
 # wr_en, wr_addr, wr_data, rd_addr, rd_data
 VALS = [
@@ -32,10 +23,15 @@ VALS = [
     (False, 0, 0, 0, 42),
 ]
 
+EXP = "".join(
+    f"[{10 * i + 5:4}] wr_en={VALS[i][0]:b} "
+    f"wr_addr={VALS[i][1]:x} wr_data={VALS[i][2]:02x} "
+    f"rd_addr={VALS[i][3]:x} rd_data={VALS[i][4]:02x}\n"
+    for i, _ in enumerate(VALS)
+)
 
-def test_regfile(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
 
+def test_regfile(capsys: CaptureFixture[str]):
     clk = Bool(name="clk")
     period = 10
 
@@ -66,13 +62,12 @@ def test_regfile(caplog: LogCaptureFixture):
     async def mon_outputs():
         while True:
             await clk.posedge()
-            logger.info(
-                "wr_en=%d wr_addr=%d wr_data=%d rd_addr=%d rd_data=%d",
-                wr_en.prev,
-                wr_addr.prev,
-                wr_data.prev,
-                rd_addr.prev,
-                rd_data.prev,
+            tprint(
+                f"wr_en={wr_en.prev:b}",
+                f"wr_addr={wr_addr.prev:x}",
+                f"wr_data={wr_data.prev:02x}",
+                f"rd_addr={rd_addr.prev:x}",
+                f"rd_data={rd_data.prev:02x}",
             )
 
     async def wr_port():
@@ -97,12 +92,8 @@ def test_regfile(caplog: LogCaptureFixture):
 
     run(main(), until=120)
 
-    # Check log messages
-    msgs = [(r.time, r.getMessage()) for r in caplog.records]
-    assert msgs == [
-        (period * i + 5, f"wr_en={we:d} wr_addr={wa} wr_data={wd} rd_addr={ra} rd_data={rd}")
-        for i, (we, wa, wd, ra, rd) in enumerate(VALS)
-    ]
-
     for i in range(10):
         assert regs[i].prev == 42 + i
+
+    cap = capsys.readouterr()
+    assert cap.out == EXP
