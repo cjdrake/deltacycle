@@ -1,6 +1,15 @@
 """Common simulation data types"""
 
-from deltacycle import Aggregate, Singular
+from deltacycle import Aggregate, Singular, get_running_kernel
+
+
+def tprint(*args: str):
+    try:
+        kernel = get_running_kernel()
+    except RuntimeError:
+        print("[  -1]", *args)
+    else:
+        print(f"[{kernel.time():4}]", *args)
 
 
 class Bool(Singular[bool]):

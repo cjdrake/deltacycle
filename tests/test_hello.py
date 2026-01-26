@@ -3,17 +3,9 @@
 import pytest
 from pytest import CaptureFixture
 
-from deltacycle import Kernel, get_kernel, get_running_kernel, run, sleep
+from deltacycle import Kernel, get_kernel, run, sleep
 
-
-def tprint(*args: str):
-    try:
-        kernel = get_running_kernel()
-    except RuntimeError:
-        print("[  -1]", *args)
-    else:
-        print(f"[{kernel.time():4}]", *args)
-
+from .common import tprint
 
 EXP = """\
 [  -1] Before Time

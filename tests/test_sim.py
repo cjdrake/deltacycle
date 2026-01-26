@@ -1,18 +1,10 @@
 """Test seqlogic.sim module."""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
+from pytest import CaptureFixture
 
 from deltacycle import Kernel, create_task, get_running_kernel, run, sleep, step
 
-from .common import Bool
-
-logger = logging.getLogger("deltacycle")
+from .common import Bool, tprint
 
 
 async def drv_clk(clk: Bool):
@@ -50,25 +42,24 @@ async def drv_c(c: Bool, clk: Bool):
 async def mon(a: Bool, b: Bool, c: Bool, clk: Bool):
     while True:
         await clk.edge()
-        logger.info("a=%d b=%d c=%d", a.prev, b.prev, c.prev)
+        tprint(f"a={a.prev:b} b={b.prev:b} c={c.prev:b}")
 
 
-EXP = {
-    (5, "a=0 b=0 c=0"),
-    (10, "a=1 b=1 c=1"),
-    (15, "a=0 b=1 c=1"),
-    (20, "a=1 b=0 c=1"),
-    (25, "a=0 b=0 c=0"),
-    (30, "a=1 b=1 c=0"),
-    (35, "a=0 b=1 c=0"),
-    (40, "a=1 b=0 c=1"),
-    (45, "a=0 b=0 c=1"),
-}
+EXP = """\
+[   5] a=0 b=0 c=0
+[  10] a=1 b=1 c=1
+[  15] a=0 b=1 c=1
+[  20] a=1 b=0 c=1
+[  25] a=0 b=0 c=0
+[  30] a=1 b=1 c=0
+[  35] a=0 b=1 c=0
+[  40] a=1 b=0 c=1
+[  45] a=0 b=0 c=1
+"""
 
 
-def test_vars_run(caplog: LogCaptureFixture):
+def test_vars_run(capsys: CaptureFixture[str]):
     """Test run, halt, run."""
-    caplog.set_level(logging.INFO, logger="deltacycle")
 
     clk = Bool(name="clk")
     a = Bool(name="a")
@@ -90,13 +81,12 @@ def test_vars_run(caplog: LogCaptureFixture):
     # Absolute run limit
     run(kernel=kernel, until=50)
 
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    cap = capsys.readouterr()
+    assert cap.out == EXP
 
 
-def test_vars_iter(caplog: LogCaptureFixture):
+def test_vars_iter(capsys: CaptureFixture[str]):
     """Test iter, iter."""
-    caplog.set_level(logging.INFO, logger="deltacycle")
 
     clk = Bool(name="clk")
     a = Bool(name="a")
@@ -123,13 +113,12 @@ def test_vars_iter(caplog: LogCaptureFixture):
 
     assert kernel.state() is Kernel.State.RUNNING
 
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    cap = capsys.readouterr()
+    assert cap.out == EXP
 
 
-def test_vars_run_iter(caplog: LogCaptureFixture):
+def test_vars_run_iter(capsys: CaptureFixture[str]):
     """Test run, halt, iter."""
-    caplog.set_level(logging.INFO, logger="deltacycle")
 
     clk = Bool(name="clk")
     a = Bool(name="a")
@@ -154,5 +143,5 @@ def test_vars_run_iter(caplog: LogCaptureFixture):
 
     assert kernel.state() is Kernel.State.RUNNING
 
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    cap = capsys.readouterr()
+    assert cap.out == EXP
