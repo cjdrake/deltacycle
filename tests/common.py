@@ -7,9 +7,10 @@ def tprint(*args: str):
     try:
         kernel = get_running_kernel()
     except RuntimeError:
-        print("[  -1]", *args)
+        time = -1
     else:
-        print(f"[{kernel.time():4}]", *args)
+        time = kernel.time()
+    print(f"[{time:4}]", *args)
 
 
 class Bool(Singular[bool]):
