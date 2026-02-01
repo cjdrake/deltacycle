@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict, deque
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
@@ -28,19 +28,21 @@ class _Kill(Signal):
 
 
 class TaskQueue(ABC):
+    @abstractmethod
     def __bool__(self) -> bool:
         """Return True if the queue has tasks ready to run."""
-        raise NotImplementedError()  # pragma: no cover
 
+    @abstractmethod
     def push(self, item: Any) -> None:
-        raise NotImplementedError()  # pragma: no cover
+        """Push item to queue tail."""
 
+    @abstractmethod
     def pop(self) -> Any:
-        raise NotImplementedError()  # pragma: no cover
+        """Pop item from queue head."""
 
+    @abstractmethod
     def drop(self, task: Task) -> None:
-        """If a task reneges, drop it from the queue."""
-        raise NotImplementedError()  # pragma: no cover
+        """Drop task from queue."""
 
 
 class _WaitQ(TaskQueue):
