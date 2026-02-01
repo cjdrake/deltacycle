@@ -1,42 +1,31 @@
 """Test bugs"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
+from pytest import CaptureFixture
 
 from deltacycle import TaskGroup, run, sleep
 
-from .common import Bool
+from .common import Bool, ttprint
 
-logger = logging.getLogger("deltacycle")
-
-
-EXP2 = {
-    (5, "do_stuff", "first"),
-    (15, "do_stuff", "second"),
-    (25, "do_stuff", "third"),
-    (35, "do_stuff", "fourth"),
-}
+EXP2 = """\
+[   5][do_stuff] first
+[  15][do_stuff] second
+[  25][do_stuff] third
+[  35][do_stuff] fourth
+"""
 
 
-def test_2(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_2(capsys: CaptureFixture[str]):
     clock = Bool(name="clock")
 
     async def do_stuff():
         await clock.posedge()
-        logger.info("first")
+        ttprint("first")
         await clock.posedge()
-        logger.info("second")
+        ttprint("second")
         await clock.posedge()
-        logger.info("third")
+        ttprint("third")
         await clock.posedge()
-        logger.info("fourth")
+        ttprint("fourth")
 
     async def drv_clock():
         clock.next = False
@@ -51,5 +40,7 @@ def test_2(caplog: LogCaptureFixture):
 
     run(main(), until=100)
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP2
+    cap = capsys.readouterr()
+    # msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
+    # assert msgs == EXP2
+    assert cap.out == EXP2

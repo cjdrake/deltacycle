@@ -13,6 +13,19 @@ def tprint(*args: str):
     print(f"[{time:4}]", *args)
 
 
+def ttprint(*args: str):
+    try:
+        kernel = get_running_kernel()
+    except RuntimeError:
+        time = -1
+        task_name = ""
+    else:
+        time = kernel.time()
+        task = kernel.task()
+        task_name = task.name
+    print(f"[{time:4}][{task_name}]", *args)
+
+
 class Bool(Singular[bool]):
     """Variable that supports dumping to memory."""
 
