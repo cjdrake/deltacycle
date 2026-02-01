@@ -34,7 +34,16 @@ from ._top import (
     sleep,
     step,
 )
-from ._variable import Aggregate, AggrItem, AggrValue, Predicate, PredVar, Singular, Value, Variable
+from ._variable import (
+    Aggregate,
+    AggrItem,
+    AggrValue,
+    Predicate,
+    PredVar,
+    Singular,
+    Value,
+    Variable,
+)
 
 __all__ = [
     # kernel
