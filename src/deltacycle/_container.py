@@ -4,7 +4,7 @@ import heapq
 from functools import cached_property
 
 from ._kernel_if import KernelIf
-from ._task import Sendable, Task, TaskQueue
+from ._task import Task, TaskQueue
 
 
 class _WaitQ(TaskQueue):
@@ -47,7 +47,7 @@ class _WaitQ(TaskQueue):
         return self._items[0][-1]
 
 
-class Container(KernelIf, Sendable):
+class Container(KernelIf):
     """Producer / Consumer Resource Container.
 
     Has both blocking and non-blocking put and get interfaces.

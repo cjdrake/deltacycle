@@ -74,17 +74,20 @@ class _WaitQ(TaskQueue):
 
 
 class Blocking(ABC):
+    @abstractmethod
     def try_block(self, task: Task) -> bool:
-        raise NotImplementedError()  # pragma: no cover
+        """Attempt to block task; return True if successful."""
 
     @property
+    @abstractmethod
     def s(self) -> Sendable:
-        raise NotImplementedError()  # pragma: no cover
+        """Object that will be sent to unblock task."""
 
 
 class Sendable(ABC):
+    @abstractmethod
     def wait_drop(self, task: Task) -> None:
-        raise NotImplementedError()  # pragma: no cover
+        """Drop task from object's waiting queue."""
 
 
 class _SuspendResume:
