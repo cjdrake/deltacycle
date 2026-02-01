@@ -1,19 +1,10 @@
 """Simulate a 4-bit adder."""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
+from pytest import CaptureFixture
 
 from deltacycle import any_of, create_task, run, sleep
 
-from .common import Bool
-
-logger = logging.getLogger("deltacycle")
-
+from .common import Bool, tprint
 
 # a, b, ci, s, co
 VALS = [
@@ -27,11 +18,11 @@ VALS = [
     (True, True, True, True, True),
 ]
 
+EXP = "".join(f"[{10 * i + 5:4}] s={VALS[i][3]:b} co={VALS[i][4]:b}\n" for i, _ in enumerate(VALS))
 
-def test_add(caplog: LogCaptureFixture):
+
+def test_add(capsys: CaptureFixture[str]):
     """Test 4-bit adder simulation."""
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
     period = 10
 
     # Inputs
@@ -69,7 +60,7 @@ def test_add(caplog: LogCaptureFixture):
     async def mon_outputs():
         while True:
             await clk.posedge()
-            logger.info("s=%d co=%d", s.prev, co.prev)
+            tprint(f"s={s.prev:b}", f"co={co.prev:b}")
 
     async def main():
         create_task(drv_clk(), priority=0, name="drv_clk")
@@ -80,9 +71,5 @@ def test_add(caplog: LogCaptureFixture):
     until = period * len(VALS)
     run(main(), until=until)
 
-    # Check log messages
-    msgs = [(r.time, r.getMessage()) for r in caplog.records]
-    assert msgs == [
-        (period * i + 5, f"s={s_val:d} co={co_val:d}")
-        for i, (_, _, _, s_val, co_val) in enumerate(VALS)
-    ]
+    cap = capsys.readouterr()
+    assert cap.out == EXP
