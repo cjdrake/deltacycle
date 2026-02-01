@@ -29,7 +29,7 @@ async def cf_x(t: int, r: int):
 
 async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int):
     task = get_current_task()
-    assert task.group is not None
+    assert isinstance(task.group, TaskGroup)
     logger.info("enter")
     await sleep(t0)
     task.group.create_task(cf_r(t1, r1), name=name)
