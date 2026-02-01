@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from collections.abc import Callable, Generator, Hashable
 from typing import Self
@@ -114,12 +114,13 @@ class Variable(KernelIf, Blocking, Sendable):
         """
         return PredVar(self, p)
 
+    @abstractmethod
     def changed(self) -> bool:
         """Return True if changed during the current time slot."""
-        raise NotImplementedError()  # pragma: no cover
 
+    @abstractmethod
     def update(self) -> None:
-        raise NotImplementedError()  # pragma: no cover
+        """Update variable value."""
 
     # Blocking
     def try_block(self, task: Task) -> bool:
@@ -181,15 +182,15 @@ class PredVar(KernelIf, Blocking):
 class Value[T](ABC):
     """Variable value."""
 
+    @abstractmethod
     def get_prev(self) -> T:
         """Return value at the end of the previous timeslot."""
-        raise NotImplementedError()  # pragma: no cover
 
     prev = property(fget=get_prev)
 
+    @abstractmethod
     def set_next(self, value: T) -> None:
         """Schedule update to value in the current timeslot."""
-        raise NotImplementedError()  # pragma: no cover
 
     next = property(fset=set_next)
 
