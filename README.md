@@ -52,7 +52,7 @@ The *slow* clock prints the current time every two time steps.
 ...         await sleep(period)
 
 >>> async def main():
-...     with TaskGroup() as tg:
+...     async with TaskGroup() as tg:
 ...         tg.create_task(clock("fast", 1))
 ...         tg.create_task(clock("slow", 2))
 
