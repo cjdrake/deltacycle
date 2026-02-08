@@ -26,7 +26,9 @@ It is the clockwork mechanism behind the illusion of concurrency.
 * Synchronization Primitives:
     * Events
     * Semaphores
+    * Credit Pools
     * Queues
+    * Containers
 * Structured Concurrency:
     * Task Groups (parent/child hierarchy)
     * Interrupts
