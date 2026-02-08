@@ -8,4 +8,5 @@
 
     installation
     release_notes
+    acknowledgments
     reference
