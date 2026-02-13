@@ -283,6 +283,20 @@ class Kernel:
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
 
+    def __call__(self, ticks: int | None = None, until: int | None = None):
+        # Determine the run limit
+        if ticks is None:
+            # Run until absolute limit, or no tasks left
+            limit = until if until is not None else None
+        else:
+            # Run until relative limit
+            limit = max(self.start_time, self._time) + ticks
+            if until is not None:
+                # Both relative & absolute given; clamp to soonest
+                limit = min(limit, until)
+
+        self._call(limit)
+
     def _iter(self) -> Generator[int, None, None]:
         self._start()
 
@@ -320,20 +334,6 @@ class Kernel:
 
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
-
-    def __call__(self, ticks: int | None = None, until: int | None = None):
-        # Determine the run limit
-        if ticks is None:
-            # Run until absolute limit, or no tasks left
-            limit = until if until is not None else None
-        else:
-            # Run until relative limit
-            limit = max(self.start_time, self._time) + ticks
-            if until is not None:
-                # Both relative & absolute given; clamp to soonest
-                limit = min(limit, until)
-
-        self._call(limit)
 
     def __iter__(self) -> Generator[int, None, None]:
         yield from self._iter()
