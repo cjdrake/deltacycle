@@ -179,10 +179,11 @@ class Kernel:
     def call_at(self, when: int, task: Task, args: TaskArgs):
         self._queue.push((when, task, args))
 
-    def create_main(self, coro: TaskCoro):
+    def create_main(self, coro: TaskCoro) -> Task:
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name, self.main_priority)
         self.call_at(self.start_time, self._main, args=(Task.Command.START,))
+        return self._main
 
     def create_task(
         self,
