@@ -276,6 +276,9 @@ class Kernel:
             # Update simulation state
             self._update_vars()
 
+        # Drop reference to last task
+        self._task = None
+
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
 
@@ -310,6 +313,9 @@ class Kernel:
 
             # Update simulation state
             self._update_vars()
+
+        # Drop reference to last task
+        self._task = None
 
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
