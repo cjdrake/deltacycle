@@ -76,11 +76,7 @@ def get_current_task() -> Task:
     return task
 
 
-def create_task(
-    coro: TaskCoro,
-    name: str | None = None,
-    priority: int = 0,
-) -> Task:
+def create_task(coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
     """Create a task, and schedule it to start soon.
 
     Args:
@@ -98,7 +94,7 @@ def create_task(
         RuntimeError: No kernel, or kernel is not currently running.
     """
     kernel = get_running_kernel()
-    return kernel.create_task(coro, name, priority)
+    return kernel.create_task(coro, name, **kwargs)
 
 
 def now() -> int:

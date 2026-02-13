@@ -215,14 +215,12 @@ class Task(KernelIf, Blocking, Sendable):
         self,
         coro: TaskCoro,
         name: str,
-        priority: int,
     ):
         self._state = self.State.INIT
 
         # Attributes
         self._coro = coro
         self._name = name
-        self._priority = priority
 
         # Set if created within a group
         self._group: TaskGroup | None = None
@@ -277,22 +275,6 @@ class Task(KernelIf, Blocking, Sendable):
         starting from 0.
         """
         return self._name
-
-    @property
-    def priority(self) -> int:
-        """Task priority.
-
-        Tasks in the same time slot are executed in priority order.
-        Low values execute *before* high values.
-
-        For example,
-        a task scheduled to run at time 42 with priority -1 will execute
-        *before* a task scheduled to run at time 42 with priority +1.
-
-        If not provided to the create_task function,
-        a default priority of zero will be assigned.
-        """
-        return self._priority
 
     def _get_group(self) -> TaskGroup | None:
         """Return TaskGroup, or None.
@@ -569,9 +551,9 @@ class TaskGroup(KernelIf):
         self,
         coro: TaskCoro,
         name: str | None = None,
-        priority: int = 0,
+        **kwargs: Any,
     ) -> Task:
-        child = self._kernel.create_task(coro, name, priority)
+        child = self._kernel.create_task(coro, name, **kwargs)
         child.group = self
         if self._setup_done:
             if not child.done():

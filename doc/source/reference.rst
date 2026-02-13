@@ -67,7 +67,6 @@ Tasks
     .. automethod:: __await__
     .. autoproperty:: coro
     .. autoproperty:: name
-    .. autoproperty:: priority
     .. autoproperty:: group
     .. automethod:: state
     .. automethod:: done

@@ -4,6 +4,7 @@ import heapq
 from collections.abc import Generator
 from enum import IntEnum
 from typing import Any
+from weakref import WeakKeyDictionary
 
 from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
@@ -27,10 +28,10 @@ class _PendQ(TaskQueue):
     def __bool__(self) -> bool:
         return bool(self._items)
 
-    def push(self, item: tuple[int, Task, Any]):
-        time, task, value = item
+    def push(self, item: tuple[int, int, Task, Any]):
+        time, priority, task, value = item
         task.link(self)
-        heapq.heappush(self._items, (time, task.priority, self._index, task, value))
+        heapq.heappush(self._items, (time, priority, self._index, task, value))
         self._index += 1
 
     def pop(self) -> tuple[Task, Any]:
@@ -111,6 +112,8 @@ class Kernel:
     main_name = "main"
     main_priority = 0
 
+    task_priority = 0
+
     def __init__(self):
         self._name = f"Kernel-{self.__class__._index}"
         self.__class__._index += 1
@@ -129,6 +132,9 @@ class Kernel:
 
         # Task queue
         self._queue = _PendQ()
+
+        # Task priorities
+        self._task2priority = WeakKeyDictionary[Task, int]()
 
         # Forked Tasks
         self._forks: dict[Task, set[Sendable]] = {}
@@ -171,17 +177,21 @@ class Kernel:
 
     # Scheduling methods
     def call_soon(self, task: Task, args: TaskArgs):
-        self._queue.push((self._time, task, args))
+        priority = self._task2priority[task]
+        self._queue.push((self._time, priority, task, args))
 
     def call_later(self, delay: int, task: Task, args: TaskArgs):
-        self._queue.push((self._time + delay, task, args))
+        priority = self._task2priority[task]
+        self._queue.push((self._time + delay, priority, task, args))
 
     def call_at(self, when: int, task: Task, args: TaskArgs):
-        self._queue.push((when, task, args))
+        priority = self._task2priority[task]
+        self._queue.push((when, priority, task, args))
 
     def create_main(self, coro: TaskCoro) -> Task:
         assert self._time == self.init_time
-        self._main = Task(coro, self.main_name, self.main_priority)
+        self._main = Task(coro, self.main_name)
+        self._task2priority[self._main] = self.main_priority
         self.call_at(self.start_time, self._main, args=(Task.Command.START,))
         return self._main
 
@@ -189,13 +199,14 @@ class Kernel:
         self,
         coro: TaskCoro,
         name: str | None = None,
-        priority: int = 0,
+        **kwargs: Any,
     ) -> Task:
         assert self._time >= self.start_time
         if name is None:
             name = f"Task-{self._task_index}"
             self._task_index += 1
-        task = Task(coro, name, priority)
+        task = Task(coro, name)
+        self._task2priority[task] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
