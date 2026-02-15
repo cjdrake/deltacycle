@@ -1,5 +1,6 @@
 PKG := deltacycle
 PYTEST := pytest
+UV := uv
 
 .PHONY: help
 help:
@@ -12,6 +13,12 @@ help:
 .PHONY: test
 test:
 	@$(PYTEST) --doctest-modules
+
+.PHONY: test_all
+test_all:
+	@$(UV) run --python=3.12 pytest --doctest-modules
+	@$(UV) run --python=3.13 pytest --doctest-modules
+	@$(UV) run --python=3.14 pytest --doctest-modules
 
 .PHONY: prof
 prof:
