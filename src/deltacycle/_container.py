@@ -43,7 +43,7 @@ class _WaitQ(TaskQueue):
         self._items.pop(index)
         task.unlink(self)
 
-    def peek(self):
+    def peek(self) -> int:
         return self._items[0][-1]
 
 
