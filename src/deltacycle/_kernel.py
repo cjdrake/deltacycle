@@ -134,7 +134,7 @@ class Kernel:
         self._queue = _PendQ()
 
         # Task priorities
-        self._task2priority = WeakKeyDictionary[Task, int]()
+        self._priorities = WeakKeyDictionary[Task, int]()
 
         # Forked Tasks
         self._forks = dict[Task, set[Sendable]]()
@@ -177,21 +177,21 @@ class Kernel:
 
     # Scheduling methods
     def call_soon(self, task: Task, args: TaskArgs):
-        priority = self._task2priority[task]
+        priority = self._priorities[task]
         self._queue.push((self._time, priority, task, args))
 
     def call_later(self, delay: int, task: Task, args: TaskArgs):
-        priority = self._task2priority[task]
+        priority = self._priorities[task]
         self._queue.push((self._time + delay, priority, task, args))
 
     def call_at(self, when: int, task: Task, args: TaskArgs):
-        priority = self._task2priority[task]
+        priority = self._priorities[task]
         self._queue.push((when, priority, task, args))
 
     def create_main(self, coro: TaskCoro) -> Task:
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name)
-        self._task2priority[self._main] = self.main_priority
+        self._priorities[self._main] = self.main_priority
         self.call_at(self.start_time, self._main, args=(Task.Command.START,))
         return self._main
 
@@ -206,7 +206,7 @@ class Kernel:
             name = f"Task-{self._task_index}"
             self._task_index += 1
         task = Task(coro, name)
-        self._task2priority[task] = kwargs.get("priority", self.task_priority)
+        self._priorities[task] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
