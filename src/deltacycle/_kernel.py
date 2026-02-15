@@ -19,7 +19,7 @@ class _PendQ(TaskQueue):
 
     def __init__(self):
         # time, priority, index, task, value
-        self._items: list[tuple[int, int, int, Task, Any]] = []
+        self._items = list[tuple[int, int, int, Task, Any]]()
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -137,10 +137,10 @@ class Kernel:
         self._task2priority = WeakKeyDictionary[Task, int]()
 
         # Forked Tasks
-        self._forks: dict[Task, set[Sendable]] = {}
+        self._forks = dict[Task, set[Sendable]]()
 
         # Model variables
-        self._dirty_vars: set[Variable] = set()
+        self._dirty_vars = set[Variable]()
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]

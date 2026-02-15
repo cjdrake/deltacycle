@@ -49,8 +49,8 @@ class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._tasks: OrderedDict[Task, None] = OrderedDict()
-        self._items: deque[Task] = deque()
+        self._tasks = OrderedDict[Task, None]()
+        self._items = deque[Task]()
 
     def __bool__(self) -> bool:
         return bool(self._items)
@@ -119,8 +119,8 @@ class AllOf(_Condition):
     def __await__(self) -> Generator[None, Sendable, tuple[Sendable, ...]]:
         task = self._kernel.task()
 
-        blocked: set[Sendable] = set()
-        unblocked: deque[Sendable] = deque()
+        blocked = set[Sendable]()
+        unblocked = deque[Sendable]()
 
         for b in self._bs:
             if b.try_block(task):
@@ -143,7 +143,7 @@ class AnyOf(_Condition):
 
         task = self._kernel.task()
 
-        blocked: set[Sendable] = set()
+        blocked = set[Sendable]()
 
         for b in self._bs:
             if b.try_block(task):
@@ -226,7 +226,7 @@ class Task(KernelIf, Blocking, Sendable):
         self._group: TaskGroup | None = None
 
         # Keep track of all queues containing this task
-        self._refcnts: Counter[TaskQueue] = Counter()
+        self._refcnts = Counter[TaskQueue]()
 
         # Other tasks waiting for this task to complete
         self._waiting = _WaitQ()
@@ -492,10 +492,10 @@ class TaskGroup(KernelIf):
 
         # Tasks started in the with block
         self._setup_done = False
-        self._setup_tasks: set[Task] = set()
+        self._setup_tasks = set[Task]()
 
         # Tasks in running/pending/killing state
-        self._todo: set[Task] = set()
+        self._todo = set[Task]()
 
     async def __aenter__(self) -> Self:
         return self
@@ -530,8 +530,8 @@ class TaskGroup(KernelIf):
 
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
-        child_excs: list[Exception] = []
-        killed: set[Task] = set()
+        child_excs = list[Exception]()
+        killed = set[Task]()
         while self._todo:
             child = await self._parent.switch_coro()
             assert isinstance(child, Task)

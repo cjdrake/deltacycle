@@ -13,7 +13,7 @@ class _WaitQ(TaskQueue):
 
     def __init__(self):
         # priority, index, task
-        self._items: list[tuple[int, int, Task]] = []
+        self._items = list[tuple[int, int, Task]]()
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -61,7 +61,7 @@ class Queue[T](KernelIf):
 
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
-        self._items: deque[T] = deque()
+        self._items = deque[T]()
         self._getq = _WaitQ()
         self._putq = _WaitQ()
 

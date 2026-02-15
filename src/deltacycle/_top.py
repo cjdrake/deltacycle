@@ -215,8 +215,8 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
     """
     _, task = _get_kt()
 
-    blocked: set[Sendable] = set()
-    unblocked: deque[Sendable] = deque()
+    blocked = set[Sendable]()
+    unblocked = deque[Sendable]()
 
     for b in bs:
         if b.try_block(task):
@@ -248,7 +248,7 @@ async def any_of(*bs: Blocking) -> Sendable | None:
 
     kernel, task = _get_kt()
 
-    blocked: set[Sendable] = set()
+    blocked = set[Sendable]()
 
     for b in bs:
         if b.try_block(task):

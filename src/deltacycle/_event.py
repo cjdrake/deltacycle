@@ -14,8 +14,8 @@ class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._tasks: OrderedDict[Task, None] = OrderedDict()
-        self._items: deque[Task] = deque()
+        self._tasks = OrderedDict[Task, None]()
+        self._items = deque[Task]()
 
     def __bool__(self) -> bool:
         return bool(self._items)

@@ -17,8 +17,8 @@ class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._t2p: OrderedDict[Task, Predicate] = OrderedDict()
-        self._items: deque[Task] = deque()
+        self._t2p = OrderedDict[Task, Predicate]()
+        self._items = deque[Task]()
 
     def __bool__(self) -> bool:
         return bool(self._items)
@@ -243,8 +243,8 @@ class Aggregate[T](Variable):
 
     def __init__(self, value: T):
         Variable.__init__(self)
-        self._prevs: dict[Hashable, T] = defaultdict(lambda: value)
-        self._nexts: dict[Hashable, T] = dict()
+        self._prevs = defaultdict[Hashable, T](lambda: value)
+        self._nexts = dict[Hashable, T]()
 
     # [key] => Value
     def __getitem__(self, key: Hashable) -> AggrItem[T]:

@@ -12,7 +12,7 @@ class _WaitQ(TaskQueue):
 
     def __init__(self):
         # priority, index, task, n
-        self._items: list[tuple[int, int, Task, int]] = []
+        self._items = list[tuple[int, int, Task, int]]()
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
