@@ -182,6 +182,7 @@ Kernel
     .. autoproperty:: main
     .. automethod:: task
     .. automethod:: done
+    .. automethod:: clear
     .. automethod:: call_soon
     .. automethod:: call_later
     .. automethod:: call_at

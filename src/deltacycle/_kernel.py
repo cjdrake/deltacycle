@@ -129,6 +129,11 @@ class Kernel(ABC):
         """
         return bool(self._state & self._done)
 
+    def clear(self):
+        """Clear all simulation state."""
+        self._forks.clear()
+        self._dirty_vars.clear()
+
     # Scheduling methods
     @abstractmethod
     def call_soon(self, task: Task, args: TaskArgs) -> None:
@@ -198,8 +203,6 @@ class Kernel(ABC):
             raise RuntimeError(s)
 
     def _finish(self):
-        self._forks.clear()
-        self._dirty_vars.clear()
         self._set_state(self.State.FINISHED)
 
     @abstractmethod
@@ -309,6 +312,11 @@ class DefaultKernel(Kernel):
         # Task priorities
         self._priorities = WeakKeyDictionary[Task, int]()
 
+    @override
+    def clear(self):
+        super().clear()
+        self._queue.clear()
+
     def call_soon(self, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time, priority, task, args))
@@ -344,11 +352,6 @@ class DefaultKernel(Kernel):
         while self._queue and self._queue.peek() == time:
             task, value = self._queue.pop()
             yield (task, value)
-
-    @override
-    def _finish(self):
-        self._queue.clear()
-        super()._finish()
 
     def _call(self, limit: int | None):
         self._start()
