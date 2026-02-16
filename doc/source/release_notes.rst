@@ -8,6 +8,16 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.29.0
+==============
+
+* Move ``Task`` ``priority`` attribute into the ``Kernel``.
+* Change ``Kernel`` to an abstract base class.
+
+The ``create_task`` top-level function now takes ``**kwargs`` instead of an
+explicit ``priority: int = 0`` argument.
+
+
 Version 0.28.0
 ==============
 
