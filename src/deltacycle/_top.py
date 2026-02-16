@@ -4,7 +4,7 @@ from collections import deque
 from collections.abc import Generator
 from typing import Any
 
-from ._kernel import Kernel
+from ._kernel import DefaultKernel, Kernel
 from ._task import Blocking, Sendable, Task, TaskCoro
 
 _kernel: Kernel | None = None
@@ -110,9 +110,13 @@ def now() -> int:
     return kernel.time()
 
 
-def _run_pre(coro: TaskCoro | None, kernel: Kernel | None) -> Kernel:
+def _run_pre(
+    coro: TaskCoro | None,
+    kernel: Kernel | None,
+    kernel_type: type[Kernel],
+) -> Kernel:
     if kernel is None:
-        kernel = Kernel()
+        kernel = DefaultKernel()
         set_kernel(kernel)
         if coro is None:
             raise ValueError("New kernel requires a valid coro arg")
@@ -127,6 +131,7 @@ def _run_pre(coro: TaskCoro | None, kernel: Kernel | None) -> Kernel:
 def run(
     coro: TaskCoro | None = None,
     kernel: Kernel | None = None,
+    kernel_type: type[Kernel] = DefaultKernel,
     ticks: int | None = None,
     until: int | None = None,
 ) -> Any:
@@ -155,7 +160,7 @@ def run(
         ValueError: Creating a new kernel, but no main coroutine provided.
         RuntimeError: The kernel is in an invalid state.
     """
-    kernel = _run_pre(coro, kernel)
+    kernel = _run_pre(coro, kernel, kernel_type)
     kernel(ticks, until)
 
     if kernel.main.done():
@@ -165,6 +170,7 @@ def run(
 def step(
     coro: TaskCoro | None = None,
     kernel: Kernel | None = None,
+    kernel_type: type[Kernel] = DefaultKernel,
 ) -> Generator[int, None, Any]:
     """Step (iterate) a simulation.
 
@@ -189,7 +195,7 @@ def step(
         ValueError: Creating a new kernel, but no main coroutine provided.
         RuntimeError: The kernel is in an invalid state.
     """
-    kernel = _run_pre(coro, kernel)
+    kernel = _run_pre(coro, kernel, kernel_type)
     yield from kernel
 
     assert kernel.main.done()

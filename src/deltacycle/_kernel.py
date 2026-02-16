@@ -1,9 +1,10 @@
 """Execution Kernel"""
 
 import heapq
+from abc import ABC, abstractmethod
 from collections.abc import Generator
 from enum import IntEnum
-from typing import Any
+from typing import Any, override
 from weakref import WeakKeyDictionary
 
 from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
@@ -12,6 +13,227 @@ from ._variable import Variable
 
 class _Finish(Exception):
     """Force the simulation to stop."""
+
+
+class Kernel(ABC):
+    """Simulation Kernel.
+
+    Responsible for:
+
+    * Scheduling and executing tasks
+    * Updating model state
+
+    Time is an integer.
+    Its initial value is -1, indicating "before time".
+    All tasks must be scheduled at a non-negative time.
+
+    All kernels have a ``main`` task,
+    which is scheduled to run at time zero.
+
+    This is a low level API.
+    User code is not expected to interact with it directly.
+    To run a simulation, use the ``run`` and ``step`` functions.
+    """
+
+    _index = 0
+
+    class State(IntEnum):
+        """
+        Transitions::
+
+            INIT -> RUNNING -> COMPLETED
+                            -> FINISHED
+        """
+
+        # Initialized
+        INIT = 0b001
+
+        # Currently running
+        RUNNING = 0b010
+
+        # All tasks completed
+        COMPLETED = 0b100
+
+        # finish() called
+        FINISHED = 0b101
+
+    _done = State.COMPLETED & State.FINISHED
+
+    _state_transitions = {
+        State.INIT: {
+            State.RUNNING,
+        },
+        State.RUNNING: {
+            State.COMPLETED,
+            State.FINISHED,
+        },
+    }
+
+    init_time = -1
+    start_time = 0
+
+    main_name = "main"
+
+    def __init__(self):
+        self._name = f"Kernel-{self.__class__._index}"
+        self.__class__._index += 1
+
+        self._state = self.State.INIT
+
+        # Simulation time
+        self._time: int = self.init_time
+
+        # Main task
+        self._main: Task | None = None
+
+        # Currently executing task
+        self._task: Task | None = None
+        self._task_index = 0
+
+        # Forked Tasks
+        self._forks = dict[Task, set[Sendable]]()
+
+        # Model variables
+        self._dirty_vars = set[Variable]()
+
+    def _set_state(self, state: State):
+        assert state in self._state_transitions[self._state]
+        self._state = state
+
+    def state(self) -> State:
+        """Current simulation state."""
+        return self._state
+
+    def time(self) -> int:
+        """Current simulation time."""
+        return self._time
+
+    @property
+    def main(self) -> Task:
+        """Parent task of all other tasks."""
+        assert self._main is not None
+        return self._main
+
+    def task(self) -> Task:
+        """Currently running task."""
+        assert self._task is not None
+        return self._task
+
+    def done(self) -> bool:
+        """Return True if the kernel is done.
+
+        A kernel that is "done" either:
+
+        * Exhaused all tasks (COMPLETED), or
+        * Called ``finish`` (FINISHED)
+        """
+        return bool(self._state & self._done)
+
+    # Scheduling methods
+    @abstractmethod
+    def call_soon(self, task: Task, args: TaskArgs) -> None:
+        """Schedule task to run soon, in current time slot."""
+
+    @abstractmethod
+    def call_later(self, delay: int, task: Task, args: TaskArgs) -> None:
+        """Schedule task to run later, after ``delay``."""
+
+    @abstractmethod
+    def call_at(self, when: int, task: Task, args: TaskArgs) -> None:
+        """Schedule task to run at specified time: ``when``."""
+
+    def _create_main(self, coro: TaskCoro) -> Task:
+        assert self._time == self.init_time
+        self._main = Task(coro, self.main_name)
+        return self._main
+
+    @abstractmethod
+    def create_main(self, coro: TaskCoro) -> Task:
+        """Create main task, and schedule it at time zero.
+
+        Returns:
+            Handle to the main task
+        """
+
+    def _create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+        assert self._time >= self.start_time
+        if name is None:
+            name = f"Task-{self._task_index}"
+            self._task_index += 1
+        return Task(coro, name)
+
+    @abstractmethod
+    def create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+        """Create child task, and schedule it soon.
+
+        Returns:
+            Handle to the created task
+        """
+
+    def fork(self, task: Task, *ss: Sendable):
+        self._forks[task] = set(ss)
+
+    def join_any(self, task: Task, s: Sendable):
+        if task in self._forks:
+            ss = self._forks[task]
+            ss.remove(s)
+            while ss:
+                s = ss.pop()
+                s.wait_drop(task)
+            del self._forks[task]
+
+    def touch_var(self, v: Variable):
+        self._dirty_vars.add(v)
+
+    def _update_vars(self):
+        while self._dirty_vars:
+            v = self._dirty_vars.pop()
+            v.update()
+
+    def _start(self):
+        if self._state is self.State.INIT:
+            self._set_state(self.State.RUNNING)
+        elif self._state is not self.State.RUNNING:
+            s = f"Kernel has invalid state: {self._state.name}"
+            raise RuntimeError(s)
+
+    def _finish(self):
+        self._forks.clear()
+        self._dirty_vars.clear()
+        self._set_state(self.State.FINISHED)
+
+    @abstractmethod
+    def _call(self, limit: int | None) -> None:
+        """Run a simulation.
+
+        Invoked by the public ``__call__`` method.
+        Implements the inner loop of the top-level ``run`` function.
+        """
+
+    def __call__(self, ticks: int | None = None, until: int | None = None):
+        # Determine the run limit
+        if ticks is None:
+            # Run until absolute limit, or no tasks left
+            limit = until if until is not None else None
+        else:
+            # Run until relative limit
+            limit = max(self.start_time, self._time) + ticks
+            if until is not None:
+                # Both relative & absolute given; clamp to soonest
+                limit = min(limit, until)
+
+        self._call(limit)
+
+    @abstractmethod
+    def _iter(self) -> Generator[int, None, None]:
+        """Step (iterate) a simulation.
+
+        Invoked by the public ``__iter__`` method.
+        Implements the inner loop of the top-level ``step`` function.
+        """
+
+    def __iter__(self) -> Generator[int, None, None]:
+        yield from self._iter()
 
 
 class _PendQ(TaskQueue):
@@ -59,76 +281,27 @@ class _PendQ(TaskQueue):
         self._index = 0
 
 
-class Kernel:
-    """Simulation Kernel.
+class DefaultKernel(Kernel):
+    """Default simulation kernel
 
-    Responsible for:
+    Tasks are scheduled with a (heapq) priority queue.
 
-    * Scheduling and executing tasks
-    * Updating model state
+    Task ordering rules:
 
-    This is a low level API.
-    User code is not expected to interact with it directly.
-    To run a simulation, use the ``run`` and ``step`` functions.
+    * Tasks scheduled at different times run in time order.
+    * Tasks scheduled at same time run in priority order.
+    * Tasks scheduled at same time with same priority run in insertion order.
+
+    Priority is an arbitrary integer.
+
+    The ``main`` (parent) task will be assigned priority zero.
     """
 
-    _index = 0
-
-    class State(IntEnum):
-        """
-        Transitions::
-
-            INIT -> RUNNING -> COMPLETED
-                            -> FINISHED
-        """
-
-        # Initialized
-        INIT = 0b001
-
-        # Currently running
-        RUNNING = 0b010
-
-        # All tasks completed
-        COMPLETED = 0b100
-
-        # finish() called
-        FINISHED = 0b101
-
-    _done = State.COMPLETED & State.FINISHED
-
-    _state_transitions = {
-        State.INIT: {
-            State.RUNNING,
-        },
-        State.RUNNING: {
-            State.COMPLETED,
-            State.FINISHED,
-        },
-    }
-
-    init_time = -1
-    start_time = 0
-
-    main_name = "main"
     main_priority = 0
-
     task_priority = 0
 
     def __init__(self):
-        self._name = f"Kernel-{self.__class__._index}"
-        self.__class__._index += 1
-
-        self._state = self.State.INIT
-
-        # Simulation time
-        self._time: int = self.init_time
-
-        # Main task
-        self._main: Task | None = None
-
-        # Currently executing task
-        self._task: Task | None = None
-        self._task_index = 0
+        super().__init__()
 
         # Task queue
         self._queue = _PendQ()
@@ -136,46 +309,6 @@ class Kernel:
         # Task priorities
         self._priorities = WeakKeyDictionary[Task, int]()
 
-        # Forked Tasks
-        self._forks = dict[Task, set[Sendable]]()
-
-        # Model variables
-        self._dirty_vars = set[Variable]()
-
-    def _set_state(self, state: State):
-        assert state in self._state_transitions[self._state]
-        self._state = state
-
-    def state(self) -> State:
-        """Current simulation state."""
-        return self._state
-
-    def time(self) -> int:
-        """Current simulation time."""
-        return self._time
-
-    @property
-    def main(self) -> Task:
-        """Parent task of all other tasks."""
-        assert self._main is not None
-        return self._main
-
-    def task(self) -> Task:
-        """Currently running task."""
-        assert self._task is not None
-        return self._task
-
-    def done(self) -> bool:
-        """Return True if the kernel is done.
-
-        A kernel that is "done" either:
-
-        * Exhaused all tasks (COMPLETED), or
-        * Called ``finish`` (FINISHED)
-        """
-        return bool(self._state & self._done)
-
-    # Scheduling methods
     def call_soon(self, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time, priority, task, args))
@@ -189,53 +322,16 @@ class Kernel:
         self._queue.push((when, priority, task, args))
 
     def create_main(self, coro: TaskCoro) -> Task:
-        assert self._time == self.init_time
-        self._main = Task(coro, self.main_name)
-        self._priorities[self._main] = self.main_priority
-        self.call_at(self.start_time, self._main, args=(Task.Command.START,))
-        return self._main
+        main = super()._create_main(coro)
+        self._priorities[main] = self.main_priority
+        self.call_at(self.start_time, main, args=(Task.Command.START,))
+        return main
 
-    def create_task(
-        self,
-        coro: TaskCoro,
-        name: str | None = None,
-        **kwargs: Any,
-    ) -> Task:
-        assert self._time >= self.start_time
-        if name is None:
-            name = f"Task-{self._task_index}"
-            self._task_index += 1
-        task = Task(coro, name)
+    def create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+        task = super()._create_task(coro, name, **kwargs)
         self._priorities[task] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.START,))
         return task
-
-    def fork(self, task: Task, *ss: Sendable):
-        self._forks[task] = set(ss)
-
-    def join_any(self, task: Task, s: Sendable):
-        if task in self._forks:
-            ss = self._forks[task]
-            ss.remove(s)
-            while ss:
-                s = ss.pop()
-                s.wait_drop(task)
-            del self._forks[task]
-
-    def touch_var(self, v: Variable):
-        self._dirty_vars.add(v)
-
-    def _update_vars(self):
-        while self._dirty_vars:
-            v = self._dirty_vars.pop()
-            v.update()
-
-    def _start(self):
-        if self._state is self.State.INIT:
-            self._set_state(self.State.RUNNING)
-        elif self._state is not self.State.RUNNING:
-            s = f"Kernel has invalid state: {self._state.name}"
-            raise RuntimeError(s)
 
     def _iter_time_slot(self, time: int) -> Generator[tuple[Task, TaskArgs], None, None]:
         """Iterate through all tasks in a time slot.
@@ -249,11 +345,10 @@ class Kernel:
             task, value = self._queue.pop()
             yield (task, value)
 
+    @override
     def _finish(self):
         self._queue.clear()
-        self._forks.clear()
-        self._dirty_vars.clear()
-        self._set_state(self.State.FINISHED)
+        super()._finish()
 
     def _call(self, limit: int | None):
         self._start()
@@ -294,20 +389,6 @@ class Kernel:
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
 
-    def __call__(self, ticks: int | None = None, until: int | None = None):
-        # Determine the run limit
-        if ticks is None:
-            # Run until absolute limit, or no tasks left
-            limit = until if until is not None else None
-        else:
-            # Run until relative limit
-            limit = max(self.start_time, self._time) + ticks
-            if until is not None:
-                # Both relative & absolute given; clamp to soonest
-                limit = min(limit, until)
-
-        self._call(limit)
-
     def _iter(self) -> Generator[int, None, None]:
         self._start()
 
@@ -345,9 +426,6 @@ class Kernel:
 
         # All tasks exhausted
         self._set_state(self.State.COMPLETED)
-
-    def __iter__(self) -> Generator[int, None, None]:
-        yield from self._iter()
 
 
 def finish():

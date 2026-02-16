@@ -182,6 +182,11 @@ Kernel
     .. autoproperty:: main
     .. automethod:: task
     .. automethod:: done
+    .. automethod:: call_soon
+    .. automethod:: call_later
+    .. automethod:: call_at
+    .. automethod:: create_main
+    .. automethod:: create_task
 
 .. autofunction:: deltacycle.finish
 
