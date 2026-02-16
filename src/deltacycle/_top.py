@@ -84,8 +84,7 @@ def create_task(coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
         name: Identify the task for logging/debugging purposes.
             If not given, a default name like ``Task-{index}`` will be assigned.
             Not guaranteed to be unique.
-        priority: Specify task execution order within the same timeslot.
-            A lower number indicates higher priority.
+        kwargs: Arguments passed to the kernel to customize task execution.
 
     Returns:
         Created Task instance.
