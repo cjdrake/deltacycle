@@ -160,7 +160,7 @@ class Kernel(ABC):
             Handle to the main task
         """
 
-    def _create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+    def _create_task(self, coro: TaskCoro, name: str | None = None) -> Task:
         assert self._time >= self.start_time
         if name is None:
             name = f"Task-{self._task_index}"
@@ -336,7 +336,7 @@ class DefaultKernel(Kernel):
         return main
 
     def create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
-        task = super()._create_task(coro, name, **kwargs)
+        task = super()._create_task(coro, name)
         self._priorities[task] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.START,))
         return task
