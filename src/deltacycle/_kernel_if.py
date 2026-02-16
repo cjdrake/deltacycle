@@ -1,4 +1,4 @@
-"""KernelIf abstract base class
+"""Kernel Interface
 
 Allows easy access to global kernel for Event, Semaphore, Task, ...
 Works around tricky circular import: Kernel => Task => Kernel.
