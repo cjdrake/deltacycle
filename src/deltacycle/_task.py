@@ -148,6 +148,7 @@ class CreditQ(TaskQueue):
         task.unlink(self)
 
     def peek(self) -> int:
+        assert self._items
         return self._items[0][-1]
 
 
