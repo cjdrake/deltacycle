@@ -2,50 +2,12 @@
 
 from __future__ import annotations
 
-import heapq
 from functools import cached_property
 from types import TracebackType
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, Task, TaskQueue
-
-
-class _WaitQ(TaskQueue):
-    """Priority queue for ordering task execution."""
-
-    def __init__(self):
-        # priority, index, task
-        self._items = list[tuple[int, int, Task]]()
-
-        # Monotonically increasing integer
-        # Breaks (time, priority, ...) ties in the heapq
-        self._index: int = 0
-
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    def push(self, item: tuple[int, Task]):
-        priority, task = item
-        task.link(self)
-        heapq.heappush(self._items, (priority, self._index, task))
-        self._index += 1
-
-    def pop(self) -> Task:
-        _, _, task = heapq.heappop(self._items)
-        task.unlink(self)
-        return task
-
-    def _find(self, task: Task) -> int:
-        for i, (_, _, t) in enumerate(self._items):
-            if t is task:
-                return i
-        assert False  # pragma: no cover
-
-    def drop(self, task: Task):
-        index = self._find(task)
-        self._items.pop(index)
-        task.unlink(self)
+from ._task import Blocking, SemaphoreQ, Sendable, Task
 
 
 class Semaphore(KernelIf, Sendable):
@@ -56,7 +18,7 @@ class Semaphore(KernelIf, Sendable):
         if self._has_capacity and value > capacity:
             raise ValueError(f"Expected value ≤ {capacity}, got {value}")
         self._cnt = value
-        self._waiting = _WaitQ()
+        self._waiting = SemaphoreQ()
 
     def __len__(self) -> int:
         return self._cnt

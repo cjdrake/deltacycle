@@ -2,53 +2,12 @@
 
 from __future__ import annotations
 
-import heapq
 from functools import cached_property
 from types import TracebackType
 from typing import Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, Task, TaskQueue
-
-
-class _WaitQ(TaskQueue):
-    """Priority queue for ordering task execution."""
-
-    def __init__(self):
-        # priority, index, task, n
-        self._items = list[tuple[int, int, Task, int]]()
-
-        # Monotonically increasing integer
-        # Breaks (time, priority, ...) ties in the heapq
-        self._index: int = 0
-
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    def push(self, item: tuple[int, Task, int]):
-        priority, task, n = item
-        task.link(self)
-        heapq.heappush(self._items, (priority, self._index, task, n))
-        self._index += 1
-
-    def pop(self) -> tuple[Task, int]:
-        _, _, task, n = heapq.heappop(self._items)
-        task.unlink(self)
-        return task, n
-
-    def _find(self, task: Task) -> int:
-        for i, (_, _, t, _) in enumerate(self._items):
-            if t is task:
-                return i
-        assert False  # pragma: no cover
-
-    def drop(self, task: Task):
-        index = self._find(task)
-        self._items.pop(index)
-        task.unlink(self)
-
-    def peek(self) -> int:
-        return self._items[0][-1]
+from ._task import Blocking, CreditQ, Sendable, Task
 
 
 class CreditPool(KernelIf, Sendable):
@@ -59,7 +18,7 @@ class CreditPool(KernelIf, Sendable):
         if self._has_capacity and value > capacity:
             raise ValueError(f"Expected value ≤ {capacity}, got {value}")
         self._cnt = value
-        self._waiting = _WaitQ()
+        self._waiting = CreditQ()
 
     def __len__(self) -> int:
         return self._cnt

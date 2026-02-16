@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import heapq
 from abc import ABC, abstractmethod
 from collections import Counter, OrderedDict, deque
 from collections.abc import Coroutine, Generator
@@ -45,8 +46,8 @@ class TaskQueue(ABC):
         """Drop task from queue."""
 
 
-class _WaitQ(TaskQueue):
-    """Tasks wait for variable touch."""
+class EventQ(TaskQueue):
+    """Tasks wait for event trigger."""
 
     def __init__(self):
         self._tasks = OrderedDict[Task, None]()
@@ -71,6 +72,83 @@ class _WaitQ(TaskQueue):
     def load(self):
         assert not self._items
         self._items.extend(self._tasks)
+
+
+class SemaphoreQ(TaskQueue):
+    """Tasks wait for a slot to become available."""
+
+    def __init__(self):
+        # priority, index, task
+        self._items = list[tuple[int, int, Task]]()
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[int, Task]):
+        priority, task = item
+        task.link(self)
+        heapq.heappush(self._items, (priority, self._index, task))
+        self._index += 1
+
+    def pop(self) -> Task:
+        _, _, task = heapq.heappop(self._items)
+        task.unlink(self)
+        return task
+
+    def _find(self, task: Task) -> int:
+        for i, (_, _, t) in enumerate(self._items):
+            if t is task:
+                return i
+        assert False  # pragma: no cover
+
+    def drop(self, task: Task):
+        index = self._find(task)
+        self._items.pop(index)
+        task.unlink(self)
+
+
+class CreditQ(TaskQueue):
+    """Tasks wait for credit to become available."""
+
+    def __init__(self):
+        # priority, index, task, n
+        self._items = list[tuple[int, int, Task, int]]()
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
+
+    def __bool__(self) -> bool:
+        return bool(self._items)
+
+    def push(self, item: tuple[int, Task, int]):
+        priority, task, n = item
+        task.link(self)
+        heapq.heappush(self._items, (priority, self._index, task, n))
+        self._index += 1
+
+    def pop(self) -> tuple[Task, int]:
+        _, _, task, n = heapq.heappop(self._items)
+        task.unlink(self)
+        return task, n
+
+    def _find(self, task: Task) -> int:
+        for i, (_, _, t, _) in enumerate(self._items):
+            if t is task:
+                return i
+        assert False  # pragma: no cover
+
+    def drop(self, task: Task):
+        index = self._find(task)
+        self._items.pop(index)
+        task.unlink(self)
+
+    def peek(self) -> int:
+        return self._items[0][-1]
 
 
 class Blocking(ABC):
@@ -229,7 +307,7 @@ class Task(KernelIf, Blocking, Sendable):
         self._refcnts = Counter[TaskQueue]()
 
         # Other tasks waiting for this task to complete
-        self._waiting = _WaitQ()
+        self._waiting = EventQ()
 
         # Flag to avoid multiple signals
         self._signal = False
