@@ -1,10 +1,9 @@
 """Simulate a 4-bit adder."""
 
-from pytest import CaptureFixture
-
 from deltacycle import any_of, create_task, run, sleep
 
-from .common import Bool, tprint
+from .common import Bool
+from .conftest import trace
 
 # a, b, ci, s, co
 VALS = [
@@ -18,10 +17,12 @@ VALS = [
     (True, True, True, True, True),
 ]
 
-EXP = "".join(f"[{10 * i + 5:4}] s={VALS[i][3]:b} co={VALS[i][4]:b}\n" for i, _ in enumerate(VALS))
+EXP = {
+    (10 * i + 5, "mon_outputs", f"s={VALS[i][3]:b} co={VALS[i][4]:b}") for i, _ in enumerate(VALS)
+}
 
 
-def test_add(capsys: CaptureFixture[str]):
+def test_add(captrace: set[tuple[int, str, str]]):
     """Test 4-bit adder simulation."""
     period = 10
 
@@ -60,16 +61,15 @@ def test_add(capsys: CaptureFixture[str]):
     async def mon_outputs():
         while True:
             await clk.posedge()
-            tprint(f"s={s.prev:b}", f"co={co.prev:b}")
+            trace(f"s={s.prev:b} co={co.prev:b}")
 
     async def main():
-        create_task(drv_clk(), priority=0, name="drv_clk")
-        create_task(drv_inputs(), priority=0, name="drv_inputs")
-        create_task(drv_outputs(), priority=-1, name="drv_outputs")
-        create_task(mon_outputs(), priority=1, name="mon_outputs")
+        create_task(drv_clk(), name="drv_clk", priority=0)
+        create_task(drv_inputs(), name="drv_inputs", priority=0)
+        create_task(drv_outputs(), name="drv_outputs", priority=-1)
+        create_task(mon_outputs(), name="mon_outputs", priority=1)
 
     until = period * len(VALS)
     run(main(), until=until)
 
-    cap = capsys.readouterr()
-    assert cap.out == EXP
+    assert captrace == EXP
