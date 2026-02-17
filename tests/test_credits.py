@@ -1,17 +1,10 @@
 """Test deltacycle.CreditPool"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
 import pytest
-from pytest import LogCaptureFixture
 
 from deltacycle import AllOf, CreditPool, TaskGroup, all_of, create_task, now, run, sleep
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 def test_len():
@@ -33,57 +26,57 @@ def test_len():
 
 
 async def use_get_put(credits: CreditPool, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     await credits.get(n=2)
-    logger.info("acquired")
+    trace("acquired")
 
     try:
         await sleep(t2)
     finally:
-        logger.info("put")
+        trace("put")
         credits.put(n=2)
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 async def use_try_get_put(credits: CreditPool, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     while not credits.try_get(n=2):
         await sleep(1)
-    logger.info("acquired")
+    trace("acquired")
 
     try:
         await sleep(t2)
     finally:
-        logger.info("put")
+        trace("put")
         credits.put(n=2)
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 async def use_with(credits: CreditPool, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     async with credits.req(n=2):
-        logger.info("acquired")
+        trace("acquired")
         await sleep(t2)
-    logger.info("put")
+    trace("put")
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 EXP1 = {
@@ -215,9 +208,7 @@ EXP2 = {
 }
 
 
-def test_get_put(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_get_put(captrace: set[tuple[int, str, str]]):
     async def main():
         credits = CreditPool(10)
         for i in range(10):
@@ -225,13 +216,10 @@ def test_get_put(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
-def test_try_get_put(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_try_get_put(captrace: set[tuple[int, str, str]]):
     async def main():
         credits = CreditPool(10)
         for i in range(10):
@@ -239,13 +227,10 @@ def test_try_get_put(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP2
+    assert captrace == EXP2
 
 
-def test_async_with(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_async_with(captrace: set[tuple[int, str, str]]):
     async def main():
         credits = CreditPool(10)
         for i in range(10):
@@ -253,8 +238,7 @@ def test_async_with(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
 def test_bounded():
