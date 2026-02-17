@@ -1,28 +1,27 @@
 """Hello, world!"""
 
 import pytest
-from pytest import CaptureFixture
 
 from deltacycle import Kernel, get_kernel, run, sleep
 
-from .common import tprint
+from .conftest import trace
 
-EXP = """\
-[  -1] Before Time
-[   2] Hello
-[   4] World
-"""
+EXP = {
+    (-1, "", "Before Time"),
+    (2, "main", "Hello"),
+    (4, "main", "World"),
+}
 
 
-def test_hello(capsys: CaptureFixture[str]):
+def test_hello(captrace: set[tuple[int, str, str]]):
     """Test basic async/await hello world functionality."""
-    tprint("Before Time")
+    trace("Before Time")
 
     async def hello():
         await sleep(2)
-        tprint("Hello")
+        trace("Hello")
         await sleep(2)
-        tprint("World")
+        trace("World")
         return 42
 
     ret = run(hello())
@@ -35,5 +34,4 @@ def test_hello(capsys: CaptureFixture[str]):
     with pytest.raises(RuntimeError):
         run(kernel=kernel)
 
-    cap = capsys.readouterr()
-    assert cap.out == EXP
+    assert captrace == EXP
