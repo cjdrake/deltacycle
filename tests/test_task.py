@@ -1,14 +1,8 @@
 """Test deltacycle.Task"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
 from random import randint
 
 import pytest
-from pytest import LogCaptureFixture
 
 from deltacycle import (
     AllOf,
@@ -26,7 +20,7 @@ from deltacycle import (
     step,
 )
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 def test_results():
@@ -133,21 +127,19 @@ EXP1 = {
 }
 
 
-def test_interrupt_pending1(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_interrupt_pending1(captrace: set[tuple[int, str, str]]):
     async def cf(n: int):
-        logger.info("enter")
+        trace("enter")
         try:
             await sleep(n)
         except Interrupt:
-            logger.info("except")
+            trace("except")
             raise
         finally:
-            logger.info("finally")
+            trace("finally")
 
     async def main():
-        logger.info("enter")
+        trace("enter")
 
         t1 = create_task(cf(1000), name="C1")
         t2 = create_task(cf(10), name="C2")
@@ -155,16 +147,16 @@ def test_interrupt_pending1(caplog: LogCaptureFixture):
 
         await sleep(5)
 
-        logger.info("interrupts C1")
+        trace("interrupts C1")
         t1.interrupt()
 
         try:
             await t1
         except Interrupt as exc:
-            logger.info("except")
+            trace("except")
             assert t1.exception() is exc
         finally:
-            logger.info("finally")
+            trace("finally")
 
         await t2
         await t3
@@ -180,25 +172,22 @@ def test_interrupt_pending1(caplog: LogCaptureFixture):
         assert not t1.interrupt()
 
     run(main())
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
-def test_interrupt_pending2(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_interrupt_pending2(captrace: set[tuple[int, str, str]]):
     async def cf(n: int):
-        logger.info("enter")
+        trace("enter")
         try:
             await sleep(n)
         except Interrupt:
-            logger.info("except")
+            trace("except")
             raise
         finally:
-            logger.info("finally")
+            trace("finally")
 
     async def main():
-        logger.info("enter")
+        trace("enter")
 
         t1 = create_task(cf(1000), name="C1")
         t2 = create_task(cf(10), name="C2")
@@ -206,16 +195,16 @@ def test_interrupt_pending2(caplog: LogCaptureFixture):
 
         await sleep(5)
 
-        logger.info("interrupts C1")
+        trace("interrupts C1")
         t1.interrupt()
 
         try:
             await t1
         except Interrupt as exc:
-            logger.info("except")
+            trace("except")
             assert t1.exception() is exc
         finally:
-            logger.info("finally")
+            trace("finally")
 
         await t2
         await t3
@@ -231,8 +220,7 @@ def test_interrupt_pending2(caplog: LogCaptureFixture):
         assert not t1.interrupt()
 
     list(step(main()))
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
 EXP2 = {
@@ -252,20 +240,18 @@ EXP2 = {
 }
 
 
-def test_interrupt_waiting(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_interrupt_waiting(captrace: set[tuple[int, str, str]]):
     async def cf(event: Event):
-        logger.info("enter")
+        trace("enter")
         try:
             await event
         except Interrupt:
-            logger.info("interrupted")
+            trace("interrupted")
         finally:
-            logger.info("finally")
+            trace("finally")
 
     async def main():
-        logger.info("enter")
+        trace("enter")
         event = Event()
         t1 = create_task(cf(event), name="C1")
         t2 = create_task(cf(event), name="C2")
@@ -282,42 +268,38 @@ def test_interrupt_waiting(caplog: LogCaptureFixture):
         await t2
         await t3
 
-        logger.info("exit")
+        trace("exit")
 
     run(main())
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP2
+    assert captrace == EXP2
 
 
 EXP3 = {
-    (0, "Task started"),
-    (1, "Main caught Interrupt from task"),
-    (1, "Task interrupting itself"),
+    (0, "T1", "started"),
+    (1, "main", "caught interrupt from task"),
+    (1, "T1", "interrupting itself"),
 }
 
 
-def test_interrupt_running(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_interrupt_running(captrace: set[tuple[int, str, str]]):
     async def self_interrupting_task():
-        logger.info("Task started")
+        trace("started")
         await sleep(1)
         task = get_current_task()
-        logger.info("Task interrupting itself")
+        trace("interrupting itself")
         task.interrupt()  # Interrupt self
         await sleep(1)  # This won't execute
-        logger.info("This won't print")
+        trace("This won't print")
 
     async def main():
-        task = create_task(self_interrupting_task())
+        task = create_task(self_interrupting_task(), name="T1")
         try:
             await task
         except Interrupt:
-            logger.info("Main caught Interrupt from task")
+            trace("caught interrupt from task")
 
     run(main())
-    msgs = {(r.time, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP3
+    assert captrace == EXP3
 
 
 def test_names():
