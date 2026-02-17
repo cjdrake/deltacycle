@@ -1,69 +1,62 @@
 """Test deltacycle.Event"""
 
-# pyright: reportAttributeAccessIssue=false
 # pyright: reportPrivateUsage=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
 
 from deltacycle import AnyOf, Event, any_of, create_task, get_running_kernel, now, run, sleep
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 async def primary(event: Event):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(10)
 
     # T=10
-    logger.info("set")
+    trace("set")
     event.set()
     assert event
 
     await sleep(10)
 
     # T=20
-    logger.info("clear")
+    trace("clear")
     event.clear()
     assert not event
 
     await sleep(10)
 
     # T=30
-    logger.info("set")
+    trace("set")
     event.set()
     assert event
 
-    logger.info("exit")
+    trace("exit")
 
 
 async def secondary(event: Event):
-    logger.info("enter")
+    trace("enter")
 
     # Event clear
-    logger.info("waiting")
+    trace("waiting")
     await event
 
     # Event set @10
-    logger.info("running")
+    trace("running")
     await sleep(10)
 
     # Event clear
-    logger.info("waiting")
+    trace("waiting")
     await event
 
     # Event set @30
-    logger.info("running")
+    trace("running")
     await sleep(10)
 
     # Event still set: return immediately
     await event
 
-    logger.info("exit")
+    trace("exit")
 
 
 EXP1 = {
@@ -97,9 +90,7 @@ EXP1 = {
 }
 
 
-def test_acquire_release(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_acquire_release(captrace: set[tuple[int, str, str]]):
     async def main():
         event = Event()
         create_task(primary(event), name="P")
@@ -109,8 +100,7 @@ def test_acquire_release(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
 def test_serial():
