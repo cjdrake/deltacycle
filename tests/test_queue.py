@@ -1,17 +1,8 @@
 """Test deltacycle.queue"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
-
 from deltacycle import Queue, create_task, run, sleep
 
-logger = logging.getLogger("deltacycle")
-
+from .conftest import trace
 
 EXP1 = {
     (0, "P", "0"),
@@ -38,22 +29,20 @@ EXP1 = {
 }
 
 
-def test_prod_cons1(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_prod_cons1(captrace: set[tuple[int, str, str]]):
     q: Queue[int] = Queue()
 
     async def prod():
         for i in range(10):
-            logger.info("%d", i)
+            trace(f"{i}")
             await q.put(i)
             await sleep(10)
-        logger.info("CLOSED")
+        trace("CLOSED")
 
     async def cons():
         while True:
             i = await q.get()
-            logger.info("%d", i)
+            trace(f"{i}")
 
     async def main():
         create_task(prod(), name="P")
@@ -61,8 +50,7 @@ def test_prod_cons1(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
 EXP2 = {
@@ -90,24 +78,22 @@ EXP2 = {
 }
 
 
-def test_prod_cons2(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_prod_cons2(captrace: set[tuple[int, str, str]]):
     q: Queue[int] = Queue(2)
 
     assert q.capacity == 2
 
     async def prod():
         for i in range(10):
-            logger.info("%d", i)
+            trace(f"{i}")
             await q.put(i)
-        logger.info("CLOSED")
+        trace("CLOSED")
 
     async def cons():
         while True:
             await sleep(10)
             i = await q.get()
-            logger.info("%d", i)
+            trace(f"{i}")
 
     async def main():
         create_task(prod(), name="P")
@@ -115,8 +101,7 @@ def test_prod_cons2(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP2
+    assert captrace == EXP2
 
 
 def test_prod_cons3():
