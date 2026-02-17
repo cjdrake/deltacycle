@@ -1,32 +1,24 @@
 """Test deltacycle._kernel.finish"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
-
 from deltacycle import Kernel, create_task, finish, get_kernel, run, sleep, step
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 async def ctl():
-    logger.info("enter")
+    trace("enter")
     await sleep(100)
 
     # Force all PING threads to stop immediately
-    logger.info("finish")
+    trace("finish")
     finish()
 
 
 async def ping(period: int):
-    logger.info("enter")
+    trace("enter")
     while True:
         await sleep(period)
-        logger.info("PING")
+        trace("PING")
 
 
 EXP1 = {
@@ -119,9 +111,7 @@ EXP1 = {
 }
 
 
-def test_finish1(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_finish1(captrace: set[tuple[int, str, str]]):
     async def main():
         create_task(ctl(), name="CTL")
         create_task(ping(3), name="FOO")
@@ -136,13 +126,10 @@ def test_finish1(caplog: LogCaptureFixture):
     assert kernel is not None
     assert kernel.state() is Kernel.State.FINISHED
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
-def test_finish2(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_finish2(captrace: set[tuple[int, str, str]]):
     async def main():
         create_task(ctl(), name="CTL")
         create_task(ping(3), name="FOO")
@@ -158,5 +145,4 @@ def test_finish2(caplog: LogCaptureFixture):
     assert kernel.state() is Kernel.State.FINISHED
     assert kernel.done()
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
