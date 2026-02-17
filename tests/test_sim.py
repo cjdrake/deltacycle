@@ -1,10 +1,9 @@
 """Test seqlogic.sim module."""
 
-from pytest import CaptureFixture
-
 from deltacycle import Kernel, create_task, get_running_kernel, run, sleep, step
 
-from .common import Bool, tprint
+from .common import Bool
+from .conftest import trace
 
 
 async def drv_clk(clk: Bool):
@@ -42,23 +41,23 @@ async def drv_c(c: Bool, clk: Bool):
 async def mon(a: Bool, b: Bool, c: Bool, clk: Bool):
     while True:
         await clk.edge()
-        tprint(f"a={a.prev:b} b={b.prev:b} c={c.prev:b}")
+        trace(f"a={a.prev:b} b={b.prev:b} c={c.prev:b}")
 
 
-EXP = """\
-[   5] a=0 b=0 c=0
-[  10] a=1 b=1 c=1
-[  15] a=0 b=1 c=1
-[  20] a=1 b=0 c=1
-[  25] a=0 b=0 c=0
-[  30] a=1 b=1 c=0
-[  35] a=0 b=1 c=0
-[  40] a=1 b=0 c=1
-[  45] a=0 b=0 c=1
-"""
+EXP = {
+    (5, "mon", "a=0 b=0 c=0"),
+    (10, "mon", "a=1 b=1 c=1"),
+    (15, "mon", "a=0 b=1 c=1"),
+    (20, "mon", "a=1 b=0 c=1"),
+    (25, "mon", "a=0 b=0 c=0"),
+    (30, "mon", "a=1 b=1 c=0"),
+    (35, "mon", "a=0 b=1 c=0"),
+    (40, "mon", "a=1 b=0 c=1"),
+    (45, "mon", "a=0 b=0 c=1"),
+}
 
 
-def test_vars_run(capsys: CaptureFixture[str]):
+def test_vars_run(captrace: set[tuple[int, str, str]]):
     """Test run, halt, run."""
 
     clk = Bool(name="clk")
@@ -71,7 +70,7 @@ def test_vars_run(capsys: CaptureFixture[str]):
         create_task(drv_a(a, clk), priority=2)
         create_task(drv_b(b, clk), priority=2)
         create_task(drv_c(c, clk), priority=2)
-        create_task(mon(a, b, c, clk), priority=3)
+        create_task(mon(a, b, c, clk), name="mon", priority=3)
 
     # Relative run limit
     run(main(), ticks=25)
@@ -81,11 +80,10 @@ def test_vars_run(capsys: CaptureFixture[str]):
     # Absolute run limit
     run(kernel=kernel, until=50)
 
-    cap = capsys.readouterr()
-    assert cap.out == EXP
+    assert captrace == EXP
 
 
-def test_vars_iter(capsys: CaptureFixture[str]):
+def test_vars_iter(captrace: set[tuple[int, str, str]]):
     """Test iter, iter."""
 
     clk = Bool(name="clk")
@@ -98,7 +96,7 @@ def test_vars_iter(capsys: CaptureFixture[str]):
         create_task(drv_a(a, clk), priority=2)
         create_task(drv_b(b, clk), priority=2)
         create_task(drv_c(c, clk), priority=2)
-        create_task(mon(a, b, c, clk), priority=3)
+        create_task(mon(a, b, c, clk), name="mon", priority=3)
 
     for t in step(main()):
         if t >= 25:
@@ -113,11 +111,10 @@ def test_vars_iter(capsys: CaptureFixture[str]):
 
     assert kernel.state() is Kernel.State.RUNNING
 
-    cap = capsys.readouterr()
-    assert cap.out == EXP
+    assert captrace == EXP
 
 
-def test_vars_run_iter(capsys: CaptureFixture[str]):
+def test_vars_run_iter(captrace: set[tuple[int, str, str]]):
     """Test run, halt, iter."""
 
     clk = Bool(name="clk")
@@ -130,7 +127,7 @@ def test_vars_run_iter(capsys: CaptureFixture[str]):
         create_task(drv_a(a, clk), priority=2)
         create_task(drv_b(b, clk), priority=2)
         create_task(drv_c(c, clk), priority=2)
-        create_task(mon(a, b, c, clk), priority=3)
+        create_task(mon(a, b, c, clk), name="mon", priority=3)
 
     # Relative run limit
     run(main(), ticks=25)
@@ -143,5 +140,4 @@ def test_vars_run_iter(capsys: CaptureFixture[str]):
 
     assert kernel.state() is Kernel.State.RUNNING
 
-    cap = capsys.readouterr()
-    assert cap.out == EXP
+    assert captrace == EXP
