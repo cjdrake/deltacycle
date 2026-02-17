@@ -1,28 +1,21 @@
 """Test deltacycle.TaskGroup"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
 import pytest
-from pytest import LogCaptureFixture
 
 from deltacycle import Task, TaskGroup, get_current_task, run, sleep
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 async def cf_r(t: int, r: int):
-    logger.info("enter")
+    trace("enter")
     await sleep(t)
-    logger.info("exit")
+    trace("exit")
     return r
 
 
 async def cf_x(t: int, r: int):
-    logger.info("enter")
+    trace("enter")
     await sleep(t)
     raise ArithmeticError(r)
 
@@ -30,10 +23,10 @@ async def cf_x(t: int, r: int):
 async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int):
     task = get_current_task()
     assert isinstance(task.group, TaskGroup)
-    logger.info("enter")
+    trace("enter")
     await sleep(t0)
     task.group.create_task(cf_r(t1, r1), name=name)
-    logger.info("exit")
+    trace("exit")
     return r0
 
 
@@ -56,11 +49,9 @@ EXP1 = {
 }
 
 
-def test_group(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_group(captrace: set[tuple[int, str, str]]):
     async def main():
-        logger.info("enter")
+        trace("enter")
 
         ts: list[Task] = []
         async with TaskGroup() as tg:
@@ -69,7 +60,7 @@ def test_group(caplog: LogCaptureFixture):
             ts.append(tg.create_task(cf_r(10, 2), name="C2"))
             ts.append(tg.create_task(cf_r(15, 3), name="C3"))
 
-        logger.info("exit")
+        trace("exit")
 
         assert ts[0].result() == 0
         assert ts[1].result() == 1
@@ -77,8 +68,7 @@ def test_group(caplog: LogCaptureFixture):
         assert ts[3].result() == 3
 
     run(main())
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP1
+    assert captrace == EXP1
 
 
 EXP2 = {
@@ -107,12 +97,11 @@ EXP2 = {
 }
 
 
-def test_group_child_except(caplog: LogCaptureFixture):
+def test_group_child_except(captrace: set[tuple[int, str, str]]):
     """One child raises an exception, others are interrupted."""
-    caplog.set_level(logging.INFO, logger="deltacycle")
 
     async def main():
-        logger.info("enter")
+        trace("enter")
 
         ts: list[Task] = []
         with pytest.raises(ExceptionGroup) as e:
@@ -157,12 +146,12 @@ def test_group_child_except(caplog: LogCaptureFixture):
         assert [type(exc) for exc in excs] == [ArithmeticError, ArithmeticError]
         assert [exc.args for exc in excs] == [(2,), (3,)]
 
-        logger.info("exit")
+        trace("exit")
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP2
+    # msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
+    assert captrace == EXP2
 
 
 EXP3 = {
@@ -171,11 +160,9 @@ EXP3 = {
 }
 
 
-def test_group_except(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_group_except(captrace: set[tuple[int, str, str]]):
     async def main():
-        logger.info("enter")
+        trace("enter")
 
         ts: list[Task] = []
         with pytest.raises(ArithmeticError) as e:
@@ -192,11 +179,10 @@ def test_group_except(caplog: LogCaptureFixture):
         assert ts[1].state() is Task.State.EXCEPTED
         assert e.value.args == (42,)
 
-        logger.info("exit")
+        trace("exit")
 
     run(main())
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP3
+    assert captrace == EXP3
 
 
 EXP4 = {
@@ -237,11 +223,9 @@ EXP4 = {
 }
 
 
-def test_group_newborns_except(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_group_newborns_except(captrace: set[tuple[int, str, str]]):
     async def main():
-        logger.info("enter")
+        trace("enter")
 
         ts: list[Task] = []
         with pytest.raises(ExceptionGroup) as e:
@@ -281,9 +265,8 @@ def test_group_newborns_except(caplog: LogCaptureFixture):
         assert [type(exc) for exc in excs] == [ArithmeticError, ArithmeticError]
         assert [exc.args for exc in excs] == [(6,), (7,)]
 
-        logger.info("exit")
+        trace("exit")
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP4
+    assert captrace == EXP4
