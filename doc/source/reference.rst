@@ -74,6 +74,13 @@ Tasks
     .. automethod:: exception
     .. automethod:: interrupt
 
+.. autoclass:: deltacycle.TaskQueue
+
+    .. automethod:: __bool__
+    .. automethod:: push
+    .. automethod:: pop
+    .. automethod:: drop
+
 .. autoclass:: deltacycle.TaskGroup
     :show-inheritance:
 

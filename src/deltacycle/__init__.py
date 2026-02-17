@@ -20,6 +20,7 @@ from ._task import (
     Task,
     TaskCoro,
     TaskGroup,
+    TaskQueue,
 )
 from ._top import (
     all_of,
@@ -80,6 +81,7 @@ __all__ = [
     "AnyOf",
     "AllOf",
     "Task",
+    "TaskQueue",
     "TaskGroup",
     "create_task",
     "get_current_task",
