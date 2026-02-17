@@ -1,50 +1,42 @@
 """Test seqlogic.sim.Lock class."""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
-from pytest import LogCaptureFixture
-
 from deltacycle import Lock, create_task, run, sleep
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 async def use_acquire_release(lock: Lock, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     await lock.get()
-    logger.info("acquired")
+    trace("acquired")
 
     try:
         await sleep(t2)
     finally:
-        logger.info("put")
+        trace("put")
         lock.put()
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 async def use_with(lock: Lock, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     async with lock.req():
-        logger.info("acquired")
+        trace("acquired")
         await sleep(t2)
-    logger.info("put")
+    trace("put")
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 EXP = {
@@ -71,9 +63,7 @@ EXP = {
 }
 
 
-def test_acquire_release(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_acquire_release(captrace: set[tuple[int, str, str]]):
     async def main():
         lock = Lock()
         for i in range(4):
@@ -81,13 +71,10 @@ def test_acquire_release(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    assert captrace == EXP
 
 
-def test_async_with(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_async_with(captrace: set[tuple[int, str, str]]):
     async def main():
         lock = Lock()
         for i in range(4):
@@ -95,5 +82,4 @@ def test_async_with(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    assert captrace == EXP
