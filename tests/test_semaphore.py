@@ -1,13 +1,6 @@
 """Test deltacycle.Semaphore"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
 import pytest
-from pytest import LogCaptureFixture
 
 from deltacycle import (
     AllOf,
@@ -20,7 +13,7 @@ from deltacycle import (
     sleep,
 )
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 def test_len():
@@ -43,37 +36,37 @@ def test_len():
 
 
 async def use_get_put(sem: Semaphore, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     await sem.get()
-    logger.info("acquired")
+    trace("acquired")
 
     try:
         await sleep(t2)
     finally:
-        logger.info("put")
+        trace("put")
         sem.put()
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 async def use_with(sem: Semaphore, t1: int, t2: int):
-    logger.info("enter")
+    trace("enter")
 
     await sleep(t1)
 
-    logger.info("attempt get")
+    trace("attempt get")
     async with sem.req():
-        logger.info("acquired")
+        trace("acquired")
         await sleep(t2)
-    logger.info("put")
+    trace("put")
 
     await sleep(10)
-    logger.info("exit")
+    trace("exit")
 
 
 EXP = {
@@ -128,9 +121,7 @@ EXP = {
 }
 
 
-def test_get_put(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_get_put(captrace: set[tuple[int, str, str]]):
     async def main():
         sem = Semaphore(4)
         for i in range(8):
@@ -138,13 +129,10 @@ def test_get_put(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    assert captrace == EXP
 
 
-def test_async_with(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_async_with(captrace: set[tuple[int, str, str]]):
     async def main():
         sem = Semaphore(4)
         for i in range(8):
@@ -152,8 +140,7 @@ def test_async_with(caplog: LogCaptureFixture):
 
     run(main())
 
-    msgs = {(r.time, r.taskName, r.getMessage()) for r in caplog.records}
-    assert msgs == EXP
+    assert captrace == EXP
 
 
 def test_unbounded():
