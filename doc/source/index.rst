@@ -8,6 +8,7 @@
 
     overview
     installation
+    tutorial
     release_notes
     acknowledgments
     reference
