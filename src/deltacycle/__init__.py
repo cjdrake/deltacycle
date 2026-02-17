@@ -7,7 +7,7 @@ https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
 from ._container import Container
 from ._credit_pool import CreditPool, ReqCredit
 from ._event import Event
-from ._kernel import Kernel, finish
+from ._kernel import DefaultKernel, Kernel, finish
 from ._queue import Queue
 from ._semaphore import Lock, ReqSemaphore, Semaphore
 from ._task import (
@@ -49,6 +49,7 @@ from ._variable import (
 __all__ = [
     # kernel
     "Kernel",
+    "DefaultKernel",
     "finish",
     "get_running_kernel",
     "get_kernel",

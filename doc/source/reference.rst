@@ -196,6 +196,8 @@ Kernel
     .. automethod:: create_main
     .. automethod:: create_task
 
+.. autoclass:: deltacycle.DefaultKernel
+
 .. autofunction:: deltacycle.finish
 
 .. autofunction:: deltacycle.get_running_kernel
