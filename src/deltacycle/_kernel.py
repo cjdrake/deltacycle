@@ -202,6 +202,9 @@ class Kernel(ABC):
             s = f"Kernel has invalid state: {self._state.name}"
             raise RuntimeError(s)
 
+    def _complete(self):
+        self._set_state(self.State.COMPLETED)
+
     def _finish(self):
         self._set_state(self.State.FINISHED)
 
@@ -390,7 +393,7 @@ class DefaultKernel(Kernel):
         self._task = None
 
         # All tasks exhausted
-        self._set_state(self.State.COMPLETED)
+        self._complete()
 
     def _iter(self) -> Generator[int, None, None]:
         self._start()
@@ -428,7 +431,7 @@ class DefaultKernel(Kernel):
         self._task = None
 
         # All tasks exhausted
-        self._set_state(self.State.COMPLETED)
+        self._complete()
 
 
 def finish():
