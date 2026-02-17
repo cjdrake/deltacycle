@@ -1,39 +1,27 @@
 """Test basic kernel functionality"""
 
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportUnknownMemberType=false
-# pyright: reportUnknownVariableType=false
-
-import logging
-
 import pytest
-from pytest import LogCaptureFixture
 
 from deltacycle import get_kernel, get_running_kernel, run, set_kernel, sleep, step
 
-logger = logging.getLogger("deltacycle")
+from .conftest import trace
 
 
 async def main(n: int):
     for i in range(n):
-        logger.info("%d", i)
+        trace(f"{i}")
         await sleep(1)
     return n
 
 
-def test_run(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_run(captrace: set[tuple[int, str, str]]):
     ret = run(main(42))
     assert ret == 42
 
-    msgs = [(r.time, r.getMessage()) for r in caplog.records]
-    assert msgs == [(i, str(i)) for i in range(42)]
+    assert captrace == {(i, "main", str(i)) for i in range(42)}
 
 
-def test_irun(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_irun(captrace: set[tuple[int, str, str]]):
     g = step(main(42))
     try:
         while True:
@@ -41,13 +29,10 @@ def test_irun(caplog: LogCaptureFixture):
     except StopIteration as e:
         assert e.value == 42
 
-    msgs = [(r.time, r.getMessage()) for r in caplog.records]
-    assert msgs == [(i, str(i)) for i in range(42)]
+    assert captrace == {(i, "main", str(i)) for i in range(42)}
 
 
-def test_cannot_run(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_cannot_run(captrace: set[tuple[int, str, str]]):
     run(main(100))
     kernel = get_kernel()
 
@@ -59,9 +44,7 @@ def test_cannot_run(caplog: LogCaptureFixture):
         list(step(kernel=kernel))
 
 
-def test_limits(caplog: LogCaptureFixture):
-    caplog.set_level(logging.INFO, logger="deltacycle")
-
+def test_limits(captrace: set[tuple[int, str, str]]):
     run(main(1000), ticks=51)
     kernel = get_running_kernel()
     assert kernel.time() == 50
@@ -86,7 +69,7 @@ def test_nocoro():
         list(step())
 
 
-def test_get_running_kernel():
+def test_get_running_kernel(captrace: set[tuple[int, str, str]]):
     # No kernel
     set_kernel()
     with pytest.raises(RuntimeError):
