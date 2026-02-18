@@ -49,15 +49,18 @@ and tasks are assigned a priority for precise ordering of concurrent events.
 ```python
 >>> from deltacycle import *
 
+>>> song = [
+...     "Row, row, row your boat",
+...     "Gently down the stream",
+...     "Merrily, merrily, merrily, merrily",
+...     "Life is but a dream",
+... ]
+
 >>> async def singer(name: str, delay: int = 0):
 ...     await sleep(delay)
-...     print(f"{now()}  ♫ {name}: Row, row, row your boat            ♫")
-...     await sleep(1)
-...     print(f"{now()}  ♫ {name}: Gently down the stream             ♫")
-...     await sleep(1)
-...     print(f"{now()}  ♫ {name}: Merrily, merrily, merrily, merrily ♫")
-...     await sleep(1)
-...     print(f"{now()}  ♫ {name}: Life is but a dream                ♫")
+...     for line in song:
+...         print(f"{now()}  ♫ {name}: {line:34} ♫")
+...         await sleep(1)
 
 >>> async def separator():
 ...     while True:
@@ -73,11 +76,9 @@ and tasks are assigned a priority for precise ordering of concurrent events.
 ...         tg.create_task(singer("C", delay=2), priority=3)
 ...         tg.create_task(singer("D", delay=3), priority=4)
 ...
-...     await sleep(1)  # Print extra separator
-...     t.interrupt()   # Interrupt separator task
+...     t.interrupt()  # Interrupt separator task
 ...
 ...     return "Bow / Curtsy"
-
 
 >>> r = run(main())
 0  ♫---------------------------------------♫
