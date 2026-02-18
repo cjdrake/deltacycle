@@ -46,7 +46,7 @@ A `separator` coroutine draws lines for readability.
 The coroutines are wrapped by tasks,
 and tasks are assigned a priority for precise ordering of concurrent events.
 
-```python
+```pycon
 >>> from deltacycle import *
 
 >>> song = [
