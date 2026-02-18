@@ -39,32 +39,74 @@ It is the clockwork mechanism behind the illusion of concurrency.
 
 ## Example
 
-The following code simulates two clocks running concurrently.
-The *fast* clock prints the current time every time step.
-The *slow* clock prints the current time every two time steps.
+The following code simulates singing in the round.
+Four singers perform "Row, Row, Row Your Boat" in staggered fashion.
+Each `singer` is represented by a coroutine.
+A `separator` coroutine draws lines for readability.
+The coroutines are wrapped by tasks,
+and tasks are assigned a priority for precise ordering of concurrent events.
 
 ```python
->>> from deltacycle import now, run, sleep
+>>> from deltacycle import *
 
->>> async def clock(name: str, period: int):
+>>> async def singer(name: str, delay: int = 0):
+...     await sleep(delay)
+...     print(f"{now()}  ♫ {name}: Row, row, row your boat            ♫")
+...     await sleep(1)
+...     print(f"{now()}  ♫ {name}: Gently down the stream             ♫")
+...     await sleep(1)
+...     print(f"{now()}  ♫ {name}: Merrily, merrily, merrily, merrily ♫")
+...     await sleep(1)
+...     print(f"{now()}  ♫ {name}: Life is but a dream                ♫")
+
+>>> async def separator():
 ...     while True:
-...         print(now(), name)
-...         await sleep(period)
+...         print(f"{now()}  ♫---------------------------------------♫")
+...         await sleep(1)
 
 >>> async def main():
-...     create_task(clock("fast", 1))
-...     create_task(clock("slow", 2))
+...     t = create_task(separator(), priority=-1)
+...
+...     async with TaskGroup() as tg:
+...         tg.create_task(singer("A", delay=0), priority=1)
+...         tg.create_task(singer("B", delay=1), priority=2)
+...         tg.create_task(singer("C", delay=2), priority=3)
+...         tg.create_task(singer("D", delay=3), priority=4)
+...
+...     await sleep(1)  # Print extra separator
+...     t.interrupt()   # Interrupt separator task
+...
+...     return "Bow / Curtsy"
 
->>> run(main(), until=6)
-0 fast
-0 slow
-1 fast
-2 slow
-2 fast
-3 fast
-4 slow
-4 fast
-5 fast
+
+>>> r = run(main())
+0  ♫---------------------------------------♫
+0  ♫ A: Row, row, row your boat            ♫
+1  ♫---------------------------------------♫
+1  ♫ A: Gently down the stream             ♫
+1  ♫ B: Row, row, row your boat            ♫
+2  ♫---------------------------------------♫
+2  ♫ A: Merrily, merrily, merrily, merrily ♫
+2  ♫ B: Gently down the stream             ♫
+2  ♫ C: Row, row, row your boat            ♫
+3  ♫---------------------------------------♫
+3  ♫ A: Life is but a dream                ♫
+3  ♫ B: Merrily, merrily, merrily, merrily ♫
+3  ♫ C: Gently down the stream             ♫
+3  ♫ D: Row, row, row your boat            ♫
+4  ♫---------------------------------------♫
+4  ♫ B: Life is but a dream                ♫
+4  ♫ C: Merrily, merrily, merrily, merrily ♫
+4  ♫ D: Gently down the stream             ♫
+5  ♫---------------------------------------♫
+5  ♫ C: Life is but a dream                ♫
+5  ♫ D: Merrily, merrily, merrily, merrily ♫
+6  ♫---------------------------------------♫
+6  ♫ D: Life is but a dream                ♫
+7  ♫---------------------------------------♫
+
+>>> r
+'Bow / Curtsy'
 ```
 
 ## Installing
