@@ -106,8 +106,8 @@ and tasks are assigned a priority for precise ordering of concurrent events.
 6  ♫ D: Life is but a dream                ♫
 7  ♫---------------------------------------♫
 
->>> r
-'Bow / Curtsy'
+>>> print(r)
+Bow / Curtsy
 ```
 
 ## Installing
