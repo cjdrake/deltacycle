@@ -119,5 +119,5 @@ class ReqCredit(Blocking):
         return True
 
     @property
-    def s(self) -> Sendable:
+    def x(self) -> Sendable:
         return self._credits

@@ -175,16 +175,16 @@ class Kernel(ABC):
             Handle to the created task
         """
 
-    def fork(self, task: Task, *ss: Sendable):
-        self._forks[task] = set(ss)
+    def fork(self, task: Task, *xs: Sendable):
+        self._forks[task] = set(xs)
 
-    def join_any(self, task: Task, s: Sendable):
+    def join_any(self, task: Task, x: Sendable):
         if task in self._forks:
-            ss = self._forks[task]
-            ss.remove(s)
-            while ss:
-                s = ss.pop()
-                s.wait_drop(task)
+            xs = self._forks[task]
+            xs.remove(x)
+            while xs:
+                x = xs.pop()
+                x.wait_drop(task)
             del self._forks[task]
 
     def touch_var(self, v: Variable):

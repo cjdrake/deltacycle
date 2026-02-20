@@ -75,5 +75,5 @@ class Event(KernelIf, Blocking, Sendable):
         return False
 
     @property
-    def s(self) -> Event:
+    def x(self) -> Event:
         return self

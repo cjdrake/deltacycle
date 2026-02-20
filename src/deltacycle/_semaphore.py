@@ -77,8 +77,8 @@ class Semaphore(KernelIf, Sendable):
         if self._cnt == 0:
             task = self._kernel.task()
             self.wait_push(priority, task)
-            s = await task.switch_coro()
-            assert s is self
+            x = await task.switch_coro()
+            assert x is self
         else:
             # Get credit
             self._cnt -= 1
@@ -109,7 +109,7 @@ class ReqSemaphore(Blocking):
         return True
 
     @property
-    def s(self) -> Sendable:
+    def x(self) -> Sendable:
         return self._sem
 
 

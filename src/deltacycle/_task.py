@@ -159,7 +159,7 @@ class Blocking(ABC):
 
     @property
     @abstractmethod
-    def s(self) -> Sendable:
+    def x(self) -> Sendable:
         """Object that will be sent to unblock task."""
 
 
@@ -203,14 +203,14 @@ class AllOf(_Condition):
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.add(b.s)
+                blocked.add(b.x)
             else:
-                unblocked.append(b.s)
+                unblocked.append(b.x)
 
         while blocked:
-            s = yield from task.switch_gen()
-            blocked.remove(s)
-            unblocked.append(s)
+            x = yield from task.switch_gen()
+            blocked.remove(x)
+            unblocked.append(x)
 
         return tuple(unblocked)
 
@@ -226,16 +226,16 @@ class AnyOf(_Condition):
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.add(b.s)
+                blocked.add(b.x)
             else:
                 while blocked:
-                    s = blocked.pop()
-                    s.wait_drop(task)
-                return b.s
+                    x = blocked.pop()
+                    x.wait_drop(task)
+                return b.x
 
         self._kernel.fork(task, *blocked)
-        s = yield from task.switch_gen()
-        return s
+        x = yield from task.switch_gen()
+        return x
 
 
 class Task(KernelIf, Blocking, Sendable):
@@ -414,11 +414,11 @@ class Task(KernelIf, Blocking, Sendable):
                 y = self._coro.send(None)
             case (self.Command.RESUME,):
                 y = self._coro.send(None)
-            case (self.Command.RESUME, Sendable() as s):
-                y = self._coro.send(s)
-            case (self.Command.SIGNAL, Throwable() as s):
+            case (self.Command.RESUME, Sendable() as x):
+                y = self._coro.send(x)
+            case (self.Command.SIGNAL, Throwable() as x):
                 self._signal = False
-                y = self._coro.throw(s)
+                y = self._coro.throw(x)
             case _:  # pragma: no cover
                 assert False
 
@@ -559,7 +559,7 @@ class Task(KernelIf, Blocking, Sendable):
         return False
 
     @property
-    def s(self) -> Task:
+    def x(self) -> Task:
         return self
 
 

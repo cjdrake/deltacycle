@@ -129,7 +129,7 @@ class Variable(KernelIf, Blocking, Sendable):
         return True
 
     @property
-    def s(self) -> Variable:
+    def x(self) -> Variable:
         return self
 
 
@@ -175,7 +175,7 @@ class PredVar(KernelIf, Blocking):
         return True
 
     @property
-    def s(self) -> Sendable:
+    def x(self) -> Sendable:
         return self._var
 
 

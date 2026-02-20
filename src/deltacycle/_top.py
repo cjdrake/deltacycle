@@ -225,15 +225,15 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
 
     for b in bs:
         if b.try_block(task):
-            blocked.add(b.s)
+            blocked.add(b.x)
         else:
-            unblocked.append(b.s)
+            unblocked.append(b.x)
 
     while blocked:
-        s = await task.switch_coro()
-        assert isinstance(s, Sendable)
-        blocked.remove(s)
-        unblocked.append(s)
+        x = await task.switch_coro()
+        assert isinstance(x, Sendable)
+        blocked.remove(x)
+        unblocked.append(x)
 
     return tuple(unblocked)
 
@@ -257,14 +257,14 @@ async def any_of(*bs: Blocking) -> Sendable | None:
 
     for b in bs:
         if b.try_block(task):
-            blocked.add(b.s)
+            blocked.add(b.x)
         else:
             while blocked:
-                s = blocked.pop()
-                s.wait_drop(task)
-            return b.s
+                x = blocked.pop()
+                x.wait_drop(task)
+            return b.x
 
     kernel.fork(task, *blocked)
-    s = await task.switch_coro()
-    assert isinstance(s, Sendable)
-    return s
+    x = await task.switch_coro()
+    assert isinstance(x, Sendable)
+    return x
