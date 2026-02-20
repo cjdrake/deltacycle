@@ -16,11 +16,11 @@ from ._task import (
     Blocking,
     Interrupt,
     Sendable,
-    Signal,
     Task,
     TaskCoro,
     TaskGroup,
     TaskQueue,
+    Throwable,
 )
 from ._top import (
     all_of,
@@ -75,7 +75,7 @@ __all__ = [
     "Lock",
     # task
     "TaskCoro",
-    "Signal",
+    "Throwable",
     "Interrupt",
     "Blocking",
     "Sendable",

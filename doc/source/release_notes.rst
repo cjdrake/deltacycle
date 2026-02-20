@@ -8,6 +8,12 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.30.0
+==============
+
+Renamed ``Signal`` class to ``Throwable``.
+
+
 Version 0.29.0
 ==============
 

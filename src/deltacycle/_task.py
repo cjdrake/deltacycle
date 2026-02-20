@@ -13,18 +13,18 @@ from typing import Any, Self
 from ._kernel_if import KernelIf
 
 type TaskCoro = Coroutine[None, Sendable | None, Any]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Signal]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Throwable]
 
 
-class Signal(Exception):
+class Throwable(Exception):
     """Throw a signal to a task."""
 
 
-class Interrupt(Signal):
+class Interrupt(Throwable):
     """Interrupt task."""
 
 
-class _Kill(Signal):
+class _Kill(Throwable):
     """Kill task."""
 
 
@@ -416,7 +416,7 @@ class Task(KernelIf, Blocking, Sendable):
                 y = self._coro.send(None)
             case (self.Command.RESUME, Sendable() as s):
                 y = self._coro.send(s)
-            case (self.Command.SIGNAL, Signal() as s):
+            case (self.Command.SIGNAL, Throwable() as s):
                 self._signal = False
                 y = self._coro.throw(s)
             case _:  # pragma: no cover

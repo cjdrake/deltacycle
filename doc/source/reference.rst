@@ -54,7 +54,7 @@ Variables
 Tasks
 =====
 
-.. autoexception:: deltacycle.Signal
+.. autoexception:: deltacycle.Throwable
 
 .. autoexception:: deltacycle.Interrupt
     :show-inheritance:
