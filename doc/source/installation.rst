@@ -7,7 +7,7 @@
 DeltaCycle releases are hosted on `PyPI <https://pypi.org>`_
 at https://pypi.org/project/deltacycle.
 
-This page explains how to install DeltaCycle using various methods.
+This chapter explains how to install DeltaCycle.
 
 
 With pip
