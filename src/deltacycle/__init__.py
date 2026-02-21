@@ -1,7 +1,5 @@
-"""Delta Cycle
-
-Credit to David Beazley's "Build Your Own Async" tutorial for inspiration:
-https://www.youtube.com/watch?v=Y4Gt3Xjd7G8
+"""
+DeltaCycle is a Python library for discrete event simulation (DES).
 """
 
 from ._container import Container
