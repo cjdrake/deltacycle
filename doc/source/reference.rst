@@ -138,20 +138,6 @@ Synchronization Primitives
     .. automethod:: __aenter__
     .. automethod:: __aexit__
 
-
-Scheduling
-==========
-
-.. autoclass:: deltacycle.Blocking
-.. autoclass:: deltacycle.Sendable
-
-.. autoclass:: deltacycle.AllOf
-.. autoclass:: deltacycle.AnyOf
-
-
-Queues
-======
-
 .. autoclass:: deltacycle.Queue
     :show-inheritance:
 
@@ -164,10 +150,6 @@ Queues
     .. automethod:: try_get
     .. automethod:: get
 
-
-Container
-=========
-
 .. autoclass:: deltacycle.Container
     :show-inheritance:
 
@@ -177,6 +159,16 @@ Container
     .. automethod:: put
     .. automethod:: try_get
     .. automethod:: get
+
+
+Scheduling
+==========
+
+.. autoclass:: deltacycle.Blocking
+.. autoclass:: deltacycle.Sendable
+
+.. autoclass:: deltacycle.AllOf
+.. autoclass:: deltacycle.AnyOf
 
 
 Kernel
