@@ -52,45 +52,46 @@ __all__ = [
     "get_running_kernel",
     "get_kernel",
     "set_kernel",
-    "run",
-    "step",
-    "now",
-    "sleep",
-    "all_of",
-    "any_of",
-    # container
-    "Container",
-    # event
-    "Event",
-    # queue
-    "Queue",
-    # credit_pool
-    "CreditPool",
-    "ReqCredit",
-    # semaphore
-    "Semaphore",
-    "ReqSemaphore",
-    "Lock",
     # task
     "TaskCoro",
     "Throwable",
     "Interrupt",
-    "Blocking",
-    "Sendable",
-    "AnyOf",
-    "AllOf",
     "Task",
     "TaskQueue",
     "TaskGroup",
     "create_task",
     "get_current_task",
     # variable
-    "Variable",
     "Predicate",
+    "Variable",
     "PredVar",
     "Value",
     "Singular",
     "Aggregate",
     "AggrItem",
     "AggrValue",
+    # event
+    "Event",
+    # semaphore
+    "Semaphore",
+    "ReqSemaphore",
+    "Lock",
+    # credit_pool
+    "CreditPool",
+    "ReqCredit",
+    # queue
+    "Queue",
+    # container
+    "Container",
+    # scheduling
+    "Blocking",
+    "Sendable",
+    "AllOf",
+    "AnyOf",
+    "run",
+    "step",
+    "now",
+    "sleep",
+    "all_of",
+    "any_of",
 ]

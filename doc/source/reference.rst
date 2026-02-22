@@ -5,50 +5,32 @@
 #################
 
 
-Variables
-=========
+Kernel
+======
 
-.. autoclass:: deltacycle.Variable
-    :show-inheritance:
+.. autoclass:: deltacycle.Kernel.State
 
-    .. automethod:: __await__
-    .. automethod:: pred
-    .. automethod:: changed
-    .. automethod:: update
+.. autoclass:: deltacycle.Kernel
 
-.. autoclass:: deltacycle.PredVar
+    .. automethod:: state
+    .. automethod:: time
+    .. autoproperty:: main
+    .. automethod:: task
+    .. automethod:: done
+    .. automethod:: clear
+    .. automethod:: call_soon
+    .. automethod:: call_later
+    .. automethod:: call_at
+    .. automethod:: create_main
+    .. automethod:: create_task
 
-    .. automethod:: __await__
+.. autoclass:: deltacycle.DefaultKernel
 
-.. autoclass:: deltacycle.Value
-    :show-inheritance:
+.. autofunction:: deltacycle.finish
 
-    .. automethod:: get_prev
-    .. autoproperty:: prev
-    .. automethod:: set_next
-    .. autoproperty:: next
-
-.. autoclass:: deltacycle.Singular
-    :show-inheritance:
-
-    .. automethod:: get_value
-    .. autoproperty:: value
-
-.. autoclass:: deltacycle.Aggregate
-    :show-inheritance:
-
-    .. automethod:: __getitem__
-    .. automethod:: get_prev
-    .. automethod:: set_next
-    .. automethod:: get_value
-    .. autoproperty:: value
-
-.. autoclass:: deltacycle.AggrItem
-    :show-inheritance:
-
-.. autoclass:: deltacycle.AggrValue
-
-    .. automethod:: __getitem__
+.. autofunction:: deltacycle.get_running_kernel
+.. autofunction:: deltacycle.get_kernel
+.. autofunction:: deltacycle.set_kernel
 
 
 Tasks
@@ -92,6 +74,54 @@ Tasks
 
 .. autofunction:: deltacycle.create_task
 .. autofunction:: deltacycle.get_current_task
+
+
+Variables
+=========
+
+.. autotype:: deltacycle.Predicate
+
+.. autoclass:: deltacycle.Variable
+    :show-inheritance:
+
+    .. automethod:: __await__
+    .. automethod:: pred
+    .. automethod:: changed
+    .. automethod:: update
+
+.. autoclass:: deltacycle.PredVar
+
+    .. automethod:: __await__
+
+.. autoclass:: deltacycle.Value
+    :show-inheritance:
+
+    .. automethod:: get_prev
+    .. autoproperty:: prev
+    .. automethod:: set_next
+    .. autoproperty:: next
+
+.. autoclass:: deltacycle.Singular
+    :show-inheritance:
+
+    .. automethod:: get_value
+    .. autoproperty:: value
+
+.. autoclass:: deltacycle.Aggregate
+    :show-inheritance:
+
+    .. automethod:: __getitem__
+    .. automethod:: get_prev
+    .. automethod:: set_next
+    .. automethod:: get_value
+    .. autoproperty:: value
+
+.. autoclass:: deltacycle.AggrItem
+    :show-inheritance:
+
+.. autoclass:: deltacycle.AggrValue
+
+    .. automethod:: __getitem__
 
 
 Synchronization Primitives
@@ -169,34 +199,6 @@ Scheduling
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf
-
-
-Kernel
-======
-
-.. autoclass:: deltacycle.Kernel.State
-
-.. autoclass:: deltacycle.Kernel
-
-    .. automethod:: state
-    .. automethod:: time
-    .. autoproperty:: main
-    .. automethod:: task
-    .. automethod:: done
-    .. automethod:: clear
-    .. automethod:: call_soon
-    .. automethod:: call_later
-    .. automethod:: call_at
-    .. automethod:: create_main
-    .. automethod:: create_task
-
-.. autoclass:: deltacycle.DefaultKernel
-
-.. autofunction:: deltacycle.finish
-
-.. autofunction:: deltacycle.get_running_kernel
-.. autofunction:: deltacycle.get_kernel
-.. autofunction:: deltacycle.set_kernel
 
 .. autofunction:: deltacycle.run
 .. autofunction:: deltacycle.step
