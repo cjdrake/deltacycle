@@ -54,6 +54,8 @@ Variables
 Tasks
 =====
 
+.. autotype:: deltacycle.TaskCoro
+
 .. autoexception:: deltacycle.Throwable
 
 .. autoexception:: deltacycle.Interrupt
