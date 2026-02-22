@@ -13,7 +13,7 @@ import random
 
 from pytest import CaptureFixture
 
-from deltacycle import AnyOf, Lock, create_task, now, run, sleep
+from deltacycle import AnyOf, Lock, create_task, get_running_kernel, now, run, sleep
 
 RANDOM_SEED = 42
 NEW_CUSTOMERS = 5  # Number of customers
@@ -27,13 +27,15 @@ TIMESCALE = 1_000_000.0
 
 
 def tprint(s: str):
-    print(f"{now() / TIMESCALE:7.4f} {s}")
+    kernel = get_running_kernel()
+    task = kernel.task()
+    print(f"{kernel.time() / TIMESCALE:7.4f} {task.name}:", s)
 
 
-async def customer(name: str, counter: Lock):
+async def customer(counter: Lock):
     """Customer arrives, is served and leaves."""
     arrive = now()
-    tprint(f"{name}: Here I am")
+    tprint("Here I am")
 
     patience = random.uniform(MIN_PATIENCE, MAX_PATIENCE)
 
@@ -44,22 +46,22 @@ async def customer(name: str, counter: Lock):
 
     if y is counter:
         # We got to the counter
-        tprint(f"{name}: Waited {wait / TIMESCALE:<7.3f}")
+        tprint(f"Waited {wait / TIMESCALE:<7.3f}")
         t = random.expovariate(1.0 / TIME_IN_BANK)
         await sleep(round(t * TIMESCALE))
-        tprint(f"{name}: Finished")
+        tprint("Finished")
         assert isinstance(y, Lock)
         y.put()
     else:
         # We reneged
-        tprint(f"{name}: RENEGED after {wait / TIMESCALE:<7.3f}")
+        tprint(f"RENEGED after {wait / TIMESCALE:<7.3f}")
 
 
 async def main(n: int, interval: float, counter: Lock):
     """Generate customers randomly."""
     for i in range(n):
-        c = customer(f"Customer{i:02d}", counter)
-        create_task(c)
+        c = customer(counter)
+        create_task(c, name=f"Customer{i:02d}")
         t = random.expovariate(1.0 / interval)
         await sleep(round(t * TIMESCALE))
 
