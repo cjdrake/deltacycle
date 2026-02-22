@@ -30,6 +30,7 @@ from ._top import (
     set_kernel,
     sleep,
     step,
+    tprint,
 )
 from ._variable import (
     Aggregate,
@@ -82,4 +83,5 @@ __all__ = [
     "set_kernel",
     "sleep",
     "step",
+    "tprint",
 ]
