@@ -1,7 +1,7 @@
 """Top-level functions."""
 
 from collections.abc import Generator
-from typing import Any
+from typing import Any, Literal, Protocol, TypeVar
 
 from ._kernel import DefaultKernel, Kernel
 from ._task import Blocking, Task, TaskCoro
@@ -234,3 +234,21 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
     """
     kernel = get_running_kernel()
     return await kernel._wait_any(fst, *rst)
+
+
+_T_contra = TypeVar("_T_contra", contravariant=True)
+
+
+class SupportsWrite(Protocol[_T_contra]):
+    def write(self, s: _T_contra, /) -> object: ...
+
+
+def tprint(
+    *values: object,
+    sep: str | None = " ",
+    end: str | None = "\n",
+    file: SupportsWrite[str] | None = None,
+    flush: Literal[False] = False,
+):
+    kernel, task = _get_kt()
+    print(kernel.time(), task.name, *values, sep=sep, end=end, file=file, flush=flush)
