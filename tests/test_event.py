@@ -127,7 +127,30 @@ def test_serial():
     run(main())
 
 
-def test_list_any_list():
+def test_list_any_list_1():
+    async def sleep_set(t: int, e: Event):
+        await sleep(t)
+        e.set()
+
+    async def main():
+        e10 = Event()
+        e20 = Event()
+        e30 = Event()
+
+        create_task(sleep_set(10, e10), name="e10")
+        create_task(sleep_set(20, e20), name="e20")
+        create_task(sleep_set(30, e30), name="e30")
+
+        e = await AnyOf(e10, e20, e30)
+        assert e is e10
+
+        kernel = get_running_kernel()
+        assert not kernel._forks
+
+    run(main())
+
+
+def test_list_any_list_2():
     async def sleep_set(t: int, e: Event):
         await sleep(t)
         e.set()
@@ -150,7 +173,7 @@ def test_list_any_list():
     run(main())
 
 
-def test_list_any_one_set():
+def test_list_any_one_set_1():
     async def sleep_set(t: int, e: Event):
         await sleep(t)
         e.set()
@@ -167,6 +190,32 @@ def test_list_any_one_set():
         create_task(sleep_set(30, e30), name="e30")
 
         e = await AnyOf(e10, e20, e30)
+        assert e is e20
+        assert now() == 0
+
+        kernel = get_running_kernel()
+        assert not kernel._forks
+
+    run(main())
+
+
+def test_list_any_one_set_2():
+    async def sleep_set(t: int, e: Event):
+        await sleep(t)
+        e.set()
+
+    async def main():
+        e10 = Event()
+        e20 = Event()
+        e30 = Event()
+
+        e20.set()
+
+        create_task(sleep_set(10, e10), name="e10")
+        create_task(sleep_set(20, e20), name="e20")
+        create_task(sleep_set(30, e30), name="e30")
+
+        e = await any_of(e10, e20, e30)
         assert e is e20
         assert now() == 0
 

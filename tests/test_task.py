@@ -347,6 +347,31 @@ def test_task_any1():
 
 
 def test_task_any2():
+    async def cf(t: int):
+        await sleep(t)
+
+    async def main():
+        t1 = create_task(cf(5), name="T1")
+        t2 = create_task(cf(10), name="T2")
+        t3 = create_task(cf(15), name="T3")
+
+        t = await AnyOf(t1, t2, t3)
+        assert t is t1
+        assert now() == 5
+
+    run(main())
+
+
+def test_task_any3():
+    async def main():
+        y = await any_of()
+        assert y is None
+        assert now() == 0
+
+    run(main())
+
+
+def test_task_any4():
     async def main():
         y = await AnyOf()
         assert y is None
