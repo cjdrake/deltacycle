@@ -7,6 +7,16 @@ from deltacycle import AllOf, CreditPool, TaskGroup, all_of, create_task, now, r
 from .conftest import trace
 
 
+def test_cap():
+    async def main():
+        credits = CreditPool()
+        assert not credits.capacity
+        credits = CreditPool(capacity=42)
+        assert credits.capacity == 42
+
+    run(main())
+
+
 def test_len():
     async def main():
         credits = CreditPool(capacity=10)
