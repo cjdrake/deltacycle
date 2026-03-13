@@ -2,7 +2,16 @@
 
 import pytest
 
-from deltacycle import get_kernel, get_running_kernel, run, set_kernel, sleep, step
+from deltacycle import (
+    Event,
+    create_task,
+    get_kernel,
+    get_running_kernel,
+    run,
+    set_kernel,
+    sleep,
+    step,
+)
 
 from .conftest import trace
 
@@ -79,3 +88,23 @@ def test_get_running_kernel(captrace: set[tuple[int, str, str]]):
     run(main(42))
     with pytest.raises(RuntimeError):
         get_running_kernel()
+
+
+def test_ambiguous_kernel():
+    e = Event()
+
+    async def sleep_set(t: int, e: Event):
+        await sleep(t)
+        e.set()
+
+    async def main():
+        create_task(sleep_set(10, e))
+        await e
+        e.clear()
+
+    # Use Event object w/ new kernel
+    run(main())
+
+    # Use *same* Event object w/ different kernel
+    with pytest.raises(RuntimeError):
+        run(main())
