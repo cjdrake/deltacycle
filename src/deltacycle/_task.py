@@ -222,11 +222,11 @@ class AnyOf(_Condition):
 
         task = self._kernel.task()
 
-        blocked = set[Sendable]()
+        blocked = list[Sendable]()
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.add(b.x)
+                blocked.append(b.x)
             else:
                 while blocked:
                     x = blocked.pop()

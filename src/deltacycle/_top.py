@@ -253,11 +253,11 @@ async def any_of(*bs: Blocking) -> Sendable | None:
 
     kernel, task = _get_kt()
 
-    blocked = set[Sendable]()
+    blocked = list[Sendable]()
 
     for b in bs:
         if b.try_block(task):
-            blocked.add(b.x)
+            blocked.append(b.x)
         else:
             while blocked:
                 x = blocked.pop()
