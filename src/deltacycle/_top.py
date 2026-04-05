@@ -1,6 +1,5 @@
 """Top-level functions."""
 
-from collections import deque
 from collections.abc import Generator
 from typing import Any
 
@@ -218,24 +217,23 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
     Returns:
         Return a tuple of items in unblocking order.
     """
-    _, task = _get_kt()
+    kernel, task = _get_kt()
 
-    blocked = set[Sendable]()
-    unblocked = deque[Sendable]()
+    while True:
+        blocked = list[Sendable]()
+        unblocked = list[Sendable]()
 
-    for b in bs:
-        if b.try_block(task):
-            blocked.add(b.x)
-        else:
-            unblocked.append(b.x)
+        for b in bs:
+            if b.try_block(task):
+                blocked.append(b.x)
+            else:
+                unblocked.append(b.x)
 
-    while blocked:
-        x = await task.switch_coro()
-        assert isinstance(x, Sendable)
-        blocked.remove(x)
-        unblocked.append(x)
+        if not blocked:
+            return tuple(unblocked)
 
-    return tuple(unblocked)
+        kernel.fork(task, *blocked)
+        await task.switch_coro()
 
 
 async def any_of(*bs: Blocking) -> Sendable | None:

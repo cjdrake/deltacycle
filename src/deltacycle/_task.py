@@ -198,21 +198,21 @@ class AllOf(_Condition):
     def __await__(self) -> Generator[None, Sendable, tuple[Sendable, ...]]:
         task = self._kernel.task()
 
-        blocked = set[Sendable]()
-        unblocked = deque[Sendable]()
+        while True:
+            blocked = list[Sendable]()
+            unblocked = list[Sendable]()
 
-        for b in self._bs:
-            if b.try_block(task):
-                blocked.add(b.x)
-            else:
-                unblocked.append(b.x)
+            for b in self._bs:
+                if b.try_block(task):
+                    blocked.append(b.x)
+                else:
+                    unblocked.append(b.x)
 
-        while blocked:
-            x = yield from task.switch_gen()
-            blocked.remove(x)
-            unblocked.append(x)
+            if not blocked:
+                return tuple(unblocked)
 
-        return tuple(unblocked)
+            self._kernel.fork(task, *blocked)
+            yield from task.switch_gen()
 
 
 class AnyOf(_Condition):

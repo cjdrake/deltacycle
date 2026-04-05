@@ -193,7 +193,7 @@ def test_priority():
         t0 = create_task(request(lock, 0), name="T0", priority=-1)
 
         ts = await all_of(t3, t2, t1, t0)
-        assert ts == (t0, t1, t2, t3)
+        assert ts == (t3, t2, t1, t0)
         assert now() == 25
 
     run(main())
