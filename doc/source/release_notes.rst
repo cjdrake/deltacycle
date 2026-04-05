@@ -8,6 +8,16 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.32.0
+==============
+
+Raise an ``AttributeError`` when a global simulation object
+(e.g. ``Task``, ``Event``, ...) is awaited by multiple kernels.
+
+Previously, this would fail in some subtle way.
+Instead, explicitly detect the problem and report "ambiguous kernel".
+
+
 Version 0.31.0
 ==============
 
