@@ -8,6 +8,19 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.31.0
+==============
+
+Changed the way ``all_of`` and ``AllOf`` work.
+Previously, these functions waited for objects to unblock the current task,
+and recorded the order they unblocked.
+However, while waiting for one object to unblock,
+they did not check whether a previously unblocked object started blocking again.
+This created some undesirable ambiguity.
+Replaced the algorithm with something less clever:
+wait for a point in time none of the objects are blocking.
+
+
 Version 0.30.0
 ==============
 
