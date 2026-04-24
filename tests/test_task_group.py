@@ -53,7 +53,7 @@ def test_group(captrace: set[tuple[int, str, str]]):
     async def main():
         trace("enter")
 
-        ts: list[Task] = []
+        ts = list[Task]()
         async with TaskGroup() as tg:
             ts.append(tg.create_task(cf_r(5, 0), name="C0"))
             ts.append(tg.create_task(cf_r(10, 1), name="C1"))
@@ -103,7 +103,7 @@ def test_group_child_except(captrace: set[tuple[int, str, str]]):
     async def main():
         trace("enter")
 
-        ts: list[Task] = []
+        ts = list[Task]()
         with pytest.raises(ExceptionGroup) as e:
             async with TaskGroup() as tg:
                 # Handle weird case of done child
@@ -164,7 +164,7 @@ def test_group_except(captrace: set[tuple[int, str, str]]):
     async def main():
         trace("enter")
 
-        ts: list[Task] = []
+        ts = list[Task]()
         with pytest.raises(ArithmeticError) as e:
             async with TaskGroup() as tg:
                 # Handle weird case of done child
@@ -227,7 +227,7 @@ def test_group_newborns_except(captrace: set[tuple[int, str, str]]):
     async def main():
         trace("enter")
 
-        ts: list[Task] = []
+        ts = list[Task]()
         with pytest.raises(ExceptionGroup) as e:
             async with TaskGroup() as tg:
                 # Newborns
