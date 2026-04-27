@@ -91,7 +91,7 @@ class Kernel(ABC):
         self._task_index = 0
 
         # Forked Tasks
-        self._forks = dict[Task, set[Sendable]]()
+        self._forks: dict[Task, set[Sendable]] = {}
 
         # Model variables
         self._dirty_vars = set[Variable]()
@@ -247,7 +247,7 @@ class _PendQ(TaskQueue):
 
     def __init__(self):
         # time, priority, index, task, value
-        self._items = list[tuple[int, int, int, Task, Any]]()
+        self._items: list[tuple[int, int, int, Task, Any]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq

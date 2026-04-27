@@ -220,8 +220,8 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
     kernel, task = _get_kt()
 
     while True:
-        blocked = list[Sendable]()
-        unblocked = list[Sendable]()
+        blocked: list[Sendable] = []
+        unblocked: list[Sendable] = []
 
         for b in bs:
             if b.try_block(task):
@@ -251,7 +251,7 @@ async def any_of(*bs: Blocking) -> Sendable | None:
 
     kernel, task = _get_kt()
 
-    blocked = list[Sendable]()
+    blocked: list[Sendable] = []
 
     for b in bs:
         if b.try_block(task):

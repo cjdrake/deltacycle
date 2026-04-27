@@ -79,7 +79,7 @@ class SemaphoreQ(TaskQueue):
 
     def __init__(self):
         # priority, index, task
-        self._items = list[tuple[int, int, Task]]()
+        self._items: list[tuple[int, int, Task]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -116,7 +116,7 @@ class CreditQ(TaskQueue):
 
     def __init__(self):
         # priority, index, task, n
-        self._items = list[tuple[int, int, Task, int]]()
+        self._items: list[tuple[int, int, Task, int]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -199,8 +199,8 @@ class AllOf(_Condition):
         task = self._kernel.task()
 
         while True:
-            blocked = list[Sendable]()
-            unblocked = list[Sendable]()
+            blocked: list[Sendable] = []
+            unblocked: list[Sendable] = []
 
             for b in self._bs:
                 if b.try_block(task):
@@ -222,7 +222,7 @@ class AnyOf(_Condition):
 
         task = self._kernel.task()
 
-        blocked = list[Sendable]()
+        blocked: list[Sendable] = []
 
         for b in self._bs:
             if b.try_block(task):
@@ -609,7 +609,7 @@ class TaskGroup(KernelIf):
 
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
-        child_excs = list[Exception]()
+        child_excs: list[Exception] = []
         killed = set[Task]()
         while self._todo:
             child = await self._parent.switch_coro()
