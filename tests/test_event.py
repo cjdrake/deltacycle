@@ -1,7 +1,5 @@
 """Test deltacycle.Event"""
 
-# pyright: reportPrivateUsage=false
-
 from deltacycle import AnyOf, Event, any_of, create_task, get_running_kernel, now, run, sleep
 
 from .conftest import trace
