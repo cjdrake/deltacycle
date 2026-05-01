@@ -20,4 +20,5 @@ dev = [
     "sphinx>=8.2.3",
     "sphinx-autobuild>=2024.10.3",
     "sphinx-book-theme>=1.1.4",
+    "ty>=0.0.33",
 ]
