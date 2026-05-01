@@ -105,9 +105,9 @@ class ReqCredit(Blocking):
 
     async def __aexit__(
         self,
-        exc_type: type[Exception],
-        exc: Exception,
-        traceback: TracebackType,
+        exc_type: type[Exception] | None,
+        exc: Exception | None,
+        traceback: TracebackType | None,
     ):
         self._credits.put(self._n)
 
