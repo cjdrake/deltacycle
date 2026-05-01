@@ -94,7 +94,7 @@ class Kernel(ABC):
         self._forks: dict[Task, set[Sendable]] = {}
 
         # Model variables
-        self._dirty_vars = set[Variable]()
+        self._dirty_vars: set[Variable] = set()
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]

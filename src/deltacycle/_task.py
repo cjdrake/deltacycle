@@ -571,10 +571,10 @@ class TaskGroup(KernelIf):
 
         # Tasks started in the with block
         self._setup_done = False
-        self._setup_tasks = set[Task]()
+        self._setup_tasks: set[Task] = set()
 
         # Tasks in running/pending/killing state
-        self._todo = set[Task]()
+        self._todo: set[Task] = set()
 
     async def __aenter__(self) -> Self:
         return self
@@ -610,7 +610,7 @@ class TaskGroup(KernelIf):
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
         child_excs: list[Exception] = []
-        killed = set[Task]()
+        killed: set[Task] = set()
         while self._todo:
             child = await self._parent.switch_coro()
             assert isinstance(child, Task)
