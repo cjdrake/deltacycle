@@ -8,6 +8,12 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.33.0
+==============
+
+Replaced PyRight with `ty <https://docs.astral.sh/ty>`_.
+
+
 Version 0.32.0
 ==============
 
