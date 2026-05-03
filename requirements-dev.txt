@@ -6,6 +6,9 @@
 # Lint / Format
 ruff
 
+# Type Checks
+ty
+
 # Test
 pytest
 pytest-cov
