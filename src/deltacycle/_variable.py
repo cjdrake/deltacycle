@@ -90,6 +90,7 @@ class Variable(KernelIf, Blocking, Sendable):
         self.wait_push(task, self.changed)
         v = yield from task.switch_gen()
         v = cast(typ=Variable, val=v)
+        assert v is self
         return self
 
     def _set(self):
