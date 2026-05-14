@@ -18,7 +18,7 @@ class _WaitQ(TaskQueue):
 
     def __init__(self):
         self._t2p = OrderedDict[Task, Predicate]()
-        self._items = deque[Task]()
+        self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
         return bool(self._items)

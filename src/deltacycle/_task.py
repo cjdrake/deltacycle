@@ -51,7 +51,7 @@ class EventQ(TaskQueue):
 
     def __init__(self):
         self._tasks = OrderedDict[Task, None]()
-        self._items = deque[Task]()
+        self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
         return bool(self._items)

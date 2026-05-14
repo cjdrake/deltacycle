@@ -23,7 +23,7 @@ class Queue[T](KernelIf):
 
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
-        self._items = deque[T]()
+        self._items: deque[T] = deque()
         self._getq = SemaphoreQ()
         self._putq = SemaphoreQ()
 
