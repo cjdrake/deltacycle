@@ -305,7 +305,7 @@ class Task(KernelIf, Blocking, Sendable):
         self._group: TaskGroup | None = None
 
         # Keep track of all queues containing this task
-        self._refcnts = Counter[TaskQueue]()
+        self._refcnts: Counter[TaskQueue] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = EventQ()
