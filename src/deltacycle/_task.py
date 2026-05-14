@@ -412,19 +412,16 @@ class Task(KernelIf, Blocking, Sendable):
 
         match args:
             case (self.Command.START,):
-                y = self._coro.send(None)
+                self._coro.send(None)
             case (self.Command.RESUME,):
-                y = self._coro.send(None)
+                self._coro.send(None)
             case (self.Command.RESUME, Sendable() as x):
-                y = self._coro.send(x)
+                self._coro.send(x)
             case (self.Command.SIGNAL, Throwable() as x):
                 self._signal = False
-                y = self._coro.throw(x)
+                self._coro.throw(x)
             case _:  # pragma: no cover
                 assert False
-
-        # TaskCoro YieldType=None
-        assert y is None
 
     def _set(self):
         self._waiting.load()
