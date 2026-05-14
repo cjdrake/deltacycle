@@ -1,7 +1,7 @@
 """Top-level functions."""
 
 from collections.abc import Generator
-from typing import Any
+from typing import Any, cast
 
 from ._kernel import DefaultKernel, Kernel
 from ._task import Blocking, Sendable, Task, TaskCoro
@@ -264,5 +264,5 @@ async def any_of(*bs: Blocking) -> Sendable | None:
 
     kernel.fork(task, *blocked)
     x = await task.switch_coro()
-    assert isinstance(x, Sendable)
+    x = cast(typ=Sendable, val=x)
     return x

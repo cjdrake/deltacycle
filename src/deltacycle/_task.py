@@ -8,7 +8,7 @@ from collections import Counter, OrderedDict, deque
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, cast
 
 from ._kernel_if import KernelIf
 
@@ -567,7 +567,7 @@ class TaskGroup(KernelIf):
     """Group of tasks."""
 
     def __init__(self):
-        self._parent = self._kernel.task()
+        self._parent: Task = self._kernel.task()
 
         # Tasks started in the with block
         self._setup_done = False
@@ -601,7 +601,7 @@ class TaskGroup(KernelIf):
                 child.kill()
             while self._todo:
                 child = await self._parent.switch_coro()
-                assert isinstance(child, Task)
+                child = cast(typ=Task, val=child)
                 self._todo.remove(child)
 
             # Re-raise parent exception
@@ -613,7 +613,7 @@ class TaskGroup(KernelIf):
         killed: set[Task] = set()
         while self._todo:
             child = await self._parent.switch_coro()
-            assert isinstance(child, Task)
+            child = cast(typ=Task, val=child)
             self._todo.remove(child)
             if child in killed:
                 continue
