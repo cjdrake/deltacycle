@@ -50,7 +50,7 @@ class EventQ(TaskQueue):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._tasks = OrderedDict[Task, None]()
+        self._tasks: OrderedDict[Task, None] = OrderedDict()
         self._items: deque[Task] = deque()
 
     def __bool__(self) -> bool:
