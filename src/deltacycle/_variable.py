@@ -243,7 +243,7 @@ class Aggregate[T](Variable):
 
     def __init__(self, value: T):
         Variable.__init__(self)
-        self._prevs = defaultdict[Hashable, T](lambda: value)
+        self._prevs: defaultdict[Hashable, T] = defaultdict(lambda: value)
         self._nexts: dict[Hashable, T] = {}
 
     # [key] => Value
