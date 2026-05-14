@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Self
+from typing import Self, cast
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, EventQ, Sendable, Task
@@ -42,9 +42,10 @@ class Event(KernelIf, Blocking, Sendable):
     def __await__(self) -> Generator[None, Sendable, Self]:
         """Await event set."""
         if self._blocking():
-            task = self._kernel.task()
+            task: Task = self._kernel.task()
             self.wait_push(task)
             e = yield from task.switch_gen()
+            e = cast(typ=Event, val=e)
             assert e is self
 
         return self

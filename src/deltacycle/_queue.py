@@ -61,7 +61,7 @@ class Queue[T](KernelIf):
     async def put(self, item: T, priority: int = 0):
         """Block until there is space for an item."""
         if self.full():
-            task = self._kernel.task()
+            task: Task = self._kernel.task()
             self._putq.push((priority, task))
             y = await task.switch_coro()
             assert y is None
@@ -91,7 +91,7 @@ class Queue[T](KernelIf):
     async def get(self, priority: int = 0) -> T:
         """Block until an item is available."""
         if self.empty():
-            task = self._kernel.task()
+            task: Task = self._kernel.task()
             self._getq.push((priority, task))
             y = await task.switch_coro()
             assert y is None

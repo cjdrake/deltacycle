@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from collections.abc import Callable, Generator, Hashable
-from typing import Self
+from typing import Self, cast
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, Sendable, Task, TaskQueue
@@ -85,11 +85,11 @@ class Variable(KernelIf, Blocking, Sendable):
            ``v.changed()`` evaluates to ``True``,
            unblock all tasks waiting for that event.
         """
-        task = self._kernel.task()
+        task: Task = self._kernel.task()
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
         v = yield from task.switch_gen()
-        assert v is self
+        v = cast(typ=Variable, val=v)
         return self
 
     def _set(self):
@@ -163,7 +163,7 @@ class PredVar(KernelIf, Blocking):
         2. When another task invokes ``v.set_next(...)`` *and* ``p`` evaluates
            to ``True``, unblock all tasks waiting for that event.
         """
-        task = self._kernel.task()
+        task: Task = self._kernel.task()
         self._var.wait_push(task, self._p)
         v = yield from task.switch_gen()
         assert v is self._var

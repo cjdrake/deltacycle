@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from types import TracebackType
-from typing import Self
+from typing import Self, cast
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, CreditQ, Sendable, Task
@@ -84,9 +84,10 @@ class CreditPool(KernelIf, Sendable):
         self._check_n(n)
 
         if self._cnt < n:
-            task = self._kernel.task()
+            task: Task = self._kernel.task()
             self.wait_push(priority, task, n)
             credits = await task.switch_coro()
+            credits = cast(typ=CreditPool, val=credits)
             assert credits is self
         else:
             # Get credit

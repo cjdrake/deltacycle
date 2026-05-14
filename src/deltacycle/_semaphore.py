@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from types import TracebackType
-from typing import Self
+from typing import Self, cast
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SemaphoreQ, Sendable, Task
@@ -75,9 +75,10 @@ class Semaphore(KernelIf, Sendable):
         self._check_cnt()
 
         if self._cnt == 0:
-            task = self._kernel.task()
+            task: Task = self._kernel.task()
             self.wait_push(priority, task)
             x = await task.switch_coro()
+            x = cast(typ=Semaphore, val=x)
             assert x is self
         else:
             # Get credit
