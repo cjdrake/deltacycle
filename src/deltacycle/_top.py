@@ -114,7 +114,7 @@ def _run_pre(
     kernel_type: type[Kernel],
 ) -> Kernel:
     if kernel is None:
-        kernel = DefaultKernel()
+        kernel = kernel_type()
         set_kernel(kernel)
         if coro is None:
             raise ValueError("New kernel requires a valid coro arg")
