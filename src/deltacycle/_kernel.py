@@ -313,7 +313,7 @@ class DefaultKernel(Kernel):
         self._queue = _PendQ()
 
         # Task priorities
-        self._priorities = WeakKeyDictionary[Task, int]()
+        self._priorities: WeakKeyDictionary[Task, int] = WeakKeyDictionary()
 
     @override
     def clear(self):
