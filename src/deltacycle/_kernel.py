@@ -2,7 +2,7 @@
 
 import heapq
 from abc import ABC, abstractmethod
-from collections.abc import Generator
+from collections.abc import Iterator
 from enum import IntEnum
 from typing import Any, override
 from weakref import WeakKeyDictionary
@@ -231,14 +231,14 @@ class Kernel(ABC):
         self._call(limit)
 
     @abstractmethod
-    def _iter(self) -> Generator[int, None, None]:
+    def _iter(self) -> Iterator[int]:
         """Step (iterate) a simulation.
 
         Invoked by the public ``__iter__`` method.
         Implements the inner loop of the top-level ``step`` function.
         """
 
-    def __iter__(self) -> Generator[int, None, None]:
+    def __iter__(self) -> Iterator[int]:
         yield from self._iter()
 
 
@@ -344,7 +344,7 @@ class DefaultKernel(Kernel):
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
-    def _iter_time_slot(self, time: int) -> Generator[tuple[Task, TaskArgs], None, None]:
+    def _iter_time_slot(self, time: int) -> Iterator[tuple[Task, TaskArgs]]:
         """Iterate through all tasks in a time slot.
 
         The first task has already been peeked.
@@ -395,7 +395,7 @@ class DefaultKernel(Kernel):
         # All tasks exhausted
         self._complete()
 
-    def _iter(self) -> Generator[int, None, None]:
+    def _iter(self) -> Iterator[int]:
         self._start()
 
         while self._queue:
