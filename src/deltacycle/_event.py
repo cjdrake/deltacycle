@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Self, cast
+from typing import Self, cast, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, EventQ, Sendable, Task
@@ -36,6 +36,7 @@ class Event(KernelIf, Blocking, Sendable):
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
+    @override
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
@@ -69,12 +70,13 @@ class Event(KernelIf, Blocking, Sendable):
         self._flag = False
 
     # Blocking
+    @override
     def try_block(self, task: Task) -> bool:
         if self._blocking():
             self.wait_push(task)
             return True
         return False
 
-    @property
-    def x(self) -> Event:
+    @override
+    def future(self) -> Event:
         return self

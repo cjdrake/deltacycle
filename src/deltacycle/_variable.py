@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict, deque
 from collections.abc import Callable, Generator, Hashable
-from typing import Self, cast
+from typing import Self, cast, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, Sendable, Task, TaskQueue
@@ -20,19 +20,23 @@ class _WaitQ(TaskQueue):
         self._t2p: OrderedDict[Task, Predicate] = OrderedDict()
         self._items: deque[Task] = deque()
 
+    @override
     def __bool__(self) -> bool:
         return bool(self._items)
 
+    @override
     def push(self, item: tuple[Task, Predicate]):
         task, p = item
         task.link(self)
         self._t2p[task] = p
 
+    @override
     def pop(self) -> Task:
         task = self._items.popleft()
         self.drop(task)
         return task
 
+    @override
     def drop(self, task: Task):
         del self._t2p[task]
         task.unlink(self)
@@ -72,6 +76,7 @@ class Variable(KernelIf, Blocking, Sendable):
     def wait_push(self, task: Task, p: Predicate):
         self._waiting.push((task, p))
 
+    @override
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
@@ -124,13 +129,14 @@ class Variable(KernelIf, Blocking, Sendable):
         """Update variable value."""
 
     # Blocking
+    @override
     def try_block(self, task: Task) -> bool:
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
         return True
 
-    @property
-    def x(self) -> Variable:
+    @override
+    def future(self) -> Variable:
         return self
 
 
@@ -171,12 +177,13 @@ class PredVar(KernelIf, Blocking):
         return self._var
 
     # Blocking
+    @override
     def try_block(self, task: Task) -> bool:
         self._var.wait_push(task, self._p)
         return True
 
-    @property
-    def x(self) -> Sendable:
+    @override
+    def future(self) -> Sendable:
         return self._var
 
 
@@ -206,11 +213,13 @@ class Singular[T](Variable, Value[T]):
         self._changed: bool = False
 
     # Value
+    @override
     def get_prev(self) -> T:
         return self._prev
 
     prev = property(fget=get_prev)
 
+    @override
     def set_next(self, value: T):
         self._changed = value != self._next
         self._next = value
@@ -231,9 +240,11 @@ class Singular[T](Variable, Value[T]):
 
     value = property(fget=get_value)
 
+    @override
     def changed(self) -> bool:
         return self._changed
 
+    @override
     def update(self):
         self._prev = self._next
         self._changed = False
@@ -280,9 +291,11 @@ class Aggregate[T](Variable):
 
     value = property(fget=get_value)
 
+    @override
     def changed(self) -> bool:
         return bool(self._nexts)
 
+    @override
     def update(self):
         while self._nexts:
             key, value = self._nexts.popitem()
@@ -296,11 +309,13 @@ class AggrItem[T](Value[T]):
         self._aggr = aggr
         self._key = key
 
+    @override
     def get_prev(self) -> T:
         return self._aggr.get_prev(self._key)
 
     prev = property(fget=get_prev)
 
+    @override
     def set_next(self, value: T):
         self._aggr.set_next(self._key, value)
 

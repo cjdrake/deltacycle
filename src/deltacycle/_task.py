@@ -8,7 +8,7 @@ from collections import Counter, OrderedDict, deque
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, Self, cast
+from typing import Any, Self, cast, override
 
 from ._kernel_if import KernelIf
 
@@ -53,18 +53,22 @@ class EventQ(TaskQueue):
         self._tasks: OrderedDict[Task, None] = OrderedDict()
         self._items: deque[Task] = deque()
 
+    @override
     def __bool__(self) -> bool:
         return bool(self._items)
 
+    @override
     def push(self, item: Task):
         item.link(self)
         self._tasks[item] = None
 
+    @override
     def pop(self) -> Task:
         task = self._items.popleft()
         self.drop(task)
         return task
 
+    @override
     def drop(self, task: Task):
         del self._tasks[task]
         task.unlink(self)
@@ -85,15 +89,18 @@ class SemaphoreQ(TaskQueue):
         # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
+    @override
     def __bool__(self) -> bool:
         return bool(self._items)
 
+    @override
     def push(self, item: tuple[int, Task]):
         priority, task = item
         task.link(self)
         heapq.heappush(self._items, (priority, self._index, task))
         self._index += 1
 
+    @override
     def pop(self) -> Task:
         _, _, task = heapq.heappop(self._items)
         task.unlink(self)
@@ -105,6 +112,7 @@ class SemaphoreQ(TaskQueue):
                 return i
         assert False  # pragma: no cover
 
+    @override
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
@@ -122,15 +130,18 @@ class CreditQ(TaskQueue):
         # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
+    @override
     def __bool__(self) -> bool:
         return bool(self._items)
 
+    @override
     def push(self, item: tuple[int, Task, int]):
         priority, task, n = item
         task.link(self)
         heapq.heappush(self._items, (priority, self._index, task, n))
         self._index += 1
 
+    @override
     def pop(self) -> tuple[Task, int]:
         _, _, task, n = heapq.heappop(self._items)
         task.unlink(self)
@@ -142,6 +153,7 @@ class CreditQ(TaskQueue):
                 return i
         assert False  # pragma: no cover
 
+    @override
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
@@ -157,9 +169,8 @@ class Blocking(ABC):
     def try_block(self, task: Task) -> bool:
         """Attempt to block task; return True if successful."""
 
-    @property
     @abstractmethod
-    def x(self) -> Sendable:
+    def future(self) -> Sendable:
         """Object that will be sent to unblock task."""
 
 
@@ -204,9 +215,9 @@ class AllOf(_Condition):
 
             for b in self._bs:
                 if b.try_block(task):
-                    blocked.append(b.x)
+                    blocked.append(b.future())
                 else:
-                    unblocked.append(b.x)
+                    unblocked.append(b.future())
 
             if not blocked:
                 return tuple(unblocked)
@@ -226,12 +237,12 @@ class AnyOf(_Condition):
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.append(b.x)
+                blocked.append(b.future())
             else:
                 while blocked:
                     x = blocked.pop()
                     x.wait_drop(task)
-                return b.x
+                return b.future()
 
         self._kernel.fork(task, *blocked)
         x = yield from task.switch_gen()
@@ -323,6 +334,7 @@ class Task(KernelIf, Blocking, Sendable):
     def wait_push(self, task: Task):
         self._waiting.push(task)
 
+    @override
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
@@ -550,14 +562,15 @@ class Task(KernelIf, Blocking, Sendable):
         return True
 
     # Blocking
+    @override
     def try_block(self, task: Task) -> bool:
         if self._blocking():
             self.wait_push(task)
             return True
         return False
 
-    @property
-    def x(self) -> Task:
+    @override
+    def future(self) -> Task:
         return self
 
 

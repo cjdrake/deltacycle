@@ -225,9 +225,9 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
 
         for b in bs:
             if b.try_block(task):
-                blocked.append(b.x)
+                blocked.append(b.future())
             else:
-                unblocked.append(b.x)
+                unblocked.append(b.future())
 
         if not blocked:
             return tuple(unblocked)
@@ -255,12 +255,12 @@ async def any_of(*bs: Blocking) -> Sendable | None:
 
     for b in bs:
         if b.try_block(task):
-            blocked.append(b.x)
+            blocked.append(b.future())
         else:
             while blocked:
                 x = blocked.pop()
                 x.wait_drop(task)
-            return b.x
+            return b.future()
 
     kernel.fork(task, *blocked)
     x = await task.switch_coro()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from types import TracebackType
-from typing import Self, cast
+from typing import Self, cast, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SemaphoreQ, Sendable, Task
@@ -34,6 +34,7 @@ class Semaphore(KernelIf, Sendable):
     def wait_push(self, priority: int, task: Task):
         self._waiting.push((priority, task))
 
+    @override
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
@@ -102,6 +103,7 @@ class ReqSemaphore(Blocking):
     ):
         self._sem.put()
 
+    @override
     def try_block(self, task: Task) -> bool:
         if self._sem.try_get():
             return False
@@ -109,8 +111,8 @@ class ReqSemaphore(Blocking):
         self._sem.wait_push(self._priority, task)
         return True
 
-    @property
-    def x(self) -> Sendable:
+    @override
+    def future(self) -> Sendable:
         return self._sem
 
 

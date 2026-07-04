@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from types import TracebackType
-from typing import Self, cast
+from typing import Self, cast, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, CreditQ, Sendable, Task
@@ -34,6 +34,7 @@ class CreditPool(KernelIf, Sendable):
     def wait_push(self, priority: int, task: Task, n: int):
         self._waiting.push((priority, task, n))
 
+    @override
     def wait_drop(self, task: Task):
         self._waiting.drop(task)
 
@@ -112,6 +113,7 @@ class ReqCredit(Blocking):
     ):
         self._credits.put(self._n)
 
+    @override
     def try_block(self, task: Task) -> bool:
         if self._credits.try_get(self._n):
             return False
@@ -119,6 +121,6 @@ class ReqCredit(Blocking):
         self._credits.wait_push(self._priority, task, self._n)
         return True
 
-    @property
-    def x(self) -> Sendable:
+    @override
+    def future(self) -> Sendable:
         return self._credits

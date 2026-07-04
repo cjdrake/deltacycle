@@ -253,15 +253,18 @@ class _PendQ(TaskQueue):
         # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
+    @override
     def __bool__(self) -> bool:
         return bool(self._items)
 
+    @override
     def push(self, item: tuple[int, int, Task, Any]):
         time, priority, task, value = item
         task.link(self)
         heapq.heappush(self._items, (time, priority, self._index, task, value))
         self._index += 1
 
+    @override
     def pop(self) -> tuple[Task, Any]:
         _, _, _, task, value = heapq.heappop(self._items)
         task.unlink(self)
@@ -273,6 +276,7 @@ class _PendQ(TaskQueue):
                 return i
         assert False  # pragma: no cover
 
+    @override
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
@@ -320,24 +324,29 @@ class DefaultKernel(Kernel):
         super().clear()
         self._queue.clear()
 
+    @override
     def call_soon(self, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time, priority, task, args))
 
+    @override
     def call_later(self, delay: int, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time + delay, priority, task, args))
 
+    @override
     def call_at(self, when: int, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((when, priority, task, args))
 
+    @override
     def create_main(self, coro: TaskCoro) -> Task:
         main = super()._create_main(coro)
         self._priorities[main] = self.main_priority
         self.call_at(self.start_time, main, args=(Task.Command.START,))
         return main
 
+    @override
     def create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
         task = super()._create_task(coro, name)
         self._priorities[task] = kwargs.get("priority", self.task_priority)
@@ -356,6 +365,7 @@ class DefaultKernel(Kernel):
             task, value = self._queue.pop()
             yield (task, value)
 
+    @override
     def _call(self, limit: int | None):
         self._start()
 
@@ -395,6 +405,7 @@ class DefaultKernel(Kernel):
         # All tasks exhausted
         self._complete()
 
+    @override
     def _iter(self) -> Iterator[int]:
         self._start()
 
