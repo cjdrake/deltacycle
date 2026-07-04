@@ -592,8 +592,8 @@ class TaskGroup(KernelIf):
 
     async def __aexit__(
         self,
-        exc_type: type[Exception] | None,
-        exc: Exception | None,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
         traceback: TracebackType | None,
     ):
         self._setup_done = True
