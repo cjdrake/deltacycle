@@ -12,7 +12,7 @@ from typing import Any, Self, cast, override
 
 from ._kernel_if import KernelIf
 
-type TaskCoro = Coroutine[None, Sendable | None, Any]
+type TaskCoro[ResultType] = Coroutine[None, Sendable | None, ResultType]
 type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Throwable]
 
 
