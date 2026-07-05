@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.34.0
+==============
+
+Lots of minor, typing improvements.
+No public API changes.
+
+
 Version 0.33.0
 ==============
 
