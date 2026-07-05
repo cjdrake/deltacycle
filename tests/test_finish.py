@@ -7,7 +7,7 @@ from deltacycle import Kernel, create_task, finish, get_kernel, run, sleep, step
 from .conftest import trace
 
 
-async def ctl() -> Never:
+async def ctl():
     trace("enter")
     await sleep(100)
 
