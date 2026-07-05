@@ -2,6 +2,7 @@
 
 import random
 from enum import Enum, auto
+from typing import Never
 
 from pytest import CaptureFixture
 
@@ -95,7 +96,7 @@ def put_down_forks(i: int):
     forks[second].put()
 
 
-async def philosopher(i: int):
+async def philosopher(i: int) -> Never:
     while True:
         await think(i)
         await pick_up_forks(i)

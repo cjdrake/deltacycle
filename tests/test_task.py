@@ -1,6 +1,7 @@
 """Test deltacycle.Task"""
 
 from random import randint
+from typing import Never
 
 import pytest
 
@@ -78,7 +79,7 @@ def test_one_result():
 
 
 def test_one_exception():
-    async def cf():
+    async def cf() -> Never:
         await sleep(10)
         raise ArithmeticError(42)
 

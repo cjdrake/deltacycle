@@ -1,5 +1,7 @@
 """Test deltacycle.TaskGroup"""
 
+from typing import Never
+
 import pytest
 
 from deltacycle import Task, TaskGroup, get_current_task, run, sleep
@@ -7,20 +9,20 @@ from deltacycle import Task, TaskGroup, get_current_task, run, sleep
 from .conftest import trace
 
 
-async def cf_r(t: int, r: int):
+async def cf_r(t: int, r: int) -> int:
     trace("enter")
     await sleep(t)
     trace("exit")
     return r
 
 
-async def cf_x(t: int, r: int):
+async def cf_x(t: int, r: int) -> Never:
     trace("enter")
     await sleep(t)
     raise ArithmeticError(r)
 
 
-async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int):
+async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int) -> int:
     task = get_current_task()
     assert isinstance(task.group, TaskGroup)
     trace("enter")

@@ -1,11 +1,13 @@
 """Test deltacycle._kernel.finish"""
 
+from typing import Never
+
 from deltacycle import Kernel, create_task, finish, get_kernel, run, sleep, step
 
 from .conftest import trace
 
 
-async def ctl():
+async def ctl() -> Never:
     trace("enter")
     await sleep(100)
 
@@ -14,7 +16,7 @@ async def ctl():
     finish()
 
 
-async def ping(period: int):
+async def ping(period: int) -> Never:
     trace("enter")
     while True:
         await sleep(period)

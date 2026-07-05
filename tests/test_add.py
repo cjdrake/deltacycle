@@ -1,5 +1,7 @@
 """Simulate a 4-bit adder."""
 
+from typing import Never
+
 from deltacycle import any_of, create_task, run, sleep
 
 from .common import Bool
@@ -37,7 +39,7 @@ def test_add(captrace: set[tuple[int, str, str]]):
     s = Bool(name="s")
     co = Bool(name="co")
 
-    async def drv_clk():
+    async def drv_clk() -> Never:
         clk.next = False
         while True:
             await sleep(period // 2)
@@ -50,7 +52,7 @@ def test_add(captrace: set[tuple[int, str, str]]):
             ci.next = ci_val
             await clk.posedge()
 
-    async def drv_outputs():
+    async def drv_outputs() -> Never:
         while True:
             await any_of(a, b, ci)
             g = a.value & b.value
@@ -58,7 +60,7 @@ def test_add(captrace: set[tuple[int, str, str]]):
             s.next = a.value ^ b.value ^ ci.value
             co.next = g | p & ci.value
 
-    async def mon_outputs():
+    async def mon_outputs() -> Never:
         while True:
             await clk.posedge()
             trace(f"s={s.prev:b} co={co.prev:b}")

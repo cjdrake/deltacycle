@@ -1,24 +1,26 @@
 """Test seqlogic.sim module."""
 
+from typing import Never
+
 from deltacycle import Kernel, create_task, get_running_kernel, run, sleep, step
 
 from .common import Bool
 from .conftest import trace
 
 
-async def drv_clk(clk: Bool):
+async def drv_clk(clk: Bool) -> Never:
     while True:
         await sleep(5)
         clk.next = not clk.prev
 
 
-async def drv_a(a: Bool, clk: Bool):
+async def drv_a(a: Bool, clk: Bool) -> Never:
     while True:
         await clk.edge()
         a.next = not a.prev
 
 
-async def drv_b(b: Bool, clk: Bool):
+async def drv_b(b: Bool, clk: Bool) -> Never:
     i = 0
     while True:
         await clk.edge()
@@ -29,7 +31,7 @@ async def drv_b(b: Bool, clk: Bool):
         i += 1
 
 
-async def drv_c(c: Bool, clk: Bool):
+async def drv_c(c: Bool, clk: Bool) -> Never:
     i = 0
     while True:
         await clk.edge()
@@ -38,7 +40,7 @@ async def drv_c(c: Bool, clk: Bool):
         i += 1
 
 
-async def mon(a: Bool, b: Bool, c: Bool, clk: Bool):
+async def mon(a: Bool, b: Bool, c: Bool, clk: Bool) -> Never:
     while True:
         await clk.edge()
         trace(f"a={a.prev:b} b={b.prev:b} c={c.prev:b}")

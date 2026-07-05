@@ -1,5 +1,7 @@
 """Test bugs"""
 
+from typing import Never
+
 from deltacycle import TaskGroup, run, sleep
 
 from .common import Bool
@@ -26,7 +28,7 @@ def test_2(captrace: set[tuple[int, str, str]]):
         await clock.posedge()
         trace("fourth")
 
-    async def drv_clock():
+    async def drv_clock() -> Never:
         clock.next = False
         while True:
             await sleep(5)

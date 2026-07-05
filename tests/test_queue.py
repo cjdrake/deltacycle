@@ -1,5 +1,7 @@
 """Test deltacycle.queue"""
 
+from typing import Never
+
 from deltacycle import Queue, create_task, run, sleep
 
 from .conftest import trace
@@ -39,7 +41,7 @@ def test_prod_cons1(captrace: set[tuple[int, str, str]]):
             await sleep(10)
         trace("CLOSED")
 
-    async def cons():
+    async def cons() -> Never:
         while True:
             i = await q.get()
             trace(f"{i}")
@@ -89,7 +91,7 @@ def test_prod_cons2(captrace: set[tuple[int, str, str]]):
             await q.put(i)
         trace("CLOSED")
 
-    async def cons():
+    async def cons() -> Never:
         while True:
             await sleep(10)
             i = await q.get()

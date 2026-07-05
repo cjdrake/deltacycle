@@ -1,5 +1,7 @@
 """Simulate a register file."""
 
+from typing import Never
+
 from deltacycle import any_of, create_task, run, sleep
 
 from .common import Bool, Int, IntMem
@@ -47,7 +49,7 @@ def test_regfile(captrace: set[tuple[int, str, str]]):
     # State
     regs = IntMem(name="regs")
 
-    async def drv_clk():
+    async def drv_clk() -> Never:
         clk.next = False
         while True:
             await sleep(period // 2)
@@ -61,7 +63,7 @@ def test_regfile(captrace: set[tuple[int, str, str]]):
             rd_addr.next = ra
             await clk.posedge()
 
-    async def mon_outputs():
+    async def mon_outputs() -> Never:
         while True:
             await clk.posedge()
             trace(
@@ -69,7 +71,7 @@ def test_regfile(captrace: set[tuple[int, str, str]]):
                 f"rd_addr={rd_addr.prev:x} rd_data={rd_data.prev:02x}"
             )
 
-    async def wr_port():
+    async def wr_port() -> Never:
         def clk_pred():
             return clk.is_posedge() and wr_en.prev
 
@@ -77,7 +79,7 @@ def test_regfile(captrace: set[tuple[int, str, str]]):
             await clk.pred(clk_pred)
             regs[wr_addr.prev].next = wr_data.prev
 
-    async def rd_port():
+    async def rd_port() -> Never:
         while True:
             await any_of(regs, rd_addr)
             rd_data.next = regs.value[rd_addr.value]
