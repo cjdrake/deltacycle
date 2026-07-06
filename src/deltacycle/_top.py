@@ -112,11 +112,11 @@ def now() -> int:
     return kernel.time()
 
 
-def _run_pre(
-    coro: TaskCoro | None,
-    kernel: Kernel | None,
-    kernel_type: type[Kernel],
-) -> Kernel:
+def _run_pre[MainResultType](
+    coro: TaskCoro[MainResultType] | None,
+    kernel: Kernel[MainResultType] | None,
+    kernel_type: type[Kernel[MainResultType]],
+) -> Kernel[MainResultType]:
     if kernel is None:
         kernel = kernel_type()
         set_kernel(kernel)
@@ -130,13 +130,13 @@ def _run_pre(
     return kernel
 
 
-def run(
-    coro: TaskCoro | None = None,
-    kernel: Kernel | None = None,
-    kernel_type: type[Kernel] = DefaultKernel,
+def run[MainResultType](
+    coro: TaskCoro[MainResultType] | None = None,
+    kernel: Kernel[MainResultType] | None = None,
+    kernel_type: type[Kernel[MainResultType]] = DefaultKernel,
     ticks: int | None = None,
     until: int | None = None,
-) -> Any:
+) -> MainResultType | None:
     """Run a simulation.
 
     If a simulation hits the run limit, it will exit and return ``None``.
@@ -169,11 +169,11 @@ def run(
         return kernel.main.result()
 
 
-def step(
-    coro: TaskCoro | None = None,
-    kernel: Kernel | None = None,
-    kernel_type: type[Kernel] = DefaultKernel,
-) -> Generator[int, None, Any]:
+def step[MainResultType](
+    coro: TaskCoro[MainResultType] | None = None,
+    kernel: Kernel[MainResultType] | None = None,
+    kernel_type: type[Kernel[MainResultType]] = DefaultKernel,
+) -> Generator[int, None, MainResultType]:
     """Step (iterate) a simulation.
 
     Iterated simulations do not have a run limit.
