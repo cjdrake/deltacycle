@@ -8,6 +8,17 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.35.0
+==============
+
+Parameterized ``Task`` class by coroutine return (i.e. "result") type,
+now ``Task[ResultType]``.
+This creates several ripples through the type system.
+One consequence is that ``Kernel`` is parameterized by the return type of the
+``main`` coroutine.
+Its signature is now ``Kernel[MainResultType]``.
+
+
 Version 0.34.0
 ==============
 
