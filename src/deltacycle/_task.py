@@ -249,7 +249,7 @@ class AnyOf(_Condition):
         return x
 
 
-class Task(KernelIf, Blocking, Sendable):
+class Task[ResultType](KernelIf, Blocking, Sendable):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -303,7 +303,7 @@ class Task(KernelIf, Blocking, Sendable):
 
     def __init__(
         self,
-        coro: TaskCoro,
+        coro: TaskCoro[ResultType],
         name: str,
     ):
         self._state = self.State.INIT
@@ -637,13 +637,13 @@ class TaskGroup(KernelIf):
         if child_excs:
             raise ExceptionGroup("Child task(s) raised exception(s)", child_excs)
 
-    def create_task(
+    def create_task[ResultType](
         self,
-        coro: TaskCoro,
+        coro: TaskCoro[ResultType],
         name: str | None = None,
         **kwargs: Any,
-    ) -> Task:
-        child: Task = self._kernel.create_task(coro, name, **kwargs)
+    ) -> Task[ResultType]:
+        child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
         child.group = self
         if self._setup_done:
             if not child.done():

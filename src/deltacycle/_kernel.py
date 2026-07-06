@@ -160,7 +160,11 @@ class Kernel(ABC):
             Handle to the main task
         """
 
-    def _create_task(self, coro: TaskCoro, name: str | None = None) -> Task:
+    def _create_task[ResultType](
+        self,
+        coro: TaskCoro[ResultType],
+        name: str | None = None,
+    ) -> Task[ResultType]:
         assert self._time >= self.start_time
         if name is None:
             name = f"Task-{self._task_index}"
@@ -168,7 +172,12 @@ class Kernel(ABC):
         return Task(coro, name)
 
     @abstractmethod
-    def create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+    def create_task[ResultType](
+        self,
+        coro: TaskCoro[ResultType],
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> Task[ResultType]:
         """Create child task, and schedule it soon.
 
         Returns:
@@ -347,7 +356,12 @@ class DefaultKernel(Kernel):
         return main
 
     @override
-    def create_task(self, coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+    def create_task[ResultType](
+        self,
+        coro: TaskCoro[ResultType],
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> Task[ResultType]:
         task = super()._create_task(coro, name)
         self._priorities[task] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.START,))

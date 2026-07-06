@@ -75,7 +75,11 @@ def get_current_task() -> Task:
     return task
 
 
-def create_task(coro: TaskCoro, name: str | None = None, **kwargs: Any) -> Task:
+def create_task[ResultType](
+    coro: TaskCoro[ResultType],
+    name: str | None = None,
+    **kwargs: Any,
+) -> Task[ResultType]:
     """Create a task, and schedule it to start soon.
 
     Args:
