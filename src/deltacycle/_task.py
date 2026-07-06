@@ -325,7 +325,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._signal = False
 
         # Outputs
-        self._result: Any = None
+        self._result: ResultType | None = None
         self._exception: Exception | None = None
 
     def _blocking(self) -> bool:
@@ -343,13 +343,13 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
             task: Task = self._kernel.task()
             self.wait_push(task)
             t = yield from task.switch_gen()
-            t = cast(typ=Task, val=t)
+            t = cast(typ=Task[ResultType], val=t)
             assert t is self
 
         return self.result()
 
     @property
-    def coro(self) -> TaskCoro:
+    def coro(self) -> TaskCoro[ResultType]:
         """Wrapped coroutine."""
         return self._coro
 
@@ -465,7 +465,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         """
         return bool(self._state & self._done)
 
-    def result(self) -> Any:
+    def result(self) -> ResultType:
         """Return the task's result, or raise an exception.
 
         Returns:
@@ -477,7 +477,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         """
         if self._state is self.State.RETURNED:
             assert self._exception is None
-            return self._result
+            return cast(ResultType, self._result)
         if self._state is self.State.EXCEPTED:
             assert self._result is None and self._exception is not None
             raise self._exception
