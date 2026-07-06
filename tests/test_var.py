@@ -1,5 +1,7 @@
 """Test variables"""
 
+from typing import Never
+
 from deltacycle import Singular, create_task, run, sleep
 
 
@@ -9,7 +11,7 @@ def test_var_await():
     x4 = Singular(value=0)
     x8 = Singular(value=0)
 
-    async def cf(y: Singular[int], x: Singular[int]):
+    async def cf(y: Singular[int], x: Singular[int]) -> Never:
         while True:
             _ = await x
             y.next = 2 * x.value
