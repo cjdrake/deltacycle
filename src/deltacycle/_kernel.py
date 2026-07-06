@@ -15,7 +15,7 @@ class _Finish(Exception):
     """Force the simulation to stop."""
 
 
-class Kernel(ABC):
+class Kernel[MainResultType](ABC):
     """Simulation Kernel.
 
     Responsible for:
@@ -84,7 +84,7 @@ class Kernel(ABC):
         self._time: int = self.init_time
 
         # Main task
-        self._main: Task | None = None
+        self._main: Task[MainResultType] | None = None
 
         # Currently executing task
         self._task: Task | None = None
@@ -109,7 +109,7 @@ class Kernel(ABC):
         return self._time
 
     @property
-    def main(self) -> Task:
+    def main(self) -> Task[MainResultType]:
         """Parent task of all other tasks."""
         assert self._main is not None
         return self._main
@@ -147,13 +147,13 @@ class Kernel(ABC):
     def call_at(self, when: int, task: Task, args: TaskArgs) -> None:
         """Schedule task to run at specified time: ``when``."""
 
-    def _create_main(self, coro: TaskCoro) -> Task:
+    def _create_main(self, coro: TaskCoro[MainResultType]) -> Task[MainResultType]:
         assert self._time == self.init_time
         self._main = Task(coro, self.main_name)
         return self._main
 
     @abstractmethod
-    def create_main(self, coro: TaskCoro) -> Task:
+    def create_main(self, coro: TaskCoro[MainResultType]) -> Task[MainResultType]:
         """Create main task, and schedule it at time zero.
 
         Returns:
@@ -300,7 +300,7 @@ class _PendQ(TaskQueue):
         self._index = 0
 
 
-class DefaultKernel(Kernel):
+class DefaultKernel[MainResultType](Kernel[MainResultType]):
     """Default simulation kernel
 
     Tasks are scheduled with a (heapq) priority queue.
@@ -349,7 +349,7 @@ class DefaultKernel(Kernel):
         self._queue.push((when, priority, task, args))
 
     @override
-    def create_main(self, coro: TaskCoro) -> Task:
+    def create_main(self, coro: TaskCoro[MainResultType]) -> Task[MainResultType]:
         main = super()._create_main(coro)
         self._priorities[main] = self.main_priority
         self.call_at(self.start_time, main, args=(Task.Command.START,))
