@@ -155,7 +155,7 @@ def run[MainResultType](
             If provided, run until *ticks* simulation time steps.
 
     Returns:
-        If the main coroutine runs til completion, return its result.
+        If the main coroutine runs until completion, return its result.
         Otherwise, return ``None``.
 
     Raises:
