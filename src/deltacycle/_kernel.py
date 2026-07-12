@@ -124,7 +124,7 @@ class Kernel[MainResultType](ABC):
 
         A kernel that is "done" either:
 
-        * Exhaused all tasks (COMPLETED), or
+        * Exhausted all tasks (COMPLETED), or
         * Called ``finish`` (FINISHED)
         """
         return bool(self._state & self._done)
