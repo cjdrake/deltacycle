@@ -324,6 +324,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
     def clear(self):
         super().clear()
         self._queue.clear()
+        self._priorities.clear()
 
     @override
     def call_soon(self, task: Task, args: TaskArgs):
@@ -447,6 +448,8 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
 def finish():
     """Halt all incomplete coroutines, and immediately exit simulation.
 
-    Clear all kernel data, and transition state to FINISHED.
+    Transition state to FINISHED.
+    Do NOT clear any kernel data.
+    The user is responsible for calling kernel.clear().
     """
     raise _Finish()
