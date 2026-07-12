@@ -118,12 +118,10 @@ def _run_pre[MainResultType](
     kernel_type: type[Kernel[MainResultType]],
 ) -> Kernel[MainResultType]:
     if kernel is None:
-        kernel = kernel_type()
-        set_kernel(kernel)
         if coro is None:
             raise ValueError("New kernel requires a valid coro arg")
-        assert coro is not None
-        kernel.create_main(coro)
+        kernel = kernel_type(coro)
+        set_kernel(kernel)
     else:
         set_kernel(kernel)
 

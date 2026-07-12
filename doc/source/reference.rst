@@ -21,7 +21,6 @@ Kernel
     .. automethod:: call_soon
     .. automethod:: call_later
     .. automethod:: call_at
-    .. automethod:: create_main
     .. automethod:: create_task
 
 .. autoclass:: deltacycle.DefaultKernel

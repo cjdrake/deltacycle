@@ -74,7 +74,7 @@ class Kernel[MainResultType](ABC):
 
     main_name = "main"
 
-    def __init__(self):
+    def __init__(self, coro: TaskCoro[MainResultType]):
         self._name = f"Kernel-{self.__class__._index}"
         self.__class__._index += 1
 
@@ -84,7 +84,7 @@ class Kernel[MainResultType](ABC):
         self._time: int = self.init_time
 
         # Main task
-        self._main: Task[MainResultType] | None = None
+        self._main: Task[MainResultType] = Task(coro, name=self.main_name)
 
         # Currently executing task
         self._task: Task | None = None
@@ -111,7 +111,6 @@ class Kernel[MainResultType](ABC):
     @property
     def main(self) -> Task[MainResultType]:
         """Parent task of all other tasks."""
-        assert self._main is not None
         return self._main
 
     def task(self) -> Task:
@@ -146,19 +145,6 @@ class Kernel[MainResultType](ABC):
     @abstractmethod
     def call_at(self, when: int, task: Task, args: TaskArgs) -> None:
         """Schedule task to run at specified time: ``when``."""
-
-    def _create_main(self, coro: TaskCoro[MainResultType]) -> Task[MainResultType]:
-        assert self._time == self.init_time
-        self._main = Task(coro, self.main_name)
-        return self._main
-
-    @abstractmethod
-    def create_main(self, coro: TaskCoro[MainResultType]) -> Task[MainResultType]:
-        """Create main task, and schedule it at time zero.
-
-        Returns:
-            Handle to the main task
-        """
 
     def _create_task[ResultType](
         self,
@@ -206,6 +192,11 @@ class Kernel[MainResultType](ABC):
 
     def _start(self):
         if self._state is self.State.INIT:
+            self.call_at(
+                when=self.start_time,
+                task=self._main,
+                args=(Task.Command.START,),
+            )
             self._set_state(self.State.RUNNING)
         elif self._state is not self.State.RUNNING:
             s = f"Kernel has invalid state: {self._state.name}"
@@ -319,14 +310,15 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
     main_priority = 0
     task_priority = 0
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, coro: TaskCoro[MainResultType]):
+        super().__init__(coro)
 
         # Task queue
         self._queue = _PendQ()
 
         # Task priorities
         self._priorities: WeakKeyDictionary[Task, int] = WeakKeyDictionary()
+        self._priorities[self._main] = self.main_priority
 
     @override
     def clear(self):
@@ -347,13 +339,6 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
     def call_at(self, when: int, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((when, priority, task, args))
-
-    @override
-    def create_main(self, coro: TaskCoro[MainResultType]) -> Task[MainResultType]:
-        main = super()._create_main(coro)
-        self._priorities[main] = self.main_priority
-        self.call_at(self.start_time, main, args=(Task.Command.START,))
-        return main
 
     @override
     def create_task[ResultType](
