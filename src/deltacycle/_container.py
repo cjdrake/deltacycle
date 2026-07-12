@@ -1,4 +1,4 @@
-"""Queue synchronization primitive."""
+"""Container synchronization primitive."""
 
 from functools import cached_property
 
