@@ -149,7 +149,7 @@ class PredVar(KernelIf, Blocking):
 
     Predicate functions allow fine-grained control of variable dependencies.
     Sometimes waiting tasks can be woken up when there is any change to the
-    variables's value. However, it is often desirable to only trigger on
+    variable's value. However, it is often desirable to only trigger on
     particular types of changes. For example, in digital logic a flip-flop
     might only update its state when 1) reset is inactive, 2) clock is
     transitioning from low to high (a positive edge), AND 3) a data enable
