@@ -16,6 +16,7 @@ def trace(msg: str):
     else:
         time = kernel.time()
         task = kernel.task()
+        assert task is not None
         task_name = task.name
     msgs.add((time, task_name, msg))
 

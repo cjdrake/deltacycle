@@ -113,9 +113,8 @@ class Kernel[MainResultType](ABC):
         """Parent task of all other tasks."""
         return self._main
 
-    def task(self) -> Task:
+    def task(self) -> Task | None:
         """Currently running task."""
-        assert self._task is not None
         return self._task
 
     def done(self) -> bool:
@@ -395,12 +394,11 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                     task.do_result(exc)
                 except Exception as exc:
                     task.do_except(exc)
+                finally:
+                    self._task = None
 
             # Update simulation state
             self._update_vars()
-
-        # Drop reference to last task
-        self._task = None
 
         # All tasks exhausted
         self._complete()
@@ -434,12 +432,11 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                     task.do_result(exc)
                 except Exception as exc:
                     task.do_except(exc)
+                finally:
+                    self._task = None
 
             # Update simulation state
             self._update_vars()
-
-        # Drop reference to last task
-        self._task = None
 
         # All tasks exhausted
         self._complete()

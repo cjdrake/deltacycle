@@ -56,13 +56,13 @@ def set_kernel(kernel: Kernel | None = None):
     _kernel = kernel
 
 
-def _get_kt() -> tuple[Kernel, Task]:
+def _get_kt() -> tuple[Kernel, Task | None]:
     kernel = get_running_kernel()
     task = kernel.task()
     return kernel, task
 
 
-def get_current_task() -> Task:
+def get_current_task() -> Task | None:
     """Return currently running task.
 
     Returns:
@@ -205,6 +205,7 @@ def step[MainResultType](
 async def sleep(delay: int):
     """Suspend the current task, and wake up after a delay."""
     kernel, task = _get_kt()
+    assert task is not None
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
     y = await task.switch_coro()
     assert y is None
@@ -220,6 +221,7 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
         Return a tuple of items in unblocking order.
     """
     kernel, task = _get_kt()
+    assert task is not None
 
     while True:
         blocked: list[Sendable] = []
@@ -252,6 +254,7 @@ async def any_of(*bs: Blocking) -> Sendable | None:
         return None
 
     kernel, task = _get_kt()
+    assert task is not None
 
     blocked: list[Sendable] = []
 

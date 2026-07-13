@@ -24,6 +24,7 @@ async def cf_x(t: int, r: int) -> Never:
 
 async def cf_c(name: str, t0: int, r0: int, t1: int, r1: int) -> int:
     task = get_current_task()
+    assert task is not None
     assert isinstance(task.group, TaskGroup)
     trace("enter")
     await sleep(t0)

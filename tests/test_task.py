@@ -287,6 +287,7 @@ def test_interrupt_running(captrace: set[tuple[int, str, str]]):
         trace("started")
         await sleep(1)
         task = get_current_task()
+        assert task is not None
         trace("interrupting itself")
         task.interrupt()  # Interrupt self
         await sleep(1)  # This won't execute
@@ -447,3 +448,13 @@ def test_task_all4():
         assert now() == 15
 
     run(main())
+
+
+def test_clear_current_task():
+    """Current task should be cleared after time-limited run."""
+
+    async def main():
+        await sleep(1000)
+
+    run(main(), until=5)
+    assert get_current_task() is None
