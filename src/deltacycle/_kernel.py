@@ -4,7 +4,7 @@ import heapq
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from enum import IntEnum
-from typing import Any, override
+from typing import Any, Never, override
 from weakref import WeakKeyDictionary
 
 from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
@@ -442,7 +442,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         self._complete()
 
 
-def finish():
+def finish() -> Never:
     """Halt all incomplete coroutines, and immediately exit simulation.
 
     Transition state to FINISHED.
