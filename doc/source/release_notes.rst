@@ -8,6 +8,14 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.36.0
+==============
+
+When a simulation is halted due to absolute/relative time limit,
+``get_current_task()`` will now return ``None``.
+The return type of ``Kernel.task`` method changed from ``Task`` to ``Task | None``.
+
+
 Version 0.35.0
 ==============
 
