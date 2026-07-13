@@ -85,7 +85,8 @@ class CreditPool(KernelIf, Sendable):
         self._check_n(n)
 
         if self._cnt < n:
-            task: Task = self._kernel.task()
+            task = self._kernel.task()
+            assert task is not None
             self.wait_push(priority, task, n)
             credits = await task.switch_coro()
             credits = cast(typ=CreditPool, val=credits)

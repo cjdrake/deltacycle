@@ -207,7 +207,8 @@ class _Condition(KernelIf):
 
 class AllOf(_Condition):
     def __await__(self) -> Generator[None, Sendable, tuple[Sendable, ...]]:
-        task: Task = self._kernel.task()
+        task = self._kernel.task()
+        assert task is not None
 
         while True:
             blocked: list[Sendable] = []
@@ -231,7 +232,8 @@ class AnyOf(_Condition):
         if not self._bs:
             return None
 
-        task: Task = self._kernel.task()
+        task = self._kernel.task()
+        assert task is not None
 
         blocked: list[Sendable] = []
 
@@ -340,7 +342,8 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
     def __await__(self) -> Generator[None, Sendable, Any]:
         if self._blocking():
-            task: Task = self._kernel.task()
+            task = self._kernel.task()
+            assert task is not None
             self.wait_push(task)
             t = yield from task.switch_gen()
             t = cast(typ=Task[ResultType], val=t)
@@ -578,7 +581,9 @@ class TaskGroup(KernelIf):
     """Group of tasks."""
 
     def __init__(self):
-        self._parent: Task = self._kernel.task()
+        task = self._kernel.task()
+        assert task is not None
+        self._parent = task
 
         # Tasks started in the with block
         self._setup_done = False

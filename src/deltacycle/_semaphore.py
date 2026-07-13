@@ -76,7 +76,8 @@ class Semaphore(KernelIf, Sendable):
         self._check_cnt()
 
         if self._cnt == 0:
-            task: Task = self._kernel.task()
+            task = self._kernel.task()
+            assert task is not None
             self.wait_push(priority, task)
             x = await task.switch_coro()
             x = cast(typ=Semaphore, val=x)

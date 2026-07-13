@@ -90,7 +90,8 @@ class Variable(KernelIf, Blocking, Sendable):
            ``v.changed()`` evaluates to ``True``,
            unblock all tasks waiting for that event.
         """
-        task: Task = self._kernel.task()
+        task = self._kernel.task()
+        assert task is not None
         # NOTE: Use default predicate
         self.wait_push(task, self.changed)
         v = yield from task.switch_gen()
@@ -170,7 +171,8 @@ class PredVar(KernelIf, Blocking):
         2. When another task invokes ``v.set_next(...)`` *and* ``p`` evaluates
            to ``True``, unblock all tasks waiting for that event.
         """
-        task: Task = self._kernel.task()
+        task = self._kernel.task()
+        assert task is not None
         self._var.wait_push(task, self._p)
         v = yield from task.switch_gen()
         assert v is self._var
