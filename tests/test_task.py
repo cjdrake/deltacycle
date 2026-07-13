@@ -29,7 +29,7 @@ def test_results():
         await sleep(randint(1, 5))
         return x0 * x1
 
-    async def cf2(t0: Task, t1: Task) -> int:
+    async def cf2(t0: Task[int], t1: Task[int]) -> int:
         await t0
         await t1
         await sleep(randint(1, 5))
