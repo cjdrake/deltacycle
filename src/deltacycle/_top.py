@@ -215,10 +215,10 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
     """Block forward progress until all items are unblocked.
 
     Args:
-        bs: Sequence of blocking items.
+        fst, *rst: Sequence of blocking items.
 
     Returns:
-        Return a tuple of items in unblocking order.
+        Tuple of items in unblocking order.
     """
     args = (fst,) + rst
     # Uniquify
