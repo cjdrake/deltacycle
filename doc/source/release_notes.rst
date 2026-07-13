@@ -15,6 +15,8 @@ When a simulation is halted due to absolute/relative time limit,
 ``get_current_task()`` will now return ``None``.
 The return type of ``Kernel.task`` method changed from ``Task`` to ``Task | None``.
 
+Require ``any_of``, ``AnyOf``, ``all_of``, and ``AllOf`` to have at least one argument.
+
 
 Version 0.35.0
 ==============
