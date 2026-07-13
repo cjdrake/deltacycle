@@ -201,11 +201,13 @@ class _SuspendResume:
 
 
 class _Condition(KernelIf):
-    def __init__(self, *bs: Blocking):
-        self._bs = bs
+    pass
 
 
 class AllOf(_Condition):
+    def __init__(self, *bs: Blocking):
+        self._bs = bs
+
     def __await__(self) -> Generator[None, Sendable, tuple[Sendable, ...]]:
         task = self._kernel.task()
         assert task is not None
@@ -228,10 +230,10 @@ class AllOf(_Condition):
 
 
 class AnyOf(_Condition):
-    def __await__(self) -> Generator[None, Sendable, Sendable | None]:
-        if not self._bs:
-            return None
+    def __init__(self, fst: Blocking, *rst: Blocking):
+        self._bs = (fst,) + rst
 
+    def __await__(self) -> Generator[None, Sendable, Sendable]:
         task = self._kernel.task()
         assert task is not None
 
