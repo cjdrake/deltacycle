@@ -220,10 +220,13 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
     Returns:
         Return a tuple of items in unblocking order.
     """
+    args = (fst,) + rst
+    # Uniquify
+    bs = list(dict.fromkeys(args))
+
     kernel, task = _get_kt()
     assert task is not None
 
-    bs = (fst,) + rst
     while True:
         blocked: list[Sendable] = []
         unblocked: list[Sendable] = []
@@ -250,12 +253,15 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
     Returns:
         Item that unblocked first.
     """
+    args = (fst,) + rst
+    # Uniquify
+    bs = list(dict.fromkeys(args))
+
     kernel, task = _get_kt()
     assert task is not None
 
     blocked: list[Sendable] = []
 
-    bs = (fst,) + rst
     for b in bs:
         if b.try_block(task):
             blocked.append(b.future())

@@ -202,7 +202,9 @@ class _SuspendResume:
 
 class _Condition(KernelIf):
     def __init__(self, fst: Blocking, *rst: Blocking):
-        self._bs = (fst,) + rst
+        args = (fst,) + rst
+        # Uniquify arguments
+        self._bs = list(dict.fromkeys(args))
 
 
 class AllOf(_Condition):
