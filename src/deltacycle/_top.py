@@ -244,11 +244,10 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
     """Block forward progress until at least one item is unblocked.
 
     Args:
-        bs: Sequence of blocking items.
+        fst, *rst: Sequence of blocking items.
 
     Returns:
-        If the input is empty, return ``None``.
-        Otherwise, return the item that unblocked first.
+        Item that unblocked first.
     """
     kernel, task = _get_kt()
     assert task is not None
