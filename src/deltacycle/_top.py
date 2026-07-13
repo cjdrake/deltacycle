@@ -211,7 +211,7 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
+async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
     """Block forward progress until all items are unblocked.
 
     Args:
@@ -223,6 +223,7 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
     kernel, task = _get_kt()
     assert task is not None
 
+    bs = (fst,) + rst
     while True:
         blocked: list[Sendable] = []
         unblocked: list[Sendable] = []
