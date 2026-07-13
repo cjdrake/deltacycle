@@ -240,7 +240,7 @@ async def all_of(*bs: Blocking) -> tuple[Sendable, ...]:
         await task.switch_coro()
 
 
-async def any_of(*bs: Blocking) -> Sendable | None:
+async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
     """Block forward progress until at least one item is unblocked.
 
     Args:
@@ -250,14 +250,12 @@ async def any_of(*bs: Blocking) -> Sendable | None:
         If the input is empty, return ``None``.
         Otherwise, return the item that unblocked first.
     """
-    if not bs:
-        return None
-
     kernel, task = _get_kt()
     assert task is not None
 
     blocked: list[Sendable] = []
 
+    bs = (fst,) + rst
     for b in bs:
         if b.try_block(task):
             blocked.append(b.future())

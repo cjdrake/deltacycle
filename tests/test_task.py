@@ -364,15 +364,6 @@ def test_task_any2():
     run(main())
 
 
-def test_task_any3():
-    async def main():
-        y = await any_of()
-        assert y is None
-        assert now() == 0
-
-    run(main())
-
-
 def test_task_any4():
     async def main():
         y = await AnyOf()
