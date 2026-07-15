@@ -150,7 +150,7 @@ def run[MainResultType](
         ticks: Optional relative run limit.
             If provided, run for *ticks* simulation time steps.
         until: Optional absolute run limit.
-            If provided, run until *ticks* simulation time steps.
+            If provided, run *until* specified simulation time.
 
     Returns:
         If the main coroutine runs until completion, return its result.
