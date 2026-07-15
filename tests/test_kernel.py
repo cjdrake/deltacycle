@@ -102,9 +102,9 @@ def test_ambiguous_kernel():
         await e
         e.clear()
 
-    # Use Event object w/ new kernel
+    # Use Event object with new kernel
     run(main())
 
-    # Use *same* Event object w/ different kernel
+    # Use *same* Event object with different kernel
     with pytest.raises(RuntimeError):
         run(main())

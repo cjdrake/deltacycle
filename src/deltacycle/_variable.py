@@ -114,7 +114,7 @@ class Variable(KernelIf, Blocking, Sendable):
         """Return blocking, predicated variable.
 
         Args:
-            p: Predicate function w/ no args and ``bool`` return type.
+            p: Predicate function with no args and ``bool`` return type.
 
         Returns:
             Predicated Variable (``PredVar``) object.

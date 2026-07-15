@@ -186,7 +186,7 @@ class _SuspendResume:
     Use case:
     1. Current task A suspends itself: RUNNING => WAITING
     2. Kernel chooses PENDING tasks ..., T
-    3. ... Task T wakes up task A w/ value X: WAITING => PENDING
+    3. ... Task T wakes up task A with value X: WAITING => PENDING
     4. Kernel chooses PENDING tasks ..., A: PENDING => RUNNING
     5. Task A resumes with value X
 
