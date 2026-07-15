@@ -171,7 +171,7 @@ def step[MainResultType](
     coro: TaskCoro[MainResultType] | None = None,
     kernel: Kernel[MainResultType] | None = None,
     kernel_type: type[Kernel[MainResultType]] = DefaultKernel,
-) -> Generator[int, None, MainResultType]:
+) -> Generator[int, None, MainResultType | None]:
     """Step (iterate) a simulation.
 
     Iterated simulations do not have a run limit.
@@ -198,8 +198,8 @@ def step[MainResultType](
     kernel = _run_pre(coro, kernel, kernel_type)
     yield from kernel
 
-    assert kernel.main.done()
-    return kernel.main.result()
+    if kernel.main.done():
+        return kernel.main.result()
 
 
 async def sleep(delay: int):

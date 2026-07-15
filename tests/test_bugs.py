@@ -4,7 +4,7 @@ from typing import Never
 
 import pytest
 
-from deltacycle import TaskGroup, run, sleep
+from deltacycle import TaskGroup, finish, run, sleep, step
 
 from .common import Bool
 from .conftest import trace
@@ -52,3 +52,11 @@ def test_9():
 
     with pytest.raises(ValueError):
         run(main())
+
+
+def test_10():
+    async def main():
+        finish()
+
+    r = list(step(main()))
+    assert r == [0]
