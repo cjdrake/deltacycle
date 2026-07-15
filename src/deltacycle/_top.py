@@ -204,6 +204,8 @@ def step[MainResultType](
 
 async def sleep(delay: int):
     """Suspend the current task, and wake up after a delay."""
+    if delay < 0:
+        raise ValueError(f"Expected delay ≥ 0, got {delay}")
     kernel, task = _get_kt()
     assert task is not None
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))

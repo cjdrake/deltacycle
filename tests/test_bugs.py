@@ -2,6 +2,8 @@
 
 from typing import Never
 
+import pytest
+
 from deltacycle import TaskGroup, run, sleep
 
 from .common import Bool
@@ -42,3 +44,11 @@ def test_2(captrace: set[tuple[int, str, str]]):
     run(main(), until=100)
 
     assert captrace == EXP2
+
+
+def test_9():
+    async def main():
+        await sleep(-1)
+
+    with pytest.raises(ValueError):
+        run(main())
