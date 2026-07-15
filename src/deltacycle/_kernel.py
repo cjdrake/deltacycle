@@ -127,11 +127,6 @@ class Kernel[MainResultType](ABC):
         """
         return bool(self._state & self._done)
 
-    def clear(self):
-        """Clear all simulation state."""
-        self._forks.clear()
-        self._dirty_vars.clear()
-
     # Scheduling methods
     @abstractmethod
     def call_soon(self, task: Task, args: TaskArgs) -> None:
@@ -320,12 +315,6 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         self._priorities[self._main] = self.main_priority
 
     @override
-    def clear(self):
-        super().clear()
-        self._queue.clear()
-        self._priorities.clear()
-
-    @override
     def call_soon(self, task: Task, args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time, priority, task, args))
@@ -447,6 +436,5 @@ def finish() -> Never:
 
     Transition state to FINISHED.
     Do NOT clear any kernel data.
-    The user is responsible for calling kernel.clear().
     """
     raise _Finish()
