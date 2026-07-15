@@ -1,7 +1,5 @@
 """Container synchronization primitive."""
 
-from functools import cached_property
-
 from ._kernel_if import KernelIf
 from ._task import CreditQ, Task
 
@@ -22,6 +20,7 @@ class Container(KernelIf):
 
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
+        self._has_capacity = capacity > 0
         self._cnt: int = 0
         self._getq = CreditQ()
         self._putq = CreditQ()
@@ -32,10 +31,6 @@ class Container(KernelIf):
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
-
-    @cached_property
-    def _has_capacity(self) -> bool:
-        return self._capacity > 0
 
     def _check_cnt(self):
         assert self._cnt >= 0

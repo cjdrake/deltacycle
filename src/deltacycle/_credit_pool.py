@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from functools import cached_property
 from types import TracebackType
 from typing import Self, cast, override
 
@@ -13,6 +12,7 @@ from ._task import Blocking, CreditQ, Sendable, Task
 class CreditPool(KernelIf, Sendable):
     def __init__(self, value: int = 0, capacity: int = 0):
         self._capacity = capacity
+        self._has_capacity = capacity > 0
         if value < 0:
             raise ValueError(f"Expected value ≥ 0, got {value}")
         if self._has_capacity and value > capacity:
@@ -26,10 +26,6 @@ class CreditPool(KernelIf, Sendable):
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
-
-    @cached_property
-    def _has_capacity(self) -> bool:
-        return self._capacity > 0
 
     def wait_push(self, priority: int, task: Task, n: int):
         self._waiting.push((priority, task, n))

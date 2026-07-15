@@ -1,7 +1,6 @@
 """Queue synchronization primitive."""
 
 from collections import deque
-from functools import cached_property
 
 from ._kernel_if import KernelIf
 from ._task import SemaphoreQ, Task
@@ -23,6 +22,7 @@ class Queue[T](KernelIf):
 
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
+        self._has_capacity = capacity > 0
         self._items: deque[T] = deque()
         self._getq = SemaphoreQ()
         self._putq = SemaphoreQ()
@@ -33,10 +33,6 @@ class Queue[T](KernelIf):
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
-
-    @cached_property
-    def _has_capacity(self) -> bool:
-        return self._capacity > 0
 
     def empty(self) -> bool:
         return not self._items
