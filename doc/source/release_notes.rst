@@ -108,7 +108,7 @@ Version 0.26.0
 Version 0.25.0
 ==============
 
-* Added ``any_of`` and ``all_of`` top-level async funtions.
+* Added ``any_of`` and ``all_of`` top-level async functions.
 * Renamed ``Request`` class to ``ReqSemaphore``.
 * Added a ``CreditPool`` type, similar to ``Semaphore``,
   but supports put/get multiple credits.
