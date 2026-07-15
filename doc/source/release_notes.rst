@@ -13,6 +13,11 @@ Version 0.37.0
 
 Got rid of unnecessary ``Kernel.clear`` method.
 
+Fixed bugs:
+
+* `Issue #9 <https://github.com/cjdrake/deltacycle/issues/9>`_
+* `Issue #10 <https://github.com/cjdrake/deltacycle/issues/10>`_
+
 
 Version 0.36.0
 ==============
