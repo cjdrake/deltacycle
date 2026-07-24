@@ -116,6 +116,7 @@ class SemaphoreQ(TaskQueue):
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
+        heapq.heapify(self._items)
         task.unlink(self)
 
 
@@ -157,6 +158,7 @@ class CreditQ(TaskQueue):
     def drop(self, task: Task):
         index = self._find(task)
         self._items.pop(index)
+        heapq.heapify(self._items)
         task.unlink(self)
 
     def peek(self) -> int:
