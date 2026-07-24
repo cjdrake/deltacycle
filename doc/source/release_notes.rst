@@ -8,6 +8,12 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.38.0
+==============
+
+Fixed a subtle priority queue ordering issue.
+
+
 Version 0.37.0
 ==============
 
