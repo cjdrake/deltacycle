@@ -137,7 +137,7 @@ def run[MainResultType](
 ) -> MainResultType | None:
     """Run a simulation.
 
-    If a simulation hits the run limit, it will exit and return ``None``.
+    If a simulation hits the run limit, it will exit.
     That simulation may be resumed any number of times.
     If all tasks are exhausted, return the main coroutine result.
 
@@ -189,7 +189,8 @@ def step[MainResultType](
         Time immediately *before* the next time slot executes.
 
     Returns:
-        Main coroutine result.
+        If the main coroutine runs until completion, return its result.
+        Otherwise, return ``None``.
 
     Raises:
         ValueError: Creating a new kernel, but no main coroutine provided.
