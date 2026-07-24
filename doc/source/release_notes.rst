@@ -8,6 +8,14 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.39.0
+==============
+
+Added ``KernelExit`` exception to public API.
+It now inherits from ``BaseException``,
+so shouldn't be accidentally caught by a user exception handler.
+
+
 Version 0.38.0
 ==============
 

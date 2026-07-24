@@ -24,6 +24,8 @@ Kernel
 
 .. autoclass:: deltacycle.DefaultKernel
 
+.. autoexception:: deltacycle.KernelExit
+
 .. autofunction:: deltacycle.finish
 
 .. autofunction:: deltacycle.get_running_kernel

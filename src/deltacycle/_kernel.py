@@ -11,8 +11,8 @@ from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
 from ._variable import Variable
 
 
-class _Finish(Exception):
-    """Force the simulation to stop."""
+class KernelExit(BaseException):
+    """Force the kernel to exit."""
 
 
 class Kernel[MainResultType](ABC):
@@ -377,7 +377,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                 self._task = task
                 try:
                     task.do_run(args)
-                except _Finish:
+                except KernelExit:
                     self._finish()
                     return
                 except StopIteration as exc:
@@ -415,7 +415,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                 self._task = task
                 try:
                     task.do_run(args)
-                except _Finish:
+                except KernelExit:
                     self._finish()
                     return
                 except StopIteration as exc:
@@ -438,4 +438,4 @@ def finish() -> Never:
     Transition state to FINISHED.
     Do NOT clear any kernel data.
     """
-    raise _Finish()
+    raise KernelExit()

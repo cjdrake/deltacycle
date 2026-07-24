@@ -5,7 +5,7 @@ DeltaCycle is a Python library for discrete event simulation (DES).
 from ._container import Container
 from ._credit_pool import CreditPool, ReqCredit
 from ._event import Event
-from ._kernel import DefaultKernel, Kernel, finish
+from ._kernel import DefaultKernel, Kernel, KernelExit, finish
 from ._queue import Queue
 from ._semaphore import Lock, ReqSemaphore, Semaphore
 from ._task import (
@@ -48,6 +48,7 @@ __all__ = [
     # kernel
     "Kernel",
     "DefaultKernel",
+    "KernelExit",
     "finish",
     "get_running_kernel",
     "get_kernel",
