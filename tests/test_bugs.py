@@ -63,7 +63,7 @@ def test_10():
 
 
 @pytest.mark.xfail(reason="Multiple predicates for same variable is broken")
-def test_foo():
+def test_11():
     clock = Bool(name="clock")
 
     async def do_stuff():
