@@ -15,6 +15,10 @@ Added ``KernelExit`` exception to public API.
 It now inherits from ``BaseException``,
 so shouldn't be accidentally caught by a user exception handler.
 
+Fixed bugs:
+
+* `Issue #11 <https://github.com/cjdrake/deltacycle/issues/11>`_
+
 
 Version 0.38.0
 ==============

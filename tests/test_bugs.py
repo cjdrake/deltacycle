@@ -9,7 +9,7 @@ from deltacycle import TaskGroup, any_of, finish, run, sleep, step
 from .common import Bool
 from .conftest import trace
 
-EXP2 = {
+EXP_2 = {
     (5, "do_stuff", "first"),
     (15, "do_stuff", "second"),
     (25, "do_stuff", "third"),
@@ -43,7 +43,7 @@ def test_2(captrace: set[tuple[int, str, str]]):
 
     run(main(), until=100)
 
-    assert captrace == EXP2
+    assert captrace == EXP_2
 
 
 def test_9():
@@ -62,16 +62,36 @@ def test_10():
     assert r == [0]
 
 
-@pytest.mark.xfail(reason="Multiple predicates for same variable is broken")
-def test_11():
+EXP_11 = {
+    # Use both pos/neg edge triggers
+    (5, "do_np_edge", ""),
+    (10, "do_np_edge", ""),
+    (15, "do_np_edge", ""),
+    (20, "do_np_edge", ""),
+    # Use edge trigger
+    (5, "do_edge", ""),
+    (10, "do_edge", ""),
+    (15, "do_edge", ""),
+    (20, "do_edge", ""),
+}
+
+
+def test_11(captrace: set[tuple[int, str, str]]):
     clock = Bool(name="clock")
 
-    async def do_stuff():
-        await sleep(10)
-        p1 = clock.pred(clock.is_negedge)
-        p2 = clock.pred(clock.is_posedge)
-        # _WaitQ.push (task, p2) overwrites (task, p1) in _t2p dict
-        await any_of(p1, p2)
+    async def do_np_edge():
+        while True:
+            p1 = clock.pred(clock.is_negedge)
+            p2 = clock.pred(clock.is_posedge)
+            p3 = clock.pred(clock.is_negedge)  # redundant
+            p4 = clock.pred(clock.is_posedge)  # redundant
+            await any_of(p1, p2, p3, p4)
+            trace()
+
+    async def do_edge():
+        while True:
+            await clock.edge()
+            trace()
 
     async def drv_clock() -> Never:
         clock.next = False
@@ -82,6 +102,9 @@ def test_11():
     async def main():
         async with TaskGroup() as tg:
             tg.create_task(drv_clock(), name="drv_clock")
-            tg.create_task(do_stuff(), name="do_stuff")
+            tg.create_task(do_np_edge(), name="do_np_edge")
+            tg.create_task(do_edge(), name="do_edge")
 
-    run(main(), until=100)
+    run(main(), until=25)
+
+    assert captrace == EXP_11

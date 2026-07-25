@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import OrderedDict, defaultdict, deque
+from collections import defaultdict, deque
 from collections.abc import Callable, Generator, Hashable
 from typing import Self, cast, override
 
@@ -17,7 +17,7 @@ class _WaitQ(TaskQueue):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._t2p: OrderedDict[Task, Predicate] = OrderedDict()
+        self._predicates: dict[Task, list[Predicate]] = {}
         self._items: deque[Task] = deque()
 
     @override
@@ -27,8 +27,11 @@ class _WaitQ(TaskQueue):
     @override
     def push(self, item: tuple[Task, Predicate]):
         task, p = item
-        task.link(self)
-        self._t2p[task] = p
+        if task not in self._predicates:
+            self._predicates[task] = [p]
+            task.link(self)
+        else:
+            self._predicates[task].append(p)
 
     @override
     def pop(self) -> Task:
@@ -38,12 +41,16 @@ class _WaitQ(TaskQueue):
 
     @override
     def drop(self, task: Task):
-        del self._t2p[task]
+        del self._predicates[task]
         task.unlink(self)
 
     def load(self):
         assert not self._items
-        self._items.extend(t for t, p in self._t2p.items() if p())
+        for task, ps in self._predicates.items():
+            for p in ps:
+                if p():
+                    self._items.append(task)
+                    break
 
 
 class Variable(KernelIf, Blocking, Sendable):
