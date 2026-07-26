@@ -4,7 +4,7 @@ from typing import Never
 
 import pytest
 
-from deltacycle import TaskGroup, any_of, finish, run, sleep, step
+from deltacycle import Queue, TaskGroup, any_of, finish, run, sleep, step
 
 from .common import Bool
 from .conftest import trace
@@ -108,3 +108,30 @@ def test_11(captrace: set[tuple[int, str, str]]):
     run(main(), until=25)
 
     assert captrace == EXP_11
+
+
+@pytest.mark.xfail(reason="Queue wakeup is not atomic")
+def test_foo():
+    q: Queue[int] = Queue(capacity=1)
+
+    # Producer
+    async def p():
+        await sleep(5)
+
+        q.try_put(42)
+        # Consumer thread scheduled w/ priority=1
+
+        # Steal the reservation: IndexError???
+        await q.get(priority=-1)
+
+    # Consumer
+    async def c():
+        # Blocks for 5 (until producer does try_put)
+        await q.get(priority=1)
+
+    async def main():
+        async with TaskGroup() as tg:
+            tg.create_task(p(), name="producer")
+            tg.create_task(c(), name="consumer")
+
+    run(main())
