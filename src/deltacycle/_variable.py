@@ -29,7 +29,7 @@ class _WaitQ(TaskQueue):
         task, p = item
         if task not in self._predicates:
             self._predicates[task] = [p]
-            task.link(self)
+            task.link(tq=self)
         else:
             self._predicates[task].append(p)
 
@@ -42,7 +42,7 @@ class _WaitQ(TaskQueue):
     @override
     def drop(self, task: Task[Any]):
         del self._predicates[task]
-        task.unlink(self)
+        task.unlink(tq=self)
 
     def load(self):
         assert not self._items

@@ -254,14 +254,14 @@ class _PendQ(TaskQueue):
     @override
     def push(self, item: tuple[int, int, Task[Any], Any]):
         time, priority, task, value = item
-        task.link(self)
+        task.link(tq=self)
         heapq.heappush(self._items, (time, priority, self._index, task, value))
         self._index += 1
 
     @override
     def pop(self) -> tuple[Task[Any], Any]:
         _, _, _, task, value = heapq.heappop(self._items)
-        task.unlink(self)
+        task.unlink(tq=self)
         return (task, value)
 
     def _find(self, task: Task[Any]) -> int:
@@ -275,7 +275,7 @@ class _PendQ(TaskQueue):
         index = self._find(task)
         self._items.pop(index)
         heapq.heapify(self._items)
-        task.unlink(self)
+        task.unlink(tq=self)
 
     def peek(self) -> int:
         return self._items[0][0]

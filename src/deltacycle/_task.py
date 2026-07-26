@@ -59,7 +59,7 @@ class EventQ(TaskQueue):
 
     @override
     def push(self, item: Task[Any]):
-        item.link(self)
+        item.link(tq=self)
         self._tasks[item] = None
 
     @override
@@ -71,7 +71,7 @@ class EventQ(TaskQueue):
     @override
     def drop(self, task: Task[Any]):
         del self._tasks[task]
-        task.unlink(self)
+        task.unlink(tq=self)
 
     def load(self):
         assert not self._items
@@ -96,14 +96,14 @@ class SemaphoreQ(TaskQueue):
     @override
     def push(self, item: tuple[int, Task[Any]]):
         priority, task = item
-        task.link(self)
+        task.link(tq=self)
         heapq.heappush(self._items, (priority, self._index, task))
         self._index += 1
 
     @override
     def pop(self) -> Task[Any]:
         _, _, task = heapq.heappop(self._items)
-        task.unlink(self)
+        task.unlink(tq=self)
         return task
 
     def _find(self, task: Task[Any]) -> int:
@@ -117,7 +117,7 @@ class SemaphoreQ(TaskQueue):
         index = self._find(task)
         self._items.pop(index)
         heapq.heapify(self._items)
-        task.unlink(self)
+        task.unlink(tq=self)
 
 
 class CreditQ(TaskQueue):
@@ -138,14 +138,14 @@ class CreditQ(TaskQueue):
     @override
     def push(self, item: tuple[int, Task[Any], int]):
         priority, task, n = item
-        task.link(self)
+        task.link(tq=self)
         heapq.heappush(self._items, (priority, self._index, task, n))
         self._index += 1
 
     @override
     def pop(self) -> tuple[Task[Any], int]:
         _, _, task, n = heapq.heappop(self._items)
-        task.unlink(self)
+        task.unlink(tq=self)
         return task, n
 
     def _find(self, task: Task[Any]) -> int:
@@ -159,7 +159,7 @@ class CreditQ(TaskQueue):
         index = self._find(task)
         self._items.pop(index)
         heapq.heapify(self._items)
-        task.unlink(self)
+        task.unlink(tq=self)
 
     def peek(self) -> int:
         assert self._items
