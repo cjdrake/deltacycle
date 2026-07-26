@@ -6,10 +6,10 @@ from typing import Any
 from ._kernel import DefaultKernel, Kernel
 from ._task import Blocking, Sendable, Task, TaskCoro
 
-_kernel: Kernel | None = None
+_kernel: Kernel[Any] | None = None
 
 
-def get_running_kernel() -> Kernel:
+def get_running_kernel() -> Kernel[Any]:
     """Return currently running kernel.
 
     May be used by a simulation task to access kernel state.
@@ -27,7 +27,7 @@ def get_running_kernel() -> Kernel:
     return _kernel
 
 
-def get_kernel() -> Kernel | None:
+def get_kernel() -> Kernel[Any] | None:
     """Get the current kernel.
 
     DeltaCycle only supports one simulation kernel at a time.
@@ -41,7 +41,7 @@ def get_kernel() -> Kernel | None:
     return _kernel
 
 
-def set_kernel(kernel: Kernel | None = None):
+def set_kernel(kernel: Kernel[Any] | None = None):
     """Set the current kernel.
 
     DeltaCycle only supports one simulation kernel at a time.
@@ -56,13 +56,13 @@ def set_kernel(kernel: Kernel | None = None):
     _kernel = kernel
 
 
-def _get_kt() -> tuple[Kernel, Task | None]:
+def _get_kt() -> tuple[Kernel[Any], Task[Any] | None]:
     kernel = get_running_kernel()
     task = kernel.task()
     return kernel, task
 
 
-def get_current_task() -> Task | None:
+def get_current_task() -> Task[Any] | None:
     """Return currently running task.
 
     Returns:

@@ -87,11 +87,11 @@ class Kernel[MainResultType](ABC):
         self._main: Task[MainResultType] = Task(coro, name=self.main_name)
 
         # Currently executing task
-        self._task: Task | None = None
+        self._task: Task[Any] | None = None
         self._task_index = 0
 
         # Forked Tasks
-        self._forks: dict[Task, set[Sendable]] = {}
+        self._forks: dict[Task[Any], set[Sendable]] = {}
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
@@ -113,7 +113,7 @@ class Kernel[MainResultType](ABC):
         """Parent task of all other tasks."""
         return self._main
 
-    def task(self) -> Task | None:
+    def task(self) -> Task[Any] | None:
         """Currently running task."""
         return self._task
 
@@ -129,15 +129,15 @@ class Kernel[MainResultType](ABC):
 
     # Scheduling methods
     @abstractmethod
-    def call_soon(self, task: Task, args: TaskArgs) -> None:
+    def call_soon(self, task: Task[Any], args: TaskArgs) -> None:
         """Schedule task to run soon, in current time slot."""
 
     @abstractmethod
-    def call_later(self, delay: int, task: Task, args: TaskArgs) -> None:
+    def call_later(self, delay: int, task: Task[Any], args: TaskArgs) -> None:
         """Schedule task to run later, after ``delay``."""
 
     @abstractmethod
-    def call_at(self, when: int, task: Task, args: TaskArgs) -> None:
+    def call_at(self, when: int, task: Task[Any], args: TaskArgs) -> None:
         """Schedule task to run at specified time: ``when``."""
 
     def _create_task[ResultType](
@@ -164,10 +164,10 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
-    def fork(self, task: Task, *xs: Sendable):
+    def fork(self, task: Task[Any], *xs: Sendable):
         self._forks[task] = set(xs)
 
-    def join_any(self, task: Task, x: Sendable):
+    def join_any(self, task: Task[Any], x: Sendable):
         if task in self._forks:
             xs = self._forks[task]
             xs.remove(x)
@@ -241,7 +241,7 @@ class _PendQ(TaskQueue):
 
     def __init__(self):
         # time, priority, index, task, value
-        self._items: list[tuple[int, int, int, Task, Any]] = []
+        self._items: list[tuple[int, int, int, Task[Any], Any]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -252,26 +252,26 @@ class _PendQ(TaskQueue):
         return bool(self._items)
 
     @override
-    def push(self, item: tuple[int, int, Task, Any]):
+    def push(self, item: tuple[int, int, Task[Any], Any]):
         time, priority, task, value = item
         task.link(self)
         heapq.heappush(self._items, (time, priority, self._index, task, value))
         self._index += 1
 
     @override
-    def pop(self) -> tuple[Task, Any]:
+    def pop(self) -> tuple[Task[Any], Any]:
         _, _, _, task, value = heapq.heappop(self._items)
         task.unlink(self)
         return (task, value)
 
-    def _find(self, task: Task) -> int:
+    def _find(self, task: Task[Any]) -> int:
         for i, (_, _, _, t, _) in enumerate(self._items):
             if t is task:
                 return i
         assert False  # pragma: no cover
 
     @override
-    def drop(self, task: Task):
+    def drop(self, task: Task[Any]):
         index = self._find(task)
         self._items.pop(index)
         heapq.heapify(self._items)
@@ -312,21 +312,21 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         self._queue = _PendQ()
 
         # Task priorities
-        self._priorities: WeakKeyDictionary[Task, int] = WeakKeyDictionary()
+        self._priorities: WeakKeyDictionary[Task[Any], int] = WeakKeyDictionary()
         self._priorities[self._main] = self.main_priority
 
     @override
-    def call_soon(self, task: Task, args: TaskArgs):
+    def call_soon(self, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time, priority, task, args))
 
     @override
-    def call_later(self, delay: int, task: Task, args: TaskArgs):
+    def call_later(self, delay: int, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((self._time + delay, priority, task, args))
 
     @override
-    def call_at(self, when: int, task: Task, args: TaskArgs):
+    def call_at(self, when: int, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push((when, priority, task, args))
 
@@ -342,7 +342,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         self.call_soon(task, args=(Task.Command.START,))
         return task
 
-    def _iter_time_slot(self, time: int) -> Iterator[tuple[Task, TaskArgs]]:
+    def _iter_time_slot(self, time: int) -> Iterator[tuple[Task[Any], TaskArgs]]:
         """Iterate through all tasks in a time slot.
 
         The first task has already been peeked.

@@ -42,7 +42,7 @@ class TaskQueue(ABC):
         """Pop item from queue head."""
 
     @abstractmethod
-    def drop(self, task: Task) -> None:
+    def drop(self, task: Task[Any]) -> None:
         """Drop task from queue."""
 
 
@@ -50,26 +50,26 @@ class EventQ(TaskQueue):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._tasks: OrderedDict[Task, None] = OrderedDict()
-        self._items: deque[Task] = deque()
+        self._tasks: OrderedDict[Task[Any], None] = OrderedDict()
+        self._items: deque[Task[Any]] = deque()
 
     @override
     def __bool__(self) -> bool:
         return bool(self._items)
 
     @override
-    def push(self, item: Task):
+    def push(self, item: Task[Any]):
         item.link(self)
         self._tasks[item] = None
 
     @override
-    def pop(self) -> Task:
+    def pop(self) -> Task[Any]:
         task = self._items.popleft()
         self.drop(task)
         return task
 
     @override
-    def drop(self, task: Task):
+    def drop(self, task: Task[Any]):
         del self._tasks[task]
         task.unlink(self)
 
@@ -83,7 +83,7 @@ class SemaphoreQ(TaskQueue):
 
     def __init__(self):
         # priority, index, task
-        self._items: list[tuple[int, int, Task]] = []
+        self._items: list[tuple[int, int, Task[Any]]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -94,26 +94,26 @@ class SemaphoreQ(TaskQueue):
         return bool(self._items)
 
     @override
-    def push(self, item: tuple[int, Task]):
+    def push(self, item: tuple[int, Task[Any]]):
         priority, task = item
         task.link(self)
         heapq.heappush(self._items, (priority, self._index, task))
         self._index += 1
 
     @override
-    def pop(self) -> Task:
+    def pop(self) -> Task[Any]:
         _, _, task = heapq.heappop(self._items)
         task.unlink(self)
         return task
 
-    def _find(self, task: Task) -> int:
+    def _find(self, task: Task[Any]) -> int:
         for i, (_, _, t) in enumerate(self._items):
             if t is task:
                 return i
         assert False  # pragma: no cover
 
     @override
-    def drop(self, task: Task):
+    def drop(self, task: Task[Any]):
         index = self._find(task)
         self._items.pop(index)
         heapq.heapify(self._items)
@@ -125,7 +125,7 @@ class CreditQ(TaskQueue):
 
     def __init__(self):
         # priority, index, task, n
-        self._items: list[tuple[int, int, Task, int]] = []
+        self._items: list[tuple[int, int, Task[Any], int]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -136,26 +136,26 @@ class CreditQ(TaskQueue):
         return bool(self._items)
 
     @override
-    def push(self, item: tuple[int, Task, int]):
+    def push(self, item: tuple[int, Task[Any], int]):
         priority, task, n = item
         task.link(self)
         heapq.heappush(self._items, (priority, self._index, task, n))
         self._index += 1
 
     @override
-    def pop(self) -> tuple[Task, int]:
+    def pop(self) -> tuple[Task[Any], int]:
         _, _, task, n = heapq.heappop(self._items)
         task.unlink(self)
         return task, n
 
-    def _find(self, task: Task) -> int:
+    def _find(self, task: Task[Any]) -> int:
         for i, (_, _, t, _) in enumerate(self._items):
             if t is task:
                 return i
         assert False  # pragma: no cover
 
     @override
-    def drop(self, task: Task):
+    def drop(self, task: Task[Any]):
         index = self._find(task)
         self._items.pop(index)
         heapq.heapify(self._items)
@@ -168,7 +168,7 @@ class CreditQ(TaskQueue):
 
 class Blocking(ABC):
     @abstractmethod
-    def try_block(self, task: Task) -> bool:
+    def try_block(self, task: Task[Any]) -> bool:
         """Attempt to block task; return True if successful."""
 
     @abstractmethod
@@ -178,7 +178,7 @@ class Blocking(ABC):
 
 class Sendable(ABC):
     @abstractmethod
-    def wait_drop(self, task: Task) -> None:
+    def wait_drop(self, task: Task[Any]) -> None:
         """Drop task from object's waiting queue."""
 
 
@@ -334,11 +334,11 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def _blocking(self) -> bool:
         return not self.done()
 
-    def wait_push(self, task: Task):
+    def wait_push(self, task: Task[Any]):
         self._waiting.push(task)
 
     @override
-    def wait_drop(self, task: Task):
+    def wait_drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
     def __await__(self) -> Generator[None, Sendable, Any]:
@@ -567,14 +567,14 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
     # Blocking
     @override
-    def try_block(self, task: Task) -> bool:
+    def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
             self.wait_push(task)
             return True
         return False
 
     @override
-    def future(self) -> Task:
+    def future(self) -> Task[Any]:
         return self
 
 
@@ -588,10 +588,10 @@ class TaskGroup(KernelIf):
 
         # Tasks started in the with block
         self._setup_done = False
-        self._setup_tasks: set[Task] = set()
+        self._setup_tasks: set[Task[Any]] = set()
 
         # Tasks in running/pending/killing state
-        self._todo: set[Task] = set()
+        self._todo: set[Task[Any]] = set()
 
     async def __aenter__(self) -> Self:
         return self
@@ -618,7 +618,7 @@ class TaskGroup(KernelIf):
                 child.kill()
             while self._todo:
                 child = await self._parent.switch_coro()
-                child = cast(typ=Task, val=child)
+                child = cast(typ=Task[Any], val=child)
                 self._todo.remove(child)
 
             # Re-raise parent exception
@@ -627,10 +627,10 @@ class TaskGroup(KernelIf):
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
         child_excs: list[Exception] = []
-        killed: set[Task] = set()
+        killed: set[Task[Any]] = set()
         while self._todo:
             child = await self._parent.switch_coro()
-            child = cast(typ=Task, val=child)
+            child = cast(typ=Task[Any], val=child)
             self._todo.remove(child)
             if child in killed:
                 continue

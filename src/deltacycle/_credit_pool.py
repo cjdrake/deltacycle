@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Self, cast, override
+from typing import Any, Self, cast, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, CreditQ, Sendable, Task
@@ -27,11 +27,11 @@ class CreditPool(KernelIf, Sendable):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
-    def wait_push(self, priority: int, task: Task, n: int):
+    def wait_push(self, priority: int, task: Task[Any], n: int):
         self._waiting.push((priority, task, n))
 
     @override
-    def wait_drop(self, task: Task):
+    def wait_drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
     def _check_cnt(self):
@@ -111,7 +111,7 @@ class ReqCredit(Blocking):
         self._credits.put(self._n)
 
     @override
-    def try_block(self, task: Task) -> bool:
+    def try_block(self, task: Task[Any]) -> bool:
         if self._credits.try_get(self._n):
             return False
 
