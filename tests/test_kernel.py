@@ -75,7 +75,7 @@ def test_nocoro():
     with pytest.raises(ValueError):
         run()
     with pytest.raises(ValueError):
-        list(step())
+        list(step())  # pyright: ignore[reportUnknownArgumentType]
 
 
 def test_get_running_kernel(captrace: set[tuple[int, str, str]]):
