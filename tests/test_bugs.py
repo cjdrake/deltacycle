@@ -111,14 +111,14 @@ def test_11(captrace: set[tuple[int, str, str]]):
 
 
 @pytest.mark.xfail(reason="Queue wakeup is not atomic")
-def test_foo():
+def test_12():
     q: Queue[int] = Queue(capacity=1)
 
     # Producer
     async def p():
         await sleep(5)
 
-        q.try_put(42)
+        assert q.try_put(42)
         # Consumer thread scheduled w/ priority=1
 
         # Steal the reservation: IndexError???
