@@ -7,8 +7,9 @@ select = [
     "E4",   # pycodestyle
     "E7",
     "E9",
-    "F",    # pyflakes
-    "PL",   # pylint
+    "F",    # Pyflakes
+    "PL",   # Pylint
+    "RUF",  # Ruff-specific rules
 ]
 
 ignore = []

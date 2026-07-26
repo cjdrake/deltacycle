@@ -4,7 +4,7 @@ import heapq
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from enum import IntEnum
-from typing import Any, Never, override
+from typing import Any, ClassVar, Never, override
 from weakref import WeakKeyDictionary
 
 from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
@@ -59,7 +59,7 @@ class Kernel[MainResultType](ABC):
 
     _done = State.COMPLETED & State.FINISHED
 
-    _state_transitions = {
+    _state_transitions: ClassVar = {
         State.INIT: {
             State.RUNNING,
         },

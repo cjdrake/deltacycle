@@ -223,7 +223,7 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
     Returns:
         Tuple of items in unblocking order.
     """
-    args = (fst,) + rst
+    args = (fst, *rst)
     # Uniquify
     bs = list(dict.fromkeys(args))
 
@@ -256,7 +256,7 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
     Returns:
         Item that unblocked first.
     """
-    args = (fst,) + rst
+    args = (fst, *rst)
     # Uniquify
     bs = list(dict.fromkeys(args))
 

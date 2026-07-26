@@ -8,7 +8,7 @@ from collections import Counter, OrderedDict, deque
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, Self, cast, override
+from typing import Any, ClassVar, Self, cast, override
 
 from ._kernel_if import KernelIf
 
@@ -204,7 +204,7 @@ class _SuspendResume:
 
 class _Condition(KernelIf):
     def __init__(self, fst: Blocking, *rst: Blocking):
-        args = (fst,) + rst
+        args = (fst, *rst)
         # Uniquify arguments
         self._bs = list(dict.fromkeys(args))
 
@@ -290,7 +290,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
     _done = State.RETURNED & State.EXCEPTED
 
-    _state_transitions = {
+    _state_transitions: ClassVar = {
         State.INIT: {
             State.RUNNING,
         },
