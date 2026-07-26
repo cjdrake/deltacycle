@@ -125,4 +125,4 @@ DeltaCycle's repository is on [GitHub](https://github.com):
     $ git clone https://github.com/cjdrake/deltacycle.git
 
 It is 100% Python, and has no runtime dependencies.
-Development dependencies are listed in `requirements-dev.txt`.
+Development dependencies are listed in `pyproject.toml`.
