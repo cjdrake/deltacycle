@@ -26,8 +26,8 @@ class _WaitQ(TaskContainer):
 
     def push(self, task: Task[Any], p: Predicate):
         if task not in self._items:
-            self._items[task] = [p]
             task.link(tq=self)
+            self._items[task] = [p]
         else:
             self._items[task].append(p)
 
