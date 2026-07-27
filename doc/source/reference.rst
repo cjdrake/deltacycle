@@ -60,9 +60,6 @@ Tasks
 
 .. autoclass:: deltacycle.TaskContainer
 
-    .. automethod:: __bool__
-    .. automethod:: push
-    .. automethod:: pop
     .. automethod:: drop
 
 .. autoclass:: deltacycle.TaskGroup
