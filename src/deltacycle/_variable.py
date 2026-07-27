@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
-from typing import Any, Self, cast, override
+from typing import Any, Iterator, Self, cast, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, Sendable, Task, TaskContainer
@@ -31,14 +31,17 @@ class _WaitQ(TaskContainer):
         else:
             self._items[task].append(p)
 
-    def predicated(self) -> list[Task[Any]]:
+    def pop(self) -> Iterator[Task[Any]]:
         tasks: list[Task[Any]] = []
         for task, ps in self._items.items():
             for p in ps:
                 if p():
                     tasks.append(task)
                     break
-        return tasks
+
+        for task in tasks:
+            self.drop(task)
+            yield task
 
 
 class Variable(KernelIf, Blocking, Sendable):
@@ -95,8 +98,7 @@ class Variable(KernelIf, Blocking, Sendable):
         return self
 
     def _set(self):
-        for task in self._waiting.predicated():
-            self._waiting.drop(task)
+        for task in self._waiting.pop():
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 

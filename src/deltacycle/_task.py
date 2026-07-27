@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, ClassVar, Self, cast, override
+from typing import Any, ClassVar, Iterator, Self, cast, override
 
 from ._kernel_if import KernelIf
 
@@ -49,8 +49,11 @@ class EventQ(TaskContainer):
         task.link(tq=self)
         self._items[task] = None
 
-    def predicated(self) -> list[Task[Any]]:
-        return list(self._items)
+    def pop(self) -> Iterator[Task[Any]]:
+        tasks = list(self._items)
+        for task in tasks:
+            self.drop(task)
+            yield task
 
 
 class SemaphoreQ(TaskContainer):
@@ -407,8 +410,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
                 assert False
 
     def _set(self):
-        for task in self._waiting.predicated():
-            self._waiting.drop(task)
+        for task in self._waiting.pop():
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 

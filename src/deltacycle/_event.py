@@ -60,8 +60,7 @@ class Event(KernelIf, Blocking, Sendable):
         """Set the flag. Stop blocking waiting tasks."""
         self._flag = True
 
-        for task in self._waiting.predicated():
-            self._waiting.drop(task)
+        for task in self._waiting.pop():
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
