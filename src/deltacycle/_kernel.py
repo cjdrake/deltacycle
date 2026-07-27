@@ -259,7 +259,7 @@ class _PendQ(TaskContainer):
     @override
     def drop(self, task: Task[Any]):
         index = self._find(task)
-        self._items.pop(index)
+        del self._items[index]
         heapq.heapify(self._items)
         task.unlink(tq=self)
 
