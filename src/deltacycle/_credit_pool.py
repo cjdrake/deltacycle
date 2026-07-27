@@ -28,7 +28,7 @@ class CreditPool(KernelIf, Sendable):
         return self._capacity if self._has_capacity else None
 
     def wait_push(self, priority: int, task: Task[Any], n: int):
-        self._waiting.push((priority, task, n))
+        self._waiting.push(priority, task, n)
 
     @override
     def wait_drop(self, task: Task[Any]):

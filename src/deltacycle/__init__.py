@@ -15,9 +15,9 @@ from ._task import (
     Interrupt,
     Sendable,
     Task,
+    TaskContainer,
     TaskCoro,
     TaskGroup,
-    TaskQueue,
     Throwable,
 )
 from ._top import (
@@ -68,9 +68,9 @@ __all__ = [
     "Sendable",
     "Singular",
     "Task",
+    "TaskContainer",
     "TaskCoro",
     "TaskGroup",
-    "TaskQueue",
     "Throwable",
     "Value",
     "Variable",

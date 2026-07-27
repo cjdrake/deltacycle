@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import heapq
 from abc import ABC, abstractmethod
-from collections import Counter, OrderedDict, deque
+from collections import Counter
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
@@ -28,57 +28,32 @@ class _Kill(Throwable):
     """Kill task."""
 
 
-class TaskQueue(ABC):
-    @abstractmethod
-    def __bool__(self) -> bool:
-        """Return True if the queue has tasks ready to run."""
-
-    @abstractmethod
-    def push(self, item: Any) -> None:
-        """Push item to queue tail."""
-
-    @abstractmethod
-    def pop(self) -> Any:
-        """Pop item from queue head."""
-
+class TaskContainer(ABC):
     @abstractmethod
     def drop(self, task: Task[Any]) -> None:
         """Drop task from queue."""
 
 
-class EventQ(TaskQueue):
+class EventQ(TaskContainer):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._tasks: OrderedDict[Task[Any], None] = OrderedDict()
-        self._items: deque[Task[Any]] = deque()
-
-    @override
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    @override
-    def push(self, item: Task[Any]):
-        item.link(tq=self)
-        self._tasks[item] = None
-
-    @override
-    def pop(self) -> Task[Any]:
-        task = self._items.popleft()
-        self.drop(task)
-        return task
+        self._items: dict[Task[Any], None] = {}
 
     @override
     def drop(self, task: Task[Any]):
-        del self._tasks[task]
+        del self._items[task]
         task.unlink(tq=self)
 
-    def load(self):
-        assert not self._items
-        self._items.extend(self._tasks)
+    def push(self, task: Task[Any]):
+        task.link(tq=self)
+        self._items[task] = None
+
+    def predicated(self) -> list[Task[Any]]:
+        return list(self._items)
 
 
-class SemaphoreQ(TaskQueue):
+class SemaphoreQ(TaskContainer):
     """Tasks wait for a slot to become available."""
 
     def __init__(self):
@@ -89,22 +64,8 @@ class SemaphoreQ(TaskQueue):
         # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
-    @override
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    @override
-    def push(self, item: tuple[int, Task[Any]]):
-        priority, task = item
-        task.link(tq=self)
-        heapq.heappush(self._items, (priority, self._index, task))
-        self._index += 1
-
-    @override
-    def pop(self) -> Task[Any]:
-        _, _, task = heapq.heappop(self._items)
-        task.unlink(tq=self)
-        return task
+    def __len__(self) -> int:
+        return len(self._items)
 
     def _find(self, task: Task[Any]) -> int:
         for i, (_, _, t) in enumerate(self._items):
@@ -119,8 +80,18 @@ class SemaphoreQ(TaskQueue):
         heapq.heapify(self._items)
         task.unlink(tq=self)
 
+    def push(self, priority: int, task: Task[Any]):
+        task.link(tq=self)
+        heapq.heappush(self._items, (priority, self._index, task))
+        self._index += 1
 
-class CreditQ(TaskQueue):
+    def pop(self) -> Task[Any]:
+        _, _, task = heapq.heappop(self._items)
+        task.unlink(tq=self)
+        return task
+
+
+class CreditQ(TaskContainer):
     """Tasks wait for credit to become available."""
 
     def __init__(self):
@@ -131,22 +102,8 @@ class CreditQ(TaskQueue):
         # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
-    @override
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    @override
-    def push(self, item: tuple[int, Task[Any], int]):
-        priority, task, n = item
-        task.link(tq=self)
-        heapq.heappush(self._items, (priority, self._index, task, n))
-        self._index += 1
-
-    @override
-    def pop(self) -> tuple[Task[Any], int]:
-        _, _, task, n = heapq.heappop(self._items)
-        task.unlink(tq=self)
-        return task, n
+    def __len__(self) -> int:
+        return len(self._items)
 
     def _find(self, task: Task[Any]) -> int:
         for i, (_, _, t, _) in enumerate(self._items):
@@ -160,6 +117,16 @@ class CreditQ(TaskQueue):
         self._items.pop(index)
         heapq.heapify(self._items)
         task.unlink(tq=self)
+
+    def push(self, priority: int, task: Task[Any], n: int):
+        task.link(tq=self)
+        heapq.heappush(self._items, (priority, self._index, task, n))
+        self._index += 1
+
+    def pop(self) -> tuple[Task[Any], int]:
+        _, _, task, n = heapq.heappop(self._items)
+        task.unlink(tq=self)
+        return task, n
 
     def peek(self) -> int:
         assert self._items
@@ -319,7 +286,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._group: TaskGroup | None = None
 
         # Keep track of all queues containing this task
-        self._refcnts: Counter[TaskQueue] = Counter()
+        self._refcnts: Counter[TaskContainer] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = EventQ()
@@ -392,10 +359,10 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def state(self) -> State:
         return self._state
 
-    def link(self, tq: TaskQueue):
+    def link(self, tq: TaskContainer):
         self._refcnts[tq] += 1
 
-    def unlink(self, tq: TaskQueue):
+    def unlink(self, tq: TaskContainer):
         assert self._refcnts[tq] > 0
         self._refcnts[tq] -= 1
 
@@ -440,10 +407,8 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
                 assert False
 
     def _set(self):
-        self._waiting.load()
-
-        while self._waiting:
-            task = self._waiting.pop()
+        for task in self._waiting.predicated():
+            self._waiting.drop(task)
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 

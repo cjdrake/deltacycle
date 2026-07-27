@@ -60,7 +60,7 @@ class Container(KernelIf):
         if self._has_capacity and (self._cnt + n) > self._capacity:
             task = self._kernel.task()
             assert task is not None
-            self._putq.push((priority, task, n))
+            self._putq.push(priority, task, n)
             y = await task.switch_coro()
             assert y is None
         else:
@@ -91,7 +91,7 @@ class Container(KernelIf):
         if self._cnt < n:
             task = self._kernel.task()
             assert task is not None
-            self._getq.push((priority, task, n))
+            self._getq.push(priority, task, n)
             y = await task.switch_coro()
             assert y is None
         else:

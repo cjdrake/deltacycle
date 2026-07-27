@@ -3,54 +3,42 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
 from typing import Any, Self, cast, override
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, Task, TaskQueue
+from ._task import Blocking, Sendable, Task, TaskContainer
 
 type Predicate = Callable[[], bool]
 
 
-class _WaitQ(TaskQueue):
+class _WaitQ(TaskContainer):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._predicates: dict[Task[Any], list[Predicate]] = {}
-        self._items: deque[Task[Any]] = deque()
-
-    @override
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    @override
-    def push(self, item: tuple[Task[Any], Predicate]):
-        task, p = item
-        if task not in self._predicates:
-            self._predicates[task] = [p]
-            task.link(tq=self)
-        else:
-            self._predicates[task].append(p)
-
-    @override
-    def pop(self) -> Task[Any]:
-        task = self._items.popleft()
-        self.drop(task)
-        return task
+        self._items: dict[Task[Any], list[Predicate]] = {}
 
     @override
     def drop(self, task: Task[Any]):
-        del self._predicates[task]
+        del self._items[task]
         task.unlink(tq=self)
 
-    def load(self):
-        assert not self._items
-        for task, ps in self._predicates.items():
+    def push(self, task: Task[Any], p: Predicate):
+        if task not in self._items:
+            self._items[task] = [p]
+            task.link(tq=self)
+        else:
+            self._items[task].append(p)
+
+    def predicated(self) -> list[Task[Any]]:
+        tasks: list[Task[Any]] = []
+        for task, ps in self._items.items():
             for p in ps:
                 if p():
-                    self._items.append(task)
+                    tasks.append(task)
                     break
+        return tasks
 
 
 class Variable(KernelIf, Blocking, Sendable):
@@ -81,7 +69,7 @@ class Variable(KernelIf, Blocking, Sendable):
         self._waiting = _WaitQ()
 
     def wait_push(self, task: Task[Any], p: Predicate):
-        self._waiting.push((task, p))
+        self._waiting.push(task, p)
 
     @override
     def wait_drop(self, task: Task[Any]):
@@ -107,10 +95,8 @@ class Variable(KernelIf, Blocking, Sendable):
         return self
 
     def _set(self):
-        self._waiting.load()
-
-        while self._waiting:
-            task = self._waiting.pop()
+        for task in self._waiting.predicated():
+            self._waiting.drop(task)
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 

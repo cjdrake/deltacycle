@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Any, ClassVar, Never, override
 from weakref import WeakKeyDictionary
 
-from ._task import Sendable, Task, TaskArgs, TaskCoro, TaskQueue
+from ._task import Sendable, Task, TaskArgs, TaskContainer, TaskCoro
 from ._variable import Variable
 
 
@@ -236,7 +236,7 @@ class Kernel[MainResultType](ABC):
         yield from self._iter()
 
 
-class _PendQ(TaskQueue):
+class _PendQ(TaskContainer):
     """Priority queue for ordering task execution."""
 
     def __init__(self):
@@ -247,22 +247,8 @@ class _PendQ(TaskQueue):
         # Breaks (time, priority, ...) ties in the heapq
         self._index: int = 0
 
-    @override
-    def __bool__(self) -> bool:
-        return bool(self._items)
-
-    @override
-    def push(self, item: tuple[int, int, Task[Any], Any]):
-        time, priority, task, value = item
-        task.link(tq=self)
-        heapq.heappush(self._items, (time, priority, self._index, task, value))
-        self._index += 1
-
-    @override
-    def pop(self) -> tuple[Task[Any], Any]:
-        _, _, _, task, value = heapq.heappop(self._items)
-        task.unlink(tq=self)
-        return (task, value)
+    def __len__(self) -> int:
+        return len(self._items)
 
     def _find(self, task: Task[Any]) -> int:
         for i, (_, _, _, t, _) in enumerate(self._items):
@@ -277,13 +263,19 @@ class _PendQ(TaskQueue):
         heapq.heapify(self._items)
         task.unlink(tq=self)
 
-    def peek(self) -> int:
-        return self._items[0][0]
+    def push(self, time: int, priority: int, task: Task[Any], value: Any):
+        task.link(tq=self)
+        heapq.heappush(self._items, (time, priority, self._index, task, value))
+        self._index += 1
 
-    def clear(self):
-        while self._items:
-            self.pop()
-        self._index = 0
+    def pop(self) -> tuple[Task[Any], Any]:
+        _, _, _, task, value = heapq.heappop(self._items)
+        task.unlink(tq=self)
+        return (task, value)
+
+    def peek(self) -> int:
+        assert self._items
+        return self._items[0][0]
 
 
 class DefaultKernel[MainResultType](Kernel[MainResultType]):
@@ -318,17 +310,17 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
     @override
     def call_soon(self, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
-        self._queue.push((self._time, priority, task, args))
+        self._queue.push(self._time, priority, task, args)
 
     @override
     def call_later(self, delay: int, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
-        self._queue.push((self._time + delay, priority, task, args))
+        self._queue.push(self._time + delay, priority, task, args)
 
     @override
     def call_at(self, when: int, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
-        self._queue.push((when, priority, task, args))
+        self._queue.push(when, priority, task, args)
 
     @override
     def create_task[ResultType](

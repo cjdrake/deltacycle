@@ -28,7 +28,7 @@ class Semaphore(KernelIf, Sendable):
         return self._capacity if self._has_capacity else None
 
     def wait_push(self, priority: int, task: Task[Any]):
-        self._waiting.push((priority, task))
+        self._waiting.push(priority, task)
 
     @override
     def wait_drop(self, task: Task[Any]):

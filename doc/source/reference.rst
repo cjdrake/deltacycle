@@ -58,7 +58,7 @@ Tasks
     .. automethod:: exception
     .. automethod:: interrupt
 
-.. autoclass:: deltacycle.TaskQueue
+.. autoclass:: deltacycle.TaskContainer
 
     .. automethod:: __bool__
     .. automethod:: push
