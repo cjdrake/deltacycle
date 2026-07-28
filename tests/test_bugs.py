@@ -114,24 +114,36 @@ def test_11(captrace: set[tuple[int, str, str]]):
 def test_12():
     q: Queue[int] = Queue(capacity=1)
 
-    # Producer
-    async def p():
+    async def alice():
+        # Sleep @T=0
         await sleep(5)
 
-        assert q.try_put(42)
-        # Consumer thread scheduled w/ priority=1
+        # Wake @T=5
+        assert q.try_put(42)  # Wake Bob
 
-        # Steal the reservation: IndexError???
-        await q.get(priority=-1)
+        # Sleep @T=5
+        n = await q.get(priority=0)  # Wait for Bob
+
+        # Wake @T=10
+        assert n == 42
 
     # Consumer
-    async def c():
-        # Blocks for 5 (until producer does try_put)
-        await q.get(priority=1)
+    async def bob():
+        # Sleep @T=0
+        n = await q.get(priority=1)  # Wait for Alice
+
+        # Wake @T=5
+        assert n == 42
+
+        # Sleep @T=5
+        await sleep(5)
+
+        # Wake @T=10
+        assert q.try_put(n)  # Wake Alice
 
     async def main():
         async with TaskGroup() as tg:
-            tg.create_task(p(), name="producer")
-            tg.create_task(c(), name="consumer")
+            tg.create_task(alice(), name="Alice")
+            tg.create_task(bob(), name="Bob")
 
     run(main())
