@@ -271,7 +271,7 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
         else:
             while blocked:
                 x = blocked.pop()
-                x.wait_drop(task)
+                x.drop(task)
             return b.future()
 
     kernel.fork(task, *blocked)

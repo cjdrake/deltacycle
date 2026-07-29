@@ -28,13 +28,23 @@ class _Kill(Throwable):
     """Kill task."""
 
 
-class TaskContainer(ABC):
+class Blocking(ABC):
+    @abstractmethod
+    def try_block(self, task: Task[Any]) -> bool:
+        """Attempt to block task; return True if successful."""
+
+    @abstractmethod
+    def future(self) -> Sendable:
+        """Object that will be sent to unblock task."""
+
+
+class Sendable(ABC):
     @abstractmethod
     def drop(self, task: Task[Any]) -> None:
-        """Drop task from queue."""
+        """Drop task from object's waiting queue."""
 
 
-class EventQ(TaskContainer):
+class EventQ(Sendable):
     """Tasks wait for event trigger."""
 
     def __init__(self):
@@ -56,7 +66,7 @@ class EventQ(TaskContainer):
             yield task
 
 
-class SemaphoreQ(TaskContainer):
+class SemaphoreQ(Sendable):
     """Tasks wait for a slot to become available."""
 
     def __init__(self):
@@ -94,7 +104,7 @@ class SemaphoreQ(TaskContainer):
         return task
 
 
-class CreditQ(TaskContainer):
+class CreditQ(Sendable):
     """Tasks wait for credit to become available."""
 
     def __init__(self):
@@ -134,22 +144,6 @@ class CreditQ(TaskContainer):
     def peek(self) -> int:
         assert self._items
         return self._items[0][-1]
-
-
-class Blocking(ABC):
-    @abstractmethod
-    def try_block(self, task: Task[Any]) -> bool:
-        """Attempt to block task; return True if successful."""
-
-    @abstractmethod
-    def future(self) -> Sendable:
-        """Object that will be sent to unblock task."""
-
-
-class Sendable(ABC):
-    @abstractmethod
-    def wait_drop(self, task: Task[Any]) -> None:
-        """Drop task from object's waiting queue."""
 
 
 class _SuspendResume:
@@ -214,7 +208,7 @@ class AnyOf(_Condition):
             else:
                 while blocked:
                     x = blocked.pop()
-                    x.wait_drop(task)
+                    x.drop(task)
                 return b.future()
 
         self._kernel.fork(task, *blocked)
@@ -289,7 +283,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._group: TaskGroup | None = None
 
         # Keep track of all queues containing this task
-        self._refcnts: Counter[TaskContainer] = Counter()
+        self._refcnts: Counter[Sendable] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = EventQ()
@@ -308,7 +302,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._waiting.push(task)
 
     @override
-    def wait_drop(self, task: Task[Any]):
+    def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
     def __await__(self) -> Generator[None, Sendable, Any]:
@@ -362,10 +356,10 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def state(self) -> State:
         return self._state
 
-    def link(self, tq: TaskContainer):
+    def link(self, tq: Sendable):
         self._refcnts[tq] += 1
 
-    def unlink(self, tq: TaskContainer):
+    def unlink(self, tq: Sendable):
         assert self._refcnts[tq] > 0
         self._refcnts[tq] -= 1
 

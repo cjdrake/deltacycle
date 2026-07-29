@@ -31,7 +31,7 @@ class CreditPool(KernelIf, Sendable):
         self._waiting.push(priority, task, n)
 
     @override
-    def wait_drop(self, task: Task[Any]):
+    def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
     def _check_cnt(self):

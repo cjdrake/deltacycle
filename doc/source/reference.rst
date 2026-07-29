@@ -58,10 +58,6 @@ Tasks
     .. automethod:: exception
     .. automethod:: interrupt
 
-.. autoclass:: deltacycle.TaskContainer
-
-    .. automethod:: drop
-
 .. autoclass:: deltacycle.TaskGroup
     :show-inheritance:
 

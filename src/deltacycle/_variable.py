@@ -8,12 +8,12 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Any, Iterator, Self, cast, override
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, Task, TaskContainer
+from ._task import Blocking, Sendable, Task
 
 type Predicate = Callable[[], bool]
 
 
-class _WaitQ(TaskContainer):
+class _WaitQ(Sendable):
     """Tasks wait for variable touch."""
 
     def __init__(self):
@@ -75,7 +75,7 @@ class Variable(KernelIf, Blocking, Sendable):
         self._waiting.push(task, p)
 
     @override
-    def wait_drop(self, task: Task[Any]):
+    def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
     def __await__(self) -> Generator[None, Sendable, Self]:

@@ -37,7 +37,7 @@ class Event(KernelIf, Blocking, Sendable):
         self._waiting.push(task)
 
     @override
-    def wait_drop(self, task: Task[Any]):
+    def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
     def __await__(self) -> Generator[None, Sendable, Self]:
