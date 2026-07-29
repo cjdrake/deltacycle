@@ -29,6 +29,8 @@ class _Kill(Throwable):
 
 
 class Blocking(ABC):
+    """Object capable of blocking task forward progress"""
+
     @abstractmethod
     def try_block(self, task: Task[Any]) -> bool:
         """Attempt to block task; return True if successful."""
@@ -39,6 +41,8 @@ class Blocking(ABC):
 
 
 class Sendable(ABC):
+    """Object capable of unblocking task forward progress."""
+
     @abstractmethod
     def drop(self, task: Task[Any]) -> None:
         """Drop task from object's waiting queue."""

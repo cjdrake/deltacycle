@@ -188,7 +188,13 @@ Scheduling
 ==========
 
 .. autoclass:: deltacycle.Blocking
+
+    .. automethod:: try_block
+    .. automethod:: future
+
 .. autoclass:: deltacycle.Sendable
+
+    .. automethod:: drop
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf
