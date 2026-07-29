@@ -165,7 +165,7 @@ class PredVar(KernelIf, Blocking):
         """
         task = self._kernel.task()
         assert task is not None
-        self._var._waiting.push(task, self._p)
+        self._var._waiting.push(task, self._p)  # pyright: ignore[reportPrivateUsage]
         v = yield from task.switch_gen()
         assert v is self._var
         return self._var
@@ -173,7 +173,7 @@ class PredVar(KernelIf, Blocking):
     # Blocking
     @override
     def try_block(self, task: Task[Any]) -> bool:
-        self._var._waiting.push(task, self._p)
+        self._var._waiting.push(task, self._p)  # pyright: ignore[reportPrivateUsage]
         return True
 
     @override

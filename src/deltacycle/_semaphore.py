@@ -102,7 +102,7 @@ class ReqSemaphore(Blocking):
         if self._sem.try_get():
             return False
 
-        self._sem._waiting.push(self._priority, task)
+        self._sem._waiting.push(self._priority, task)  # pyright: ignore[reportPrivateUsage]
         return True
 
     @override

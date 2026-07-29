@@ -112,7 +112,7 @@ class ReqCredit(Blocking):
         if self._credits.try_get(self._n):
             return False
 
-        self._credits._waiting.push(self._priority, task, self._n)
+        self._credits._waiting.push(self._priority, task, self._n)  # pyright: ignore[reportPrivateUsage]
         return True
 
     @override
