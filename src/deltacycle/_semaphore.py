@@ -27,9 +27,6 @@ class Semaphore(KernelIf, Sendable):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
-    def wait_push(self, priority: int, task: Task[Any]):
-        self._waiting.push(priority, task)
-
     @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
@@ -74,7 +71,7 @@ class Semaphore(KernelIf, Sendable):
         if self._cnt == 0:
             task = self._kernel.task()
             assert task is not None
-            self.wait_push(priority, task)
+            self._waiting.push(priority, task)
             x = await task.switch_coro()
             x = cast(typ=Semaphore, val=x)
             assert x is self
@@ -105,7 +102,7 @@ class ReqSemaphore(Blocking):
         if self._sem.try_get():
             return False
 
-        self._sem.wait_push(self._priority, task)
+        self._sem._waiting.push(self._priority, task)
         return True
 
     @override

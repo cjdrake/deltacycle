@@ -302,9 +302,6 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def _blocking(self) -> bool:
         return not self.done()
 
-    def wait_push(self, task: Task[Any]):
-        self._waiting.push(task)
-
     @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
@@ -313,7 +310,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         if self._blocking():
             task = self._kernel.task()
             assert task is not None
-            self.wait_push(task)
+            self._waiting.push(task)
             t = yield from task.switch_gen()
             t = cast(typ=Task[ResultType], val=t)
             assert t is self
@@ -534,7 +531,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     @override
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
-            self.wait_push(task)
+            self._waiting.push(task)
             return True
         return False
 
@@ -573,7 +570,7 @@ class TaskGroup(KernelIf):
         while self._setup_tasks:
             child = self._setup_tasks.pop()
             if not child.done():
-                child.wait_push(self._parent)
+                child._waiting.push(self._parent)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -618,7 +615,7 @@ class TaskGroup(KernelIf):
         child.group = self
         if self._setup_done:
             if not child.done():
-                child.wait_push(self._parent)
+                child._waiting.push(self._parent)
                 self._todo.add(child)
         else:
             self._setup_tasks.add(child)

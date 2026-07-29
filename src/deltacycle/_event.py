@@ -33,9 +33,6 @@ class Event(KernelIf, Blocking, Sendable):
     def _blocking(self) -> bool:
         return not self._flag
 
-    def wait_push(self, task: Task[Any]):
-        self._waiting.push(task)
-
     @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
@@ -45,7 +42,7 @@ class Event(KernelIf, Blocking, Sendable):
         if self._blocking():
             task = self._kernel.task()
             assert task is not None
-            self.wait_push(task)
+            self._waiting.push(task)
             e = yield from task.switch_gen()
             e = cast(typ=Event, val=e)
             assert e is self
@@ -72,7 +69,7 @@ class Event(KernelIf, Blocking, Sendable):
     @override
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
-            self.wait_push(task)
+            self._waiting.push(task)
             return True
         return False
 

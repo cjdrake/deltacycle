@@ -71,9 +71,6 @@ class Variable(KernelIf, Blocking, Sendable):
     def __init__(self):
         self._waiting = _WaitQ()
 
-    def wait_push(self, task: Task[Any], p: Predicate):
-        self._waiting.push(task, p)
-
     @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
@@ -91,7 +88,7 @@ class Variable(KernelIf, Blocking, Sendable):
         task = self._kernel.task()
         assert task is not None
         # NOTE: Use default predicate
-        self.wait_push(task, self.changed)
+        self._waiting.push(task, self.changed)
         v = yield from task.switch_gen()
         v = cast(typ=Variable, val=v)
         assert v is self
@@ -128,7 +125,7 @@ class Variable(KernelIf, Blocking, Sendable):
     @override
     def try_block(self, task: Task[Any]) -> bool:
         # NOTE: Use default predicate
-        self.wait_push(task, self.changed)
+        self._waiting.push(task, self.changed)
         return True
 
     @override
@@ -168,7 +165,7 @@ class PredVar(KernelIf, Blocking):
         """
         task = self._kernel.task()
         assert task is not None
-        self._var.wait_push(task, self._p)
+        self._var._waiting.push(task, self._p)
         v = yield from task.switch_gen()
         assert v is self._var
         return self._var
@@ -176,7 +173,7 @@ class PredVar(KernelIf, Blocking):
     # Blocking
     @override
     def try_block(self, task: Task[Any]) -> bool:
-        self._var.wait_push(task, self._p)
+        self._var._waiting.push(task, self._p)
         return True
 
     @override

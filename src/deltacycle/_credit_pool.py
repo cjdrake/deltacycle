@@ -27,9 +27,6 @@ class CreditPool(KernelIf, Sendable):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
-    def wait_push(self, priority: int, task: Task[Any], n: int):
-        self._waiting.push(priority, task, n)
-
     @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
@@ -83,7 +80,7 @@ class CreditPool(KernelIf, Sendable):
         if self._cnt < n:
             task = self._kernel.task()
             assert task is not None
-            self.wait_push(priority, task, n)
+            self._waiting.push(priority, task, n)
             credits = await task.switch_coro()
             credits = cast(typ=CreditPool, val=credits)
             assert credits is self
@@ -115,7 +112,7 @@ class ReqCredit(Blocking):
         if self._credits.try_get(self._n):
             return False
 
-        self._credits.wait_push(self._priority, task, self._n)
+        self._credits._waiting.push(self._priority, task, self._n)
         return True
 
     @override
