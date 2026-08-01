@@ -110,7 +110,6 @@ def test_11(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP_11
 
 
-@pytest.mark.xfail(reason="Queue wakeup is not atomic")
 def test_12():
     q: Queue[int] = Queue(capacity=1)
 

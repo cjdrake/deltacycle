@@ -1,9 +1,64 @@
 """Queue synchronization primitive."""
 
+from __future__ import annotations
+
 from collections import deque
+from typing import Any
 
 from ._kernel_if import KernelIf
-from ._task import SemaphoreQ, Task
+from ._task import SemaphoreQ, SupportsDropTask, Task
+
+
+class _PortLock[T](SupportsDropTask):
+    def __init__(self, parent: Queue[T]):
+        self._parent = parent
+        self._task: Task[Any] | None = None
+
+    def __bool__(self) -> bool:
+        return self._task is not None
+
+    def acquire(self, task: Task[Any]):
+        assert self._task is None
+
+        task.link(tq=self)
+        self._task = task
+
+    def release(self):
+        assert self._task is not None
+
+        task = self._task
+        self._task = None
+        task.unlink(tq=self)
+
+
+class _GetLock[T](_PortLock[T]):
+    def drop(self, task: Task[Any]):
+        assert self._task is task
+
+        self.release()
+
+        # Task was interrupted before get completed.
+        # Queue should still have a free item.
+        assert not self._parent.empty()
+
+        # Transfer lock to next task
+        if self._parent._getq:  # pyright: ignore[reportPrivateUsage]
+            self.acquire(self._parent._getq_pop())  # pyright: ignore[reportPrivateUsage]
+
+
+class _PutLock[T](_PortLock[T]):
+    def drop(self, task: Task[Any]):
+        assert self._task is task
+
+        self.release()
+
+        # Task was interrupted before put completed.
+        # Queue should still have a free slot.
+        assert not self._parent.full()
+
+        # Transfer lock to next task
+        if self._parent._putq:  # pyright: ignore[reportPrivateUsage]
+            self.acquire(self._parent._putq_pop())  # pyright: ignore[reportPrivateUsage]
 
 
 class Queue[T](KernelIf):
@@ -23,9 +78,20 @@ class Queue[T](KernelIf):
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
         self._has_capacity = capacity > 0
+
         self._items: deque[T] = deque()
+
+        # Tasks waiting for a free item
         self._getq = SemaphoreQ()
+
+        # Tasks waiting for a free slot
         self._putq = SemaphoreQ()
+
+        # Lock ensures gets are atomic
+        self._get_lock = _GetLock(parent=self)
+
+        # Lock ensures puts are atomic
+        self._put_lock = _PutLock(parent=self)
 
     def __len__(self) -> int:
         return len(self._items)
@@ -40,15 +106,24 @@ class Queue[T](KernelIf):
     def full(self) -> bool:
         return self._has_capacity and len(self._items) == self._capacity
 
+    def _getq_pop(self) -> Task[Any]:
+        task = self._getq.pop()
+        self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        return task
+
+    def _putq_pop(self) -> Task[Any]:
+        task = self._putq.pop()
+        self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        return task
+
     def _put(self, item: T):
         self._items.append(item)
-        if self._getq:
-            task = self._getq.pop()
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        if not self._get_lock and self._getq:
+            self._get_lock.acquire(self._getq_pop())
 
     def try_put(self, item: T) -> bool:
         """Nonblocking put: Return True if a put attempt is successful."""
-        if self.full():
+        if self.full() or self._put_lock:
             return False
 
         self._put(item)
@@ -56,19 +131,27 @@ class Queue[T](KernelIf):
 
     async def put(self, item: T, priority: int = 0):
         """Block until there is space for an item."""
-        if self.full():
+        if self.full() or self._put_lock:
             task = self._kernel.check_task()
+
             self._putq.push(priority, task)
             y = await task.switch_coro()
             assert y is None
 
-        self._put(item)
+            # Wakeup: complete put
+            self._put(item)
+            self._put_lock.release()
+
+            # Transfer put lock
+            if not self.full() and self._putq:
+                self._put_lock.acquire(self._putq_pop())
+        else:
+            self._put(item)
 
     def _get(self) -> T:
         item = self._items.popleft()
-        if self._putq:
-            task = self._putq.pop()
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        if not self._put_lock and self._putq:
+            self._put_lock.acquire(self._putq_pop())
         return item
 
     def try_get(self) -> tuple[bool, T | None]:
@@ -78,7 +161,7 @@ class Queue[T](KernelIf):
             If the get is successful, ``(True, item)``;
             If unsuccessful, ``(False, None)``.
         """
-        if self.empty():
+        if self.empty() or self._get_lock:
             return False, None
 
         item = self._get()
@@ -86,10 +169,21 @@ class Queue[T](KernelIf):
 
     async def get(self, priority: int = 0) -> T:
         """Block until an item is available."""
-        if self.empty():
+        if self.empty() or self._get_lock:
             task = self._kernel.check_task()
+
             self._getq.push(priority, task)
             y = await task.switch_coro()
             assert y is None
 
-        return self._get()
+            # Wakeup: complete get
+            item = self._get()
+            self._get_lock.release()
+
+            # Transfer get lock
+            if not self.empty() and self._getq:
+                self._get_lock.acquire(self._getq_pop())
+
+            return item
+        else:
+            return self._get()
