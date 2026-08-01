@@ -71,8 +71,7 @@ class Semaphore(KernelIf, Sendable):
         if self._cnt == 0:
             task = self._kernel.check_task()
             self._waiting.push(priority, task)
-            x = await task.switch_coro()
-            x = cast(typ=Semaphore, val=x)
+            x = cast(typ=Semaphore, val=(await task.switch_coro()))
             assert x is self
         else:
             # Get credit

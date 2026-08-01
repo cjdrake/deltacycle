@@ -580,8 +580,7 @@ class TaskGroup(KernelIf):
             for child in self._todo:
                 child.kill()
             while self._todo:
-                child = await self._parent.switch_coro()
-                child = cast(typ=Task[Any], val=child)
+                child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
                 self._todo.remove(child)
 
             # Re-raise parent exception
@@ -592,8 +591,7 @@ class TaskGroup(KernelIf):
         child_excs: list[Exception] = []
         killed: set[Task[Any]] = set()
         while self._todo:
-            child = await self._parent.switch_coro()
-            child = cast(typ=Task[Any], val=child)
+            child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
             self._todo.remove(child)
             if child in killed:
                 continue

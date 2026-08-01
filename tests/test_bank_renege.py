@@ -10,7 +10,6 @@ Reference:
 """
 
 import random
-from typing import cast
 
 from pytest import CaptureFixture
 
@@ -43,10 +42,10 @@ async def customer(counter: Lock):
     # Wait for the counter or abort at the end of our tether
     timeout = create_task(sleep(round(patience * TIMESCALE)))
     y = await AnyOf(counter.req(), timeout)
-    y = cast(typ=Lock, val=y)
     wait = now() - arrive
 
     if y is counter:
+        assert isinstance(y, Lock)  # Help type checker
         # We got to the counter
         tprint(f"Waited {wait / TIMESCALE:<7.3f}")
         t = random.expovariate(1.0 / TIME_IN_BANK)
