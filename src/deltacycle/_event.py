@@ -37,14 +37,13 @@ class Event(KernelIf, Blocking, Sendable):
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
-    def __await__(self) -> Generator[None, Sendable, Self]:
+    def __await__(self) -> Generator[None, Self, Self]:
         """Await event set."""
         if self._blocking():
             task = self._kernel.task()
             assert task is not None
             self._waiting.push(task)
-            e = yield from task.switch_gen()
-            e = cast(typ=Event, val=e)
+            e = cast(typ=Self, val=(yield from task.switch_gen()))
             assert e is self
 
         return self
