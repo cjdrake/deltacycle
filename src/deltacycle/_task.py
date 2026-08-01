@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, ClassVar, Iterator, Self, cast, override
+from typing import Any, ClassVar, Iterator, Self, cast
 
 from ._kernel_if import KernelIf
 
@@ -58,7 +58,6 @@ class EventQ(SupportsDropTask):
     def __init__(self):
         self._items: dict[Task[Any], None] = {}
 
-    @override
     def drop(self, task: Task[Any]):
         del self._items[task]
         task.unlink(tq=self)
@@ -94,7 +93,6 @@ class SemaphoreQ(SupportsDropTask):
                 return i
         assert False  # pragma: no cover
 
-    @override
     def drop(self, task: Task[Any]):
         index = self._find(task)
         del self._items[index]
@@ -132,7 +130,6 @@ class CreditQ(SupportsDropTask):
                 return i
         assert False  # pragma: no cover
 
-    @override
     def drop(self, task: Task[Any]):
         index = self._find(task)
         del self._items[index]
@@ -304,7 +301,6 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def _blocking(self) -> bool:
         return not self.done()
 
-    @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
@@ -530,14 +526,12 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         return True
 
     # Blocking
-    @override
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
             self._waiting.push(task)
             return True
         return False
 
-    @override
     def future(self) -> Task[ResultType]:
         return self
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Any, Self, cast, override
+from typing import Any, Self, cast
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, CreditQ, Sendable, Task
@@ -27,7 +27,6 @@ class CreditPool(KernelIf, Sendable):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
-    @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
@@ -105,7 +104,6 @@ class ReqCredit(Blocking):
     ):
         self._credits.put(self._n)
 
-    @override
     def try_block(self, task: Task[Any]) -> bool:
         if self._credits.try_get(self._n):
             return False
@@ -113,6 +111,5 @@ class ReqCredit(Blocking):
         self._credits._waiting.push(self._priority, task, self._n)  # pyright: ignore[reportPrivateUsage]
         return True
 
-    @override
     def future(self) -> CreditPool:
         return self._credits

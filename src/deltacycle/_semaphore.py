@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Any, Self, cast, override
+from typing import Any, Self, cast
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SemaphoreQ, Sendable, Task
@@ -27,7 +27,6 @@ class Semaphore(KernelIf, Sendable):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
-    @override
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
@@ -95,7 +94,6 @@ class ReqSemaphore(Blocking):
     ):
         self._sem.put()
 
-    @override
     def try_block(self, task: Task[Any]) -> bool:
         if self._sem.try_get():
             return False
@@ -103,7 +101,6 @@ class ReqSemaphore(Blocking):
         self._sem._waiting.push(self._priority, task)  # pyright: ignore[reportPrivateUsage]
         return True
 
-    @override
     def future(self) -> Semaphore:
         return self._sem
 

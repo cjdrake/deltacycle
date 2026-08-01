@@ -4,7 +4,7 @@ import heapq
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from enum import IntEnum
-from typing import Any, ClassVar, Never, override
+from typing import Any, ClassVar, Never
 from weakref import WeakKeyDictionary
 
 from ._task import Sendable, SupportsDropTask, Task, TaskArgs, TaskCoro
@@ -260,7 +260,6 @@ class _PendQ(SupportsDropTask):
                 return i
         assert False  # pragma: no cover
 
-    @override
     def drop(self, task: Task[Any]):
         index = self._find(task)
         del self._items[index]
@@ -311,22 +310,18 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         self._priorities: WeakKeyDictionary[Task[Any], int] = WeakKeyDictionary()
         self._priorities[self._main] = self.main_priority
 
-    @override
     def call_soon(self, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push(self._time, priority, task, args)
 
-    @override
     def call_later(self, delay: int, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push(self._time + delay, priority, task, args)
 
-    @override
     def call_at(self, when: int, task: Task[Any], args: TaskArgs):
         priority = self._priorities[task]
         self._queue.push(when, priority, task, args)
 
-    @override
     def create_task[ResultType](
         self,
         coro: TaskCoro[ResultType],
@@ -350,7 +345,6 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
             task, value = self._queue.pop()
             yield (task, value)
 
-    @override
     def _call(self, limit: int | None):
         self._start()
 
@@ -389,7 +383,6 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         # All tasks exhausted
         self._complete()
 
-    @override
     def _iter(self) -> Iterator[int]:
         self._start()
 
