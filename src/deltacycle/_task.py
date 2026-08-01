@@ -381,6 +381,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
         # Suspend
         value = await _SuspendResume()
+
         # Resume
         return value
 
@@ -389,6 +390,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
         # Suspend
         value = yield
+
         # Resume
         return value
 
