@@ -310,13 +310,12 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
-    def __await__(self) -> Generator[None, Sendable, ResultType]:
+    def __await__(self) -> Generator[None, Self, ResultType]:
         if self._blocking():
             task = self._kernel.task()
             assert task is not None
             self._waiting.push(task)
-            t = yield from task.switch_gen()
-            t = cast(typ=Task[ResultType], val=t)
+            t = cast(typ=Self, val=(yield from task.switch_gen()))
             assert t is self
 
         return self.result()
