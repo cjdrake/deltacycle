@@ -75,7 +75,7 @@ class Variable(KernelIf, Blocking, Sendable):
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
-    def __await__(self) -> Generator[None, Sendable, Self]:
+    def __await__(self) -> Generator[None, Self, Self]:
         """Await variable change:
 
         For variable ``v``:
@@ -89,8 +89,7 @@ class Variable(KernelIf, Blocking, Sendable):
         assert task is not None
         # NOTE: Use default predicate
         self._waiting.push(task, self.changed)
-        v = yield from task.switch_gen()
-        v = cast(typ=Variable, val=v)
+        v = cast(typ=Variable, val=(yield from task.switch_gen()))
         assert v is self
         return self
 
