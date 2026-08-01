@@ -117,6 +117,10 @@ class Kernel[MainResultType](ABC):
         """Currently running task."""
         return self._task
 
+    def check_task(self) -> Task[Any]:
+        assert self._task is not None
+        return self._task
+
     def done(self) -> bool:
         """Return True if the kernel is done.
 

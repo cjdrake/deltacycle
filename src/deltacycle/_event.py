@@ -40,8 +40,7 @@ class Event(KernelIf, Blocking, Sendable):
     def __await__(self) -> Generator[None, Self, Self]:
         """Await event set."""
         if self._blocking():
-            task = self._kernel.task()
-            assert task is not None
+            task = self._kernel.check_task()
             self._waiting.push(task)
             e = cast(typ=Self, val=(yield from task.switch_gen()))
             assert e is self
