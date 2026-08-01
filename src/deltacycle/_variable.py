@@ -8,12 +8,12 @@ from collections.abc import Callable, Generator, Hashable
 from typing import Any, Iterator, Self, cast, override
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, Task
+from ._task import Blocking, Sendable, SupportsDropTask, Task
 
 type Predicate = Callable[[], bool]
 
 
-class _WaitQ(Sendable):
+class _WaitQ(SupportsDropTask):
     """Tasks wait for variable touch."""
 
     def __init__(self):

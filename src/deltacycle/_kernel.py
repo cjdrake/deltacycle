@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Any, ClassVar, Never, override
 from weakref import WeakKeyDictionary
 
-from ._task import Sendable, Task, TaskArgs, TaskCoro
+from ._task import Sendable, SupportsDropTask, Task, TaskArgs, TaskCoro
 from ._variable import Variable
 
 
@@ -236,7 +236,7 @@ class Kernel[MainResultType](ABC):
         yield from self._iter()
 
 
-class _PendQ(Sendable):
+class _PendQ(SupportsDropTask):
     """Priority queue for ordering task execution."""
 
     def __init__(self):

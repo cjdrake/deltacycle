@@ -40,7 +40,7 @@ class Blocking(ABC):
         """Object that will be sent to unblock task."""
 
 
-class Sendable(ABC):
+class SupportsDropTask(ABC):
     """Object capable of unblocking task forward progress."""
 
     @abstractmethod
@@ -48,7 +48,11 @@ class Sendable(ABC):
         """Drop task from object's waiting queue."""
 
 
-class EventQ(Sendable):
+class Sendable(SupportsDropTask):
+    pass
+
+
+class EventQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
@@ -70,7 +74,7 @@ class EventQ(Sendable):
             yield task
 
 
-class SemaphoreQ(Sendable):
+class SemaphoreQ(SupportsDropTask):
     """Tasks wait for a slot to become available."""
 
     def __init__(self):
@@ -108,7 +112,7 @@ class SemaphoreQ(Sendable):
         return task
 
 
-class CreditQ(Sendable):
+class CreditQ(SupportsDropTask):
     """Tasks wait for credit to become available."""
 
     def __init__(self):
@@ -287,7 +291,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._group: TaskGroup | None = None
 
         # Keep track of all queues containing this task
-        self._refcnts: Counter[Sendable] = Counter()
+        self._refcnts: Counter[SupportsDropTask] = Counter()
 
         # Other tasks waiting for this task to complete
         self._waiting = EventQ()
@@ -357,10 +361,10 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def state(self) -> State:
         return self._state
 
-    def link(self, tq: Sendable):
+    def link(self, tq: SupportsDropTask):
         self._refcnts[tq] += 1
 
-    def unlink(self, tq: Sendable):
+    def unlink(self, tq: SupportsDropTask):
         assert self._refcnts[tq] > 0
         self._refcnts[tq] -= 1
 
