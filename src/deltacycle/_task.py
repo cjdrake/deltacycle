@@ -310,7 +310,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     def drop(self, task: Task[Any]):
         self._waiting.drop(task)
 
-    def __await__(self) -> Generator[None, Sendable, Any]:
+    def __await__(self) -> Generator[None, Sendable, ResultType]:
         if self._blocking():
             task = self._kernel.task()
             assert task is not None
