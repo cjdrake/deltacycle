@@ -536,7 +536,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         return False
 
     @override
-    def future(self) -> Task[Any]:
+    def future(self) -> Task[ResultType]:
         return self
 
 

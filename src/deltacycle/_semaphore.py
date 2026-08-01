@@ -106,7 +106,7 @@ class ReqSemaphore(Blocking):
         return True
 
     @override
-    def future(self) -> Sendable:
+    def future(self) -> Semaphore:
         return self._sem
 
 

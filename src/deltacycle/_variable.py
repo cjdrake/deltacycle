@@ -177,7 +177,7 @@ class PredVar(KernelIf, Blocking):
         return True
 
     @override
-    def future(self) -> Sendable:
+    def future(self) -> Variable:
         return self._var
 
 

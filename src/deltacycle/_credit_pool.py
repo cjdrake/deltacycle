@@ -116,5 +116,5 @@ class ReqCredit(Blocking):
         return True
 
     @override
-    def future(self) -> Sendable:
+    def future(self) -> CreditPool:
         return self._credits
