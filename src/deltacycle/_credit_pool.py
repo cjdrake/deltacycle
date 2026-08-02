@@ -39,7 +39,7 @@ class _GetLock(_PortLock):
 
         # Task was interrupted before get completed
 
-        if self._parent._getq and (self._parent._getq_peek_ok()):
+        if self._parent._getq_ready():
             # Get task waiting, port unlocked, credit available
             self.acquire(self._parent._getq_pop())
 
@@ -95,8 +95,8 @@ class CreditPool(KernelIf, Sendable):
         self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         return task
 
-    def _getq_peek_ok(self) -> bool:
-        return self._getq.peek() <= self._cnt
+    def _getq_ready(self) -> bool:
+        return bool(self._getq) and (self._getq.peek() <= self._cnt)
 
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         self._check_n(n)
@@ -104,6 +104,9 @@ class CreditPool(KernelIf, Sendable):
 
     def _put(self, n: int):
         self._cnt += n
+        if self._getq_ready() and not self._get_lock:
+            # Get task waiting, port unlocked, NEW credit available
+            self._get_lock.acquire(self._getq_pop())
 
     def put(self, n: int = 1):
         self._check_cnt()
@@ -113,10 +116,6 @@ class CreditPool(KernelIf, Sendable):
             raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
 
         self._put(n)
-
-        if self._getq and self._getq_peek_ok() and not self._get_lock:
-            # Get task waiting, port unlocked, NEW credit available
-            self._get_lock.acquire(self._getq_pop())
 
     def _get(self, n: int):
         self._cnt -= n
@@ -146,7 +145,7 @@ class CreditPool(KernelIf, Sendable):
             self._get(n)
             self._get_lock.release()
 
-            if self._getq and self._getq_peek_ok():
+            if self._getq_ready():
                 # Get task waiting, port unlocked, credit available
                 self._get_lock.acquire(self._getq_pop())
         else:

@@ -96,6 +96,9 @@ class Semaphore(KernelIf, Sendable):
 
     def _put(self):
         self._cnt += 1
+        if self._getq and not self._get_lock:
+            # Get task waiting, port unlocked, NEW credit available
+            self._get_lock.acquire(self._getq_pop())
 
     def put(self):
         self._check_cnt()
@@ -104,10 +107,6 @@ class Semaphore(KernelIf, Sendable):
             raise OverflowError(f"{self._cnt} + 1 > {self._capacity}")
 
         self._put()
-
-        if self._getq and not self._get_lock:
-            # Get task waiting, port unlocked, NEW credit available
-            self._get_lock.acquire(self._getq_pop())
 
     def _get(self):
         self._cnt -= 1
