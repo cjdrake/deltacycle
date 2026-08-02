@@ -39,11 +39,11 @@ class _GetLock(_PortLock):
 
         # Task was interrupted before get completed.
         # Semaphore should still have a free credit.
-        assert not self._parent._empty()  # pyright: ignore[reportPrivateUsage]
+        assert not self._parent._empty()
 
-        if self._parent._getq:  # pyright: ignore[reportPrivateUsage]
+        if self._parent._getq:
             # Get task waiting, port unlocked, credit available
-            self.acquire(self._parent._getq_pop())  # pyright: ignore[reportPrivateUsage]
+            self.acquire(self._parent._getq_pop())
 
 
 class Semaphore(KernelIf, Sendable):
@@ -163,7 +163,7 @@ class ReqSemaphore(Blocking):
         if self._sem.try_get():
             return False
 
-        self._sem._getq.push(self._priority, task)  # pyright: ignore[reportPrivateUsage]
+        self._sem._getq.push(self._priority, task)
         return True
 
     def future(self) -> Semaphore:

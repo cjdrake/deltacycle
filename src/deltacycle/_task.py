@@ -561,7 +561,7 @@ class TaskGroup(KernelIf):
         while self._setup_tasks:
             child = self._setup_tasks.pop()
             if not child.done():
-                child._waiting.push(self._parent)  # pyright: ignore[reportPrivateUsage]
+                child._waiting.push(self._parent)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -604,7 +604,7 @@ class TaskGroup(KernelIf):
         child.group = self
         if self._setup_done:
             if not child.done():
-                child._waiting.push(self._parent)  # pyright: ignore[reportPrivateUsage]
+                child._waiting.push(self._parent)
                 self._todo.add(child)
         else:
             self._setup_tasks.add(child)

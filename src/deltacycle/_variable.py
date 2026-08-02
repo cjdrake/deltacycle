@@ -158,14 +158,14 @@ class PredVar(KernelIf, Blocking):
            to ``True``, unblock all tasks waiting for that event.
         """
         task = self._kernel.check_task()
-        self._var._waiting.push(task, self._p)  # pyright: ignore[reportPrivateUsage]
+        self._var._waiting.push(task, self._p)
         v = yield from task.switch_gen()
         assert v is self._var
         return self._var
 
     # Blocking
     def try_block(self, task: Task[Any]) -> bool:
-        self._var._waiting.push(task, self._p)  # pyright: ignore[reportPrivateUsage]
+        self._var._waiting.push(task, self._p)
         return True
 
     def future(self) -> Variable:

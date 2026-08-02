@@ -41,9 +41,9 @@ class _GetLock[T](_PortLock[T]):
         # Queue should still have a free item.
         assert not self._parent.empty()
 
-        if self._parent._getq:  # pyright: ignore[reportPrivateUsage]
+        if self._parent._getq:
             # Get task waiting, port unlocked, item available
-            self.acquire(self._parent._getq_pop())  # pyright: ignore[reportPrivateUsage]
+            self.acquire(self._parent._getq_pop())
 
 
 class _PutLock[T](_PortLock[T]):
@@ -56,9 +56,9 @@ class _PutLock[T](_PortLock[T]):
         # Queue should still have a free slot.
         assert not self._parent.full()
 
-        if self._parent._putq:  # pyright: ignore[reportPrivateUsage]
+        if self._parent._putq:
             # Put task waiting, port unlocked, space available
-            self.acquire(self._parent._putq_pop())  # pyright: ignore[reportPrivateUsage]
+            self.acquire(self._parent._putq_pop())
 
 
 class Queue[T](KernelIf):

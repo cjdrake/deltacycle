@@ -39,9 +39,9 @@ class _GetLock(_PortLock):
 
         # Task was interrupted before get completed
 
-        if self._parent._getq and (self._parent._getq_peek_ok()):  # pyright: ignore[reportPrivateUsage]
+        if self._parent._getq and (self._parent._getq_peek_ok()):
             # Get task waiting, port unlocked, credit available
-            self.acquire(self._parent._getq_pop())  # pyright: ignore[reportPrivateUsage]
+            self.acquire(self._parent._getq_pop())
 
 
 class CreditPool(KernelIf, Sendable):
@@ -176,7 +176,7 @@ class ReqCredit(Blocking):
         if self._credits.try_get(self._n):
             return False
 
-        self._credits._getq.push(self._priority, task, self._n)  # pyright: ignore[reportPrivateUsage]
+        self._credits._getq.push(self._priority, task, self._n)
         return True
 
     def future(self) -> CreditPool:

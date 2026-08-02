@@ -32,3 +32,7 @@ search-path = ["src", "."]
 
 [tool.pyright]
 typeCheckingMode = "strict"
+
+# Allow general access to `inst._attr`, i.e. "private" attributes.
+# Makes it easier to define public API w/o fussing about friend class access.
+reportPrivateUsage = "none"
