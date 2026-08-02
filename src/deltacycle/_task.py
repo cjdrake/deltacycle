@@ -503,7 +503,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         # Success
         return True
 
-    def kill(self) -> bool:
+    def _kill(self) -> bool:
         # Already done; do nothing
         if self._signal or self.done():
             return False
@@ -568,7 +568,7 @@ class TaskGroup(KernelIf):
         # Kill children; suppress exceptions
         if exc:
             for child in self._todo:
-                child.kill()
+                child._kill()
             while self._todo:
                 child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
                 self._todo.remove(child)
@@ -588,7 +588,7 @@ class TaskGroup(KernelIf):
             exc = child.exception()
             if exc is not None:
                 child_excs.append(exc)
-                killed.update(c for c in self._todo if c.kill())
+                killed.update(c for c in self._todo if c._kill())
 
         # Re-raise child exceptions
         if child_excs:
