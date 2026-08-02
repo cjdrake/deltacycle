@@ -15,9 +15,16 @@ Added ``KernelExit`` exception to public API.
 It now inherits from ``BaseException``,
 so shouldn't be accidentally caught by a user exception handler.
 
+Enhanced Ruff lint rules, plus related refactoring.
+
+Added support for `PyRight <https://microsoft.github.io/pyright/#/>`_,
+and `Pyrefly <https://pyrefly.org/>`_ type checkers.
+Several miscellaneous, internal type improvements.
+
 Fixed bugs:
 
 * `Issue #11 <https://github.com/cjdrake/deltacycle/issues/11>`_
+* `Issue #12 <https://github.com/cjdrake/deltacycle/issues/12>`_
 
 
 Version 0.38.0
