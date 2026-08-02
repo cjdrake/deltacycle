@@ -13,18 +13,14 @@ from typing import Any, ClassVar, Iterator, Self, cast
 from ._kernel_if import KernelIf
 
 type TaskCoro[ResultType] = Coroutine[None, Sendable | None, ResultType]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | Throwable]
+type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | BaseException]
 
 
-class Throwable(Exception):
-    """Throw a signal to a task."""
-
-
-class Interrupt(Throwable):
+class Interrupt(Exception):
     """Interrupt task."""
 
 
-class _Kill(Throwable):
+class Kill(BaseException):
     """Kill task."""
 
 
@@ -296,7 +292,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
         # Outputs
         self._result: ResultType | None = None
-        self._exception: Exception | None = None
+        self._exception: BaseException | None = None
 
     def _blocking(self) -> bool:
         return not self.done()
@@ -396,7 +392,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
                 self._coro.send(None)
             case (self.Command.RESUME, Sendable() as x):
                 self._coro.send(x)
-            case (self.Command.SIGNAL, Throwable() as x):
+            case (self.Command.SIGNAL, BaseException() as x):
                 self._signal = False
                 self._coro.throw(x)
             case _:  # pragma: no cover
@@ -413,7 +409,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._set()
         assert self._refcnts.total() == 0
 
-    def do_except(self, exc: Exception):
+    def do_except(self, exc: BaseException):
         self._exception = exc
         self._set_state(self.State.EXCEPTED)
         self._set()
@@ -447,7 +443,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
             raise self._exception
         raise RuntimeError("Task is not done")
 
-    def exception(self) -> Exception | None:
+    def exception(self) -> BaseException | None:
         """Return the task's exception.
 
         Returns:
@@ -520,7 +516,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
 
         # Reschedule
         self._signal = True
-        self._kernel.call_soon(self, args=(self.Command.SIGNAL, _Kill()))
+        self._kernel.call_soon(self, args=(self.Command.SIGNAL, Kill()))
 
         # Success
         return True
@@ -582,7 +578,7 @@ class TaskGroup(KernelIf):
 
         # Parent did NOT raise an exception:
         # Await children; collect exceptions
-        child_excs: list[Exception] = []
+        child_excs: list[BaseException] = []
         killed: set[Task[Any]] = set()
         while self._todo:
             child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
@@ -596,7 +592,7 @@ class TaskGroup(KernelIf):
 
         # Re-raise child exceptions
         if child_excs:
-            raise ExceptionGroup("Child task(s) raised exception(s)", child_excs)
+            raise BaseExceptionGroup("Child task(s) raised exception(s)", child_excs)
 
     def create_task[ResultType](
         self,

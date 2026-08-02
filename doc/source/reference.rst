@@ -23,8 +23,10 @@ Kernel
     .. automethod:: create_task
 
 .. autoclass:: deltacycle.DefaultKernel
+    :show-inheritance:
 
 .. autoexception:: deltacycle.KernelExit
+    :show-inheritance:
 
 .. autofunction:: deltacycle.finish
 
@@ -38,9 +40,10 @@ Tasks
 
 .. autotype:: deltacycle.TaskCoro
 
-.. autoexception:: deltacycle.Throwable
-
 .. autoexception:: deltacycle.Interrupt
+    :show-inheritance:
+
+.. autoexception:: deltacycle.Kill
     :show-inheritance:
 
 .. autoclass:: deltacycle.Task.State

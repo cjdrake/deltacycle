@@ -13,11 +13,11 @@ from ._task import (
     AnyOf,
     Blocking,
     Interrupt,
+    Kill,
     Sendable,
     Task,
     TaskCoro,
     TaskGroup,
-    Throwable,
 )
 from ._top import (
     all_of,
@@ -57,6 +57,7 @@ __all__ = [
     "Interrupt",
     "Kernel",
     "KernelExit",
+    "Kill",
     "Lock",
     "PredVar",
     "Predicate",
@@ -69,7 +70,6 @@ __all__ = [
     "Task",
     "TaskCoro",
     "TaskGroup",
-    "Throwable",
     "Value",
     "Variable",
     "all_of",

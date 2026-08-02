@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Any, ClassVar, Never
 from weakref import WeakKeyDictionary
 
-from ._task import Sendable, SupportsDropTask, Task, TaskArgs, TaskCoro
+from ._task import Kill, Sendable, SupportsDropTask, Task, TaskArgs, TaskCoro
 from ._variable import Variable
 
 
@@ -372,6 +372,8 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                     return
                 except StopIteration as exc:
                     task.do_result(exc)
+                except Kill as exc:
+                    task.do_except(exc)
                 except Exception as exc:
                     task.do_except(exc)
                 finally:
@@ -409,6 +411,8 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                     return
                 except StopIteration as exc:
                     task.do_result(exc)
+                except Kill as exc:
+                    task.do_except(exc)
                 except Exception as exc:
                     task.do_except(exc)
                 finally:
