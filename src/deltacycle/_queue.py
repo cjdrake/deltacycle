@@ -41,8 +41,8 @@ class _GetLock[T](_PortLock[T]):
         # Queue should still have a free item.
         assert not self._parent.empty()
 
-        # Transfer lock to next task
         if self._parent._getq:  # pyright: ignore[reportPrivateUsage]
+            # Get task waiting, port unlocked, item available
             self.acquire(self._parent._getq_pop())  # pyright: ignore[reportPrivateUsage]
 
 
@@ -56,8 +56,8 @@ class _PutLock[T](_PortLock[T]):
         # Queue should still have a free slot.
         assert not self._parent.full()
 
-        # Transfer lock to next task
         if self._parent._putq:  # pyright: ignore[reportPrivateUsage]
+            # Put task waiting, port unlocked, space available
             self.acquire(self._parent._putq_pop())  # pyright: ignore[reportPrivateUsage]
 
 
@@ -118,7 +118,8 @@ class Queue[T](KernelIf):
 
     def _put(self, item: T):
         self._items.append(item)
-        if not self._get_lock and self._getq:
+        if self._getq and not self._get_lock:
+            # Get task waiting, port unlocked, NEW item available
             self._get_lock.acquire(self._getq_pop())
 
     def try_put(self, item: T) -> bool:
@@ -142,15 +143,16 @@ class Queue[T](KernelIf):
             self._put(item)
             self._put_lock.release()
 
-            # Transfer put lock
-            if not self.full() and self._putq:
+            if self._putq and not self.full():
+                # Put task waiting, port unlocked, space available
                 self._put_lock.acquire(self._putq_pop())
         else:
             self._put(item)
 
     def _get(self) -> T:
         item = self._items.popleft()
-        if not self._put_lock and self._putq:
+        if self._putq and not self._put_lock:
+            # Put task waiting, port unlocked, NEW space available
             self._put_lock.acquire(self._putq_pop())
         return item
 
@@ -180,8 +182,8 @@ class Queue[T](KernelIf):
             item = self._get()
             self._get_lock.release()
 
-            # Transfer get lock
-            if not self.empty() and self._getq:
+            if self._getq and not self.empty():
+                # Get task waiting, port unlocked, item available
                 self._get_lock.acquire(self._getq_pop())
 
             return item
