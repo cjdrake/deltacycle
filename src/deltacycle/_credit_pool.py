@@ -6,19 +6,62 @@ from types import TracebackType
 from typing import Any, Self, cast
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, CreditQ, Sendable, Task
+from ._task import Blocking, CreditQ, Sendable, SupportsDropTask, Task
+
+
+class _PortLock(SupportsDropTask):
+    def __init__(self, parent: CreditPool):
+        self._parent = parent
+        self._task: Task[Any] | None = None
+
+    def __bool__(self) -> bool:
+        return self._task is not None
+
+    def acquire(self, task: Task[Any]):
+        assert self._task is None
+
+        task.link(tq=self)
+        self._task = task
+
+    def release(self):
+        assert self._task is not None
+
+        task = self._task
+        self._task = None
+        task.unlink(tq=self)
+
+
+class _GetLock(_PortLock):
+    def drop(self, task: Task[Any]):
+        assert self._task is task
+
+        self.release()
+
+        # Task was interrupted before get completed
+
+        if self._parent._getq and (self._parent._getq_peek_ok()):  # pyright: ignore[reportPrivateUsage]
+            # Get task waiting, port unlocked, credit available
+            self.acquire(self._parent._getq_pop())  # pyright: ignore[reportPrivateUsage]
 
 
 class CreditPool(KernelIf, Sendable):
     def __init__(self, value: int = 0, capacity: int = 0):
         self._capacity = capacity
         self._has_capacity = capacity > 0
+
         if value < 0:
             raise ValueError(f"Expected value ≥ 0, got {value}")
         if self._has_capacity and value > capacity:
             raise ValueError(f"Expected value ≤ {capacity}, got {value}")
+
+        # Credit count
         self._cnt = value
-        self._waiting = CreditQ()
+
+        # Tasks waiting to get credit
+        self._getq = CreditQ()
+
+        # Lock ensures gets are atomic
+        self._get_lock = _GetLock(parent=self)
 
     def __len__(self) -> int:
         return self._cnt
@@ -27,8 +70,11 @@ class CreditPool(KernelIf, Sendable):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
-    def drop(self, task: Task[Any]):
-        self._waiting.drop(task)
+    def _empty(self, n: int) -> bool:
+        return self._cnt < n
+
+    def _full(self, n: int) -> bool:
+        return self._has_capacity and (self._cnt + n) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0
@@ -40,50 +86,72 @@ class CreditPool(KernelIf, Sendable):
         if self._has_capacity and n > self._capacity:
             raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
 
+    def drop(self, task: Task[Any]):
+        self._getq.drop(task)
+
+    def _getq_pop(self) -> Task[Any]:
+        task, _ = self._getq.pop()
+        self._kernel.join_any(task, self)
+        self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+        return task
+
+    def _getq_peek_ok(self) -> bool:
+        return self._getq.peek() <= self._cnt
+
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         self._check_n(n)
         return ReqCredit(self, n, priority)
+
+    def _put(self, n: int):
+        self._cnt += n
 
     def put(self, n: int = 1):
         self._check_cnt()
         self._check_n(n)
 
-        if self._has_capacity and (self._cnt + n) > self._capacity:
+        if self._full(n):
             raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
 
-        # Put credit
-        self._cnt += n
+        self._put(n)
 
-        while self._waiting and (self._cnt >= self._waiting.peek()):
-            # Transfer credit
-            task, n = self._waiting.pop()
-            self._kernel.join_any(task, self)
-            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
-            self._cnt -= n
+        if self._getq and self._getq_peek_ok() and not self._get_lock:
+            # Get task waiting, port unlocked, NEW credit available
+            self._get_lock.acquire(self._getq_pop())
+
+    def _get(self, n: int):
+        self._cnt -= n
 
     def try_get(self, n: int = 1) -> bool:
         self._check_cnt()
         self._check_n(n)
 
-        if self._cnt < n:
+        if self._empty(n) or self._get_lock:
             return False
 
-        # Get credit
-        self._cnt -= n
+        self._get(n)
         return True
 
     async def get(self, n: int = 1, priority: int = 0):
         self._check_cnt()
         self._check_n(n)
 
-        if self._cnt < n:
+        if self._empty(n) or self._get_lock:
             task = self._kernel.check_task()
-            self._waiting.push(priority, task, n)
+
+            self._getq.push(priority, task, n)
             credits = cast(typ=CreditPool, val=(await task.switch_coro()))
             assert credits is self
+
+            # Wakeup: complete get
+            self._get(n)
+            self._get_lock.release()
+
+            if self._getq and self._getq_peek_ok():
+                # Get task waiting, port unlocked, credit available
+                self._get_lock.acquire(self._getq_pop())
         else:
             # Get credit
-            self._cnt -= n
+            self._get(n)
 
 
 class ReqCredit(Blocking):
@@ -108,7 +176,7 @@ class ReqCredit(Blocking):
         if self._credits.try_get(self._n):
             return False
 
-        self._credits._waiting.push(self._priority, task, self._n)  # pyright: ignore[reportPrivateUsage]
+        self._credits._getq.push(self._priority, task, self._n)  # pyright: ignore[reportPrivateUsage]
         return True
 
     def future(self) -> CreditPool:
