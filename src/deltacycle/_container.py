@@ -1,9 +1,59 @@
 """Container synchronization primitive."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from ._kernel_if import KernelIf
-from ._task import CreditQ, Task
+from ._task import CreditQ, SupportsDropTask, Task
+
+
+class _PortLock(SupportsDropTask):
+    def __init__(self, parent: Container):
+        self._parent = parent
+        self._task: Task[Any] | None = None
+
+    def __bool__(self) -> bool:
+        return self._task is not None
+
+    def acquire(self, task: Task[Any]):
+        assert self._task is None
+
+        task.link(tq=self)
+        self._task = task
+
+    def release(self):
+        assert self._task is not None
+
+        task = self._task
+        self._task = None
+        task.unlink(tq=self)
+
+
+class _GetLock(_PortLock):
+    def drop(self, task: Task[Any]):
+        assert self._task is task
+
+        self.release()
+
+        # Task was interrupted before get completed
+
+        if self._parent._getq_ready():
+            # Get task waiting, port unlocked, resource available
+            self.acquire(self._parent._getq_pop())
+
+
+class _PutLock(_PortLock):
+    def drop(self, task: Task[Any]):
+        assert self._task is task
+
+        self.release()
+
+        # Task was interrupted before put completed
+
+        if self._parent._putq_ready():
+            # Put task waiting, port unlocked, space available
+            self.acquire(self._parent._putq_pop())
 
 
 class Container(KernelIf):
@@ -24,14 +74,20 @@ class Container(KernelIf):
         self._capacity = capacity
         self._has_capacity = capacity > 0
 
-        # Credit count
+        # Resource count
         self._cnt: int = 0
 
-        # Tasks waiting to get credit
+        # Tasks waiting to get resource
         self._getq = CreditQ()
 
-        # Tasks waiting to put credit
+        # Tasks waiting to put resource
         self._putq = CreditQ()
+
+        # Lock ensures gets are atomic
+        self._get_lock = _GetLock(parent=self)
+
+        # Lock ensures puts are atomic
+        self._put_lock = _PutLock(parent=self)
 
     def __len__(self) -> int:
         return self._cnt
@@ -39,6 +95,12 @@ class Container(KernelIf):
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
+
+    def _empty(self, n: int) -> bool:
+        return (self._cnt - n) < 0
+
+    def _full(self, n: int) -> bool:
+        return self._has_capacity and (self._cnt + n) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0
@@ -50,30 +112,33 @@ class Container(KernelIf):
         if self._has_capacity and n > self._capacity:
             raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
 
-    def _empty(self, n: int) -> bool:
-        return (self._cnt - n) < 0
+    def _getq_ready(self) -> bool:
+        return bool(self._getq) and not self._empty(self._getq.peek())
 
-    def _full(self, n: int) -> bool:
-        return self._has_capacity and (self._cnt + n) > self._capacity
-
-    def _getq_pop(self) -> tuple[Task[Any], int]:
-        task, n = self._getq.pop()
+    def _getq_pop(self) -> Task[Any]:
+        task, _ = self._getq.pop()
         self._kernel.call_soon(task, args=(Task.Command.RESUME,))
-        return task, n
+        return task
 
-    def _putq_pop(self) -> tuple[Task[Any], int]:
-        task, n = self._putq.pop()
+    def _putq_ready(self) -> bool:
+        return bool(self._putq) and not self._full(self._putq.peek())
+
+    def _putq_pop(self) -> Task[Any]:
+        task, _ = self._putq.pop()
         self._kernel.call_soon(task, args=(Task.Command.RESUME,))
-        return task, n
+        return task
 
     def _put(self, n: int):
         self._cnt += n
+        if self._getq_ready() and not self._get_lock:
+            # Get task waiting, port unlocked, NEW resource available
+            self._get_lock.acquire(self._getq_pop())
 
     def try_put(self, n: int = 1) -> bool:
         self._check_cnt()
         self._check_n(n)
 
-        if self._full(n):
+        if self._full(n) or self._put_lock:
             return False
 
         self._put(n)
@@ -83,27 +148,34 @@ class Container(KernelIf):
         self._check_cnt()
         self._check_n(n)
 
-        if self._full(n):
+        if self._full(n) or self._put_lock:
             task = self._kernel.check_task()
+
             self._putq.push(priority, task, n)
             y = await task.switch_coro()
             assert y is None
+
+            # Wakeup: complete put
+            self._put(n)
+            self._put_lock.release()
+
+            if self._putq_ready():
+                # Put task waiting, port unlocked, space available
+                self._put_lock.acquire(self._putq_pop())
         else:
             self._put(n)
 
-        while self._getq and (self._cnt >= self._getq.peek()):
-            # Transfer credit
-            _, n = self._getq_pop()
-            self._get(n)
-
     def _get(self, n: int):
         self._cnt -= n
+        if self._putq_ready() and not self._put_lock:
+            # Put task waiting, port unlocked, NEW space available
+            self._put_lock.acquire(self._putq_pop())
 
     def try_get(self, n: int = 1) -> bool:
         self._check_cnt()
         self._check_n(n)
 
-        if self._empty(n):
+        if self._empty(n) or self._get_lock:
             return False
 
         self._get(n)
@@ -113,15 +185,19 @@ class Container(KernelIf):
         self._check_cnt()
         self._check_n(n)
 
-        if self._empty(n):
+        if self._empty(n) or self._get_lock:
             task = self._kernel.check_task()
+
             self._getq.push(priority, task, n)
             y = await task.switch_coro()
             assert y is None
+
+            # Wakeup: complete get
+            self._get(n)
+            self._get_lock.release()
+
+            if self._getq_ready():
+                # Get task waiting, port unlocked, resource available
+                self._get_lock.acquire(self._getq_pop())
         else:
             self._get(n)
-
-        while self._putq and (self._cnt + self._putq.peek()) <= self._capacity:
-            # Transfer credit
-            _, n = self._putq_pop()
-            self._put(n)
