@@ -101,7 +101,7 @@ class Queue[T](KernelIf):
         return self._capacity if self._has_capacity else None
 
     def empty(self) -> bool:
-        return not self._items
+        return len(self._items) == 0
 
     def full(self) -> bool:
         return self._has_capacity and len(self._items) == self._capacity
