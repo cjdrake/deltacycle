@@ -81,10 +81,10 @@ class Queue[T](KernelIf):
 
         self._items: deque[T] = deque()
 
-        # Tasks waiting for a free item
+        # Tasks waiting to get an item
         self._getq = SemaphoreQ()
 
-        # Tasks waiting for a free slot
+        # Tasks waiting to put an item
         self._putq = SemaphoreQ()
 
         # Lock ensures gets are atomic

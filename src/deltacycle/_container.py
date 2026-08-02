@@ -1,5 +1,7 @@
 """Container synchronization primitive."""
 
+from typing import Any
+
 from ._kernel_if import KernelIf
 from ._task import CreditQ, Task
 
@@ -21,8 +23,14 @@ class Container(KernelIf):
     def __init__(self, capacity: int = 0):
         self._capacity = capacity
         self._has_capacity = capacity > 0
+
+        # Credit count
         self._cnt: int = 0
+
+        # Tasks waiting to get credit
         self._getq = CreditQ()
+
+        # Tasks waiting to put credit
         self._putq = CreditQ()
 
     def __len__(self) -> int:
@@ -41,6 +49,16 @@ class Container(KernelIf):
             raise ValueError(f"Expected n ≥ 1, got {n}")
         if self._has_capacity and n > self._capacity:
             raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
+
+    def _getq_pop(self) -> tuple[Task[Any], int]:
+        task, n = self._getq.pop()
+        self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        return task, n
+
+    def _putq_pop(self) -> tuple[Task[Any], int]:
+        task, n = self._putq.pop()
+        self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        return task, n
 
     def try_put(self, n: int = 1) -> bool:
         self._check_cnt()
@@ -68,8 +86,7 @@ class Container(KernelIf):
 
         while self._getq and (self._cnt >= self._getq.peek()):
             # Transfer credit
-            task, n = self._getq.pop()
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+            _, n = self._getq_pop()
             self._cnt -= n
 
     def try_get(self, n: int = 1) -> bool:
@@ -98,6 +115,5 @@ class Container(KernelIf):
 
         while self._putq and (self._cnt + self._putq.peek()) <= self._capacity:
             # Transfer credit
-            task, n = self._putq.pop()
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+            _, n = self._putq_pop()
             self._cnt += n
