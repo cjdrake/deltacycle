@@ -2,7 +2,7 @@
 
 import pytest
 
-from deltacycle import Container, TaskGroup, run, sleep
+from deltacycle import Container, TaskGroup, create_task, run, sleep
 
 from .conftest import Trace, trace
 
@@ -245,3 +245,78 @@ def test_put_get_value_errors():
             await container.get(43)
 
     run(main())
+
+
+EXP3 = {
+    (2, "C1", "got!"),
+    (2, "C2", "got!"),
+    (2, "C3", "got!"),
+    (2, "C4", "got!"),
+}
+
+
+def test_chain_gets(captrace: Trace):
+    """Queue N gets, then simultaneously do N puts.
+
+    The first put will schedule C1, which will schedule C2, ...
+    """
+    q = Container(40)
+
+    async def prod():
+        await sleep(2)
+        assert q.try_put(40)
+
+    async def cons():
+        await sleep(1)
+        await q.get(10)
+        trace(msg="got!")
+
+    async def main():
+        create_task(cons(), name="C1")
+        create_task(cons(), name="C2")
+        create_task(cons(), name="C3")
+        create_task(cons(), name="C4")
+        create_task(prod(), name="P1")
+
+    run(main())
+
+    assert captrace == EXP3
+
+
+EXP4 = {
+    (2, "P1", "put!"),
+    (2, "P2", "put!"),
+    (2, "P3", "put!"),
+    (2, "P4", "put!"),
+}
+
+
+def test_chain_puts(captrace: Trace):
+    """Queue N gets, then simultaneously do N puts.
+
+    The first put will schedule C1, which will schedule C2, ...
+    """
+    q = Container(40)
+
+    async def cons():
+        q.try_put(40)
+
+        await sleep(2)
+
+        q.try_get(40)
+
+    async def prod():
+        await sleep(1)
+        await q.put(10)
+        trace(msg="put!")
+
+    async def main():
+        create_task(prod(), name="P1")
+        create_task(prod(), name="P2")
+        create_task(prod(), name="P3")
+        create_task(prod(), name="P4")
+        create_task(cons(), name="C1")
+
+    run(main())
+
+    assert captrace == EXP4
