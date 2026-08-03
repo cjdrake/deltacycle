@@ -48,6 +48,7 @@ class Sendable(SupportsDropTask):
     pass
 
 
+# NOTE: Used by Task and Event
 class EventQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
@@ -69,6 +70,7 @@ class EventQ(SupportsDropTask):
             yield task
 
 
+# NOTE: Used by Semaphore and Queue
 class SemaphoreQ(SupportsDropTask):
     """Tasks wait for a slot to become available."""
 
@@ -106,6 +108,7 @@ class SemaphoreQ(SupportsDropTask):
         return task
 
 
+# NOTE: Used by CreditPool and Container
 class CreditQ(SupportsDropTask):
     """Tasks wait for credit to become available."""
 
