@@ -399,3 +399,39 @@ def test_put_get_value_errors():
             await credits.get(43)
 
     run(main())
+
+
+EXP3 = {
+    (2, "C1", "got!"),
+    (2, "C2", "got!"),
+    (2, "C3", "got!"),
+    (2, "C4", "got!"),
+}
+
+
+def test_chain_gets(captrace: Trace):
+    """Queue N gets, then simultaneously do N puts.
+
+    The first put will schedule C1, which will schedule C2, ...
+    """
+    credits = CreditPool()
+
+    async def prod():
+        await sleep(2)
+        credits.put(40)
+
+    async def cons():
+        await sleep(1)
+        await credits.get(10)
+        trace(msg="got!")
+
+    async def main():
+        create_task(cons(), name="C1")
+        create_task(cons(), name="C2")
+        create_task(cons(), name="C3")
+        create_task(cons(), name="C4")
+        create_task(prod(), name="P1")
+
+    run(main())
+
+    assert captrace == EXP3
