@@ -71,7 +71,7 @@ class CreditPool(KernelIf, Sendable):
         return self._capacity if self._has_capacity else None
 
     def _empty(self, n: int) -> bool:
-        return self._cnt - n < 0
+        return (self._cnt - n) < 0
 
     def _full(self, n: int) -> bool:
         return self._has_capacity and (self._cnt + n) > self._capacity
@@ -89,14 +89,14 @@ class CreditPool(KernelIf, Sendable):
     def drop(self, task: Task[Any]):
         self._getq.drop(task)
 
+    def _getq_ready(self) -> bool:
+        return bool(self._getq) and not self._empty(self._getq.peek())
+
     def _getq_pop(self) -> Task[Any]:
         task, _ = self._getq.pop()
         self._kernel.join_any(task, self)
         self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         return task
-
-    def _getq_ready(self) -> bool:
-        return bool(self._getq) and not self._empty(self._getq.peek())
 
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
         self._check_n(n)

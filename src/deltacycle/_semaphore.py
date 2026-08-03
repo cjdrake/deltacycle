@@ -85,6 +85,9 @@ class Semaphore(KernelIf, Sendable):
     def drop(self, task: Task[Any]):
         self._getq.drop(task)
 
+    def _getq_ready(self) -> bool:
+        return bool(self._getq) and not self._empty()
+
     def _getq_pop(self) -> Task[Any]:
         task = self._getq.pop()
         self._kernel.join_any(task, self)
@@ -134,7 +137,7 @@ class Semaphore(KernelIf, Sendable):
             self._get()
             self._get_lock.release()
 
-            if self._getq and not self._empty():
+            if self._getq_ready():
                 # Get task waiting, port unlocked, credit available
                 self._get_lock.acquire(self._getq_pop())
         else:

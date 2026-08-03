@@ -106,10 +106,16 @@ class Queue[T](KernelIf):
     def full(self) -> bool:
         return self._has_capacity and len(self._items) == self._capacity
 
+    def _getq_ready(self) -> bool:
+        return bool(self._getq) and not self.empty()
+
     def _getq_pop(self) -> Task[Any]:
         task = self._getq.pop()
         self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         return task
+
+    def _putq_ready(self) -> bool:
+        return bool(self._putq) and not self.full()
 
     def _putq_pop(self) -> Task[Any]:
         task = self._putq.pop()
@@ -143,7 +149,7 @@ class Queue[T](KernelIf):
             self._put(item)
             self._put_lock.release()
 
-            if self._putq and not self.full():
+            if self._putq_ready():
                 # Put task waiting, port unlocked, space available
                 self._put_lock.acquire(self._putq_pop())
         else:
@@ -182,7 +188,7 @@ class Queue[T](KernelIf):
             item = self._get()
             self._get_lock.release()
 
-            if self._getq and not self.empty():
+            if self._getq_ready():
                 # Get task waiting, port unlocked, item available
                 self._get_lock.acquire(self._getq_pop())
 

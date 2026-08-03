@@ -51,7 +51,7 @@ class Container(KernelIf):
             raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
 
     def _empty(self, n: int) -> bool:
-        return self._cnt < n
+        return (self._cnt - n) < 0
 
     def _full(self, n: int) -> bool:
         return self._has_capacity and (self._cnt + n) > self._capacity
