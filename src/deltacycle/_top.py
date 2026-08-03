@@ -56,9 +56,9 @@ def set_kernel(kernel: Kernel[Any] | None = None):
     _kernel = kernel
 
 
-def _get_kt() -> tuple[Kernel[Any], Task[Any] | None]:
+def _get_kt() -> tuple[Kernel[Any], Task[Any]]:
     kernel = get_running_kernel()
-    task = kernel.task()
+    task = kernel.check_task()
     return kernel, task
 
 
@@ -71,8 +71,8 @@ def get_current_task() -> Task[Any] | None:
     Raises:
         RuntimeError: No kernel, or kernel is not currently running.
     """
-    _, task = _get_kt()
-    return task
+    kernel = get_running_kernel()
+    return kernel.task()
 
 
 def create_task[ResultType](
@@ -208,7 +208,6 @@ async def sleep(delay: int):
     if delay < 0:
         raise ValueError(f"Expected delay ≥ 0, got {delay}")
     kernel, task = _get_kt()
-    assert task is not None
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
     y = await task.switch_coro()
     assert y is None
@@ -228,7 +227,6 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
     bs = list(dict.fromkeys(args))
 
     kernel, task = _get_kt()
-    assert task is not None
 
     while True:
         blocked: list[Sendable] = []
@@ -261,7 +259,6 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
     bs = list(dict.fromkeys(args))
 
     kernel, task = _get_kt()
-    assert task is not None
 
     blocked: list[Sendable] = []
 
