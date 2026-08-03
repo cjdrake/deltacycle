@@ -4,7 +4,7 @@ from typing import Never
 
 import pytest
 
-from deltacycle import Queue, TaskGroup, any_of, finish, run, sleep, step
+from deltacycle import Queue, Semaphore, TaskGroup, any_of, finish, run, sleep, step
 
 from .common import Bool
 from .conftest import Trace, trace
@@ -144,5 +144,16 @@ def test_12():
         async with TaskGroup() as tg:
             tg.create_task(alice(), name="Alice")
             tg.create_task(bob(), name="Bob")
+
+    run(main())
+
+
+@pytest.mark.xfail(reason="https://github.com/cjdrake/deltacycle/issues/14")
+def test_14():
+    s = Semaphore(value=2)
+
+    async def main():
+        _ = await any_of(s.req(), s.req())
+        assert s._cnt == 2
 
     run(main())
