@@ -69,7 +69,7 @@ async def use_with(sem: Semaphore, t1: int, t2: int):
     trace("exit")
 
 
-EXP = {
+EXP1 = {
     # 0
     (0, "0", "enter"),
     (10, "0", "attempt get"),
@@ -129,7 +129,7 @@ def test_get_put(captrace: Trace):
 
     run(main())
 
-    assert captrace == EXP
+    assert captrace == EXP1
 
 
 def test_async_with(captrace: Trace):
@@ -140,7 +140,7 @@ def test_async_with(captrace: Trace):
 
     run(main())
 
-    assert captrace == EXP
+    assert captrace == EXP1
 
 
 def test_unbounded():
@@ -251,3 +251,42 @@ def test_schedule_all2():
         lock.put()
 
     run(main())
+
+
+EXP2 = {
+    (2, "C1", "got!"),
+    (2, "C2", "got!"),
+    (2, "C3", "got!"),
+    (2, "C4", "got!"),
+}
+
+
+def test_chain_gets(captrace: Trace):
+    """Queue N gets, then simultaneously do N puts.
+
+    The first put will schedule C1, which will schedule C2, ...
+    """
+    sem = Semaphore()
+
+    async def prod():
+        await sleep(2)
+        sem.put()
+        sem.put()
+        sem.put()
+        sem.put()
+
+    async def cons():
+        await sleep(1)
+        await sem.get()
+        trace(msg="got!")
+
+    async def main():
+        create_task(cons(), name="C1")
+        create_task(cons(), name="C2")
+        create_task(cons(), name="C3")
+        create_task(cons(), name="C4")
+        create_task(prod(), name="P1")
+
+    run(main())
+
+    assert captrace == EXP2
