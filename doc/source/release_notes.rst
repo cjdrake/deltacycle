@@ -15,6 +15,10 @@ Added ``Kill`` exception to public API.
 It now inherits from ``BaseException``,
 so shouldn't be accidentally caught by a user exception handler.
 
+Related to `Issue #12 <https://github.com/cjdrake/deltacycle/issues/12>`_,
+added get/put port locks to Semaphore, CreditPool, and Container.
+Probably fixes a couple latent bugs.
+
 
 Version 0.39.0
 ==============
