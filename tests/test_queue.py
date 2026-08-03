@@ -138,3 +138,88 @@ def test_prod_cons3():
         create_task(cons())
 
     run(main())
+
+
+EXP3 = {
+    (2, "C1", "got: 1"),
+    (2, "C2", "got: 2"),
+    (2, "C3", "got: 3"),
+    (2, "C4", "got: 4"),
+}
+
+
+def test_chain_gets(captrace: set[tuple[int, str, str]]):
+    """Queue N gets, then simultaneously do N puts.
+
+    The first put will schedule C1, which will schedule C2, ...
+    """
+    q: Queue[int] = Queue(4)
+
+    async def prod():
+        await sleep(2)
+        assert q.try_put(1)
+        assert q.try_put(2)
+        assert q.try_put(3)
+        assert q.try_put(4)
+
+    async def cons():
+        await sleep(1)
+        n = await q.get()
+        trace(msg=f"got: {n}")
+
+    async def main():
+        create_task(cons(), name="C1")
+        create_task(cons(), name="C2")
+        create_task(cons(), name="C3")
+        create_task(cons(), name="C4")
+        create_task(prod(), name="P1")
+
+    run(main())
+
+    assert captrace == EXP3
+
+
+EXP4 = {
+    (2, "P1", "put: 1"),
+    (2, "P2", "put: 2"),
+    (2, "P3", "put: 3"),
+    (2, "P4", "put: 4"),
+}
+
+
+def test_chain_puts(captrace: set[tuple[int, str, str]]):
+    """Queue N gets, then simultaneously do N puts.
+
+    The first put will schedule C1, which will schedule C2, ...
+    """
+    q: Queue[int] = Queue(4)
+
+    async def cons():
+        # Fill up w/ junk
+        q.try_put(0)
+        q.try_put(0)
+        q.try_put(0)
+        q.try_put(0)
+
+        await sleep(2)
+
+        q.try_get()
+        q.try_get()
+        q.try_get()
+        q.try_get()
+
+    async def prod(n: int):
+        await sleep(1)
+        await q.put(n)
+        trace(msg=f"put: {n}")
+
+    async def main():
+        create_task(prod(1), name="P1")
+        create_task(prod(2), name="P2")
+        create_task(prod(3), name="P3")
+        create_task(prod(4), name="P4")
+        create_task(cons(), name="C1")
+
+    run(main())
+
+    assert captrace == EXP4
