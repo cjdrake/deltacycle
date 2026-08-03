@@ -4,7 +4,7 @@ import pytest
 
 from deltacycle import AllOf, CreditPool, TaskGroup, all_of, create_task, now, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 def test_cap():
@@ -218,7 +218,7 @@ EXP2 = {
 }
 
 
-def test_get_put(captrace: set[tuple[int, str, str]]):
+def test_get_put(captrace: Trace):
     async def main():
         credits = CreditPool(10)
         for i in range(10):
@@ -229,7 +229,7 @@ def test_get_put(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP1
 
 
-def test_try_get_put(captrace: set[tuple[int, str, str]]):
+def test_try_get_put(captrace: Trace):
     async def main():
         credits = CreditPool(10)
         for i in range(10):
@@ -240,7 +240,7 @@ def test_try_get_put(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP2
 
 
-def test_async_with(captrace: set[tuple[int, str, str]]):
+def test_async_with(captrace: Trace):
     async def main():
         credits = CreditPool(10)
         for i in range(10):

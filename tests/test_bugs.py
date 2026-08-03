@@ -7,7 +7,7 @@ import pytest
 from deltacycle import Queue, TaskGroup, any_of, finish, run, sleep, step
 
 from .common import Bool
-from .conftest import trace
+from .conftest import Trace, trace
 
 EXP_2 = {
     (5, "do_stuff", "first"),
@@ -17,7 +17,7 @@ EXP_2 = {
 }
 
 
-def test_2(captrace: set[tuple[int, str, str]]):
+def test_2(captrace: Trace):
     clock = Bool(name="clock")
 
     async def do_stuff():
@@ -76,7 +76,7 @@ EXP_11 = {
 }
 
 
-def test_11(captrace: set[tuple[int, str, str]]):
+def test_11(captrace: Trace):
     clock = Bool(name="clock")
 
     async def do_np_edge():

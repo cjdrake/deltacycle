@@ -2,7 +2,7 @@
 
 from deltacycle import Lock, create_task, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 async def use_acquire_release(lock: Lock, t1: int, t2: int):
@@ -63,7 +63,7 @@ EXP = {
 }
 
 
-def test_acquire_release(captrace: set[tuple[int, str, str]]):
+def test_acquire_release(captrace: Trace):
     async def main():
         lock = Lock()
         for i in range(4):
@@ -74,7 +74,7 @@ def test_acquire_release(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP
 
 
-def test_async_with(captrace: set[tuple[int, str, str]]):
+def test_async_with(captrace: Trace):
     async def main():
         lock = Lock()
         for i in range(4):

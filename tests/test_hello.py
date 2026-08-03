@@ -4,7 +4,7 @@ import pytest
 
 from deltacycle import Kernel, get_kernel, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 EXP = {
     (-1, "", "Before Time"),
@@ -13,7 +13,7 @@ EXP = {
 }
 
 
-def test_hello(captrace: set[tuple[int, str, str]]):
+def test_hello(captrace: Trace):
     """Test basic async/await hello world functionality."""
     trace("Before Time")
 

@@ -4,7 +4,10 @@ import pytest
 
 from deltacycle import get_running_kernel
 
-msgs: set[tuple[int, str, str]] = set()
+type TraceMsg = tuple[int, str, str]
+type Trace = set[TraceMsg]
+
+msgs: Trace = set()
 
 
 def trace(msg: str = ""):

@@ -4,7 +4,7 @@ from typing import Never
 
 from deltacycle import Queue, create_task, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 EXP1 = {
     (0, "P", "0"),
@@ -31,7 +31,7 @@ EXP1 = {
 }
 
 
-def test_prod_cons1(captrace: set[tuple[int, str, str]]):
+def test_prod_cons1(captrace: Trace):
     q: Queue[int] = Queue()
 
     async def prod():
@@ -80,7 +80,7 @@ EXP2 = {
 }
 
 
-def test_prod_cons2(captrace: set[tuple[int, str, str]]):
+def test_prod_cons2(captrace: Trace):
     q: Queue[int] = Queue(2)
 
     assert q.capacity == 2
@@ -148,7 +148,7 @@ EXP3 = {
 }
 
 
-def test_chain_gets(captrace: set[tuple[int, str, str]]):
+def test_chain_gets(captrace: Trace):
     """Queue N gets, then simultaneously do N puts.
 
     The first put will schedule C1, which will schedule C2, ...
@@ -187,7 +187,7 @@ EXP4 = {
 }
 
 
-def test_chain_puts(captrace: set[tuple[int, str, str]]):
+def test_chain_puts(captrace: Trace):
     """Queue N gets, then simultaneously do N puts.
 
     The first put will schedule C1, which will schedule C2, ...

@@ -21,7 +21,7 @@ from deltacycle import (
     step,
 )
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 def test_results():
@@ -128,7 +128,7 @@ EXP1 = {
 }
 
 
-def test_interrupt_pending1(captrace: set[tuple[int, str, str]]):
+def test_interrupt_pending1(captrace: Trace):
     async def cf(n: int):
         trace("enter")
         try:
@@ -176,7 +176,7 @@ def test_interrupt_pending1(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP1
 
 
-def test_interrupt_pending2(captrace: set[tuple[int, str, str]]):
+def test_interrupt_pending2(captrace: Trace):
     async def cf(n: int):
         trace("enter")
         try:
@@ -241,7 +241,7 @@ EXP2 = {
 }
 
 
-def test_interrupt_waiting(captrace: set[tuple[int, str, str]]):
+def test_interrupt_waiting(captrace: Trace):
     async def cf(event: Event):
         trace("enter")
         try:
@@ -282,7 +282,7 @@ EXP3 = {
 }
 
 
-def test_interrupt_running(captrace: set[tuple[int, str, str]]):
+def test_interrupt_running(captrace: Trace):
     async def self_interrupting_task():
         trace("started")
         await sleep(1)

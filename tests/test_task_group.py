@@ -6,7 +6,7 @@ import pytest
 
 from deltacycle import Task, TaskGroup, get_current_task, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 async def cf_r(t: int, r: int) -> int:
@@ -52,7 +52,7 @@ EXP1 = {
 }
 
 
-def test_group(captrace: set[tuple[int, str, str]]):
+def test_group(captrace: Trace):
     async def main():
         trace("enter")
 
@@ -100,7 +100,7 @@ EXP2 = {
 }
 
 
-def test_group_child_except(captrace: set[tuple[int, str, str]]):
+def test_group_child_except(captrace: Trace):
     """One child raises an exception, others are interrupted."""
 
     async def main():
@@ -163,7 +163,7 @@ EXP3 = {
 }
 
 
-def test_group_except(captrace: set[tuple[int, str, str]]):
+def test_group_except(captrace: Trace):
     async def main():
         trace("enter")
 
@@ -226,7 +226,7 @@ EXP4 = {
 }
 
 
-def test_group_newborns_except(captrace: set[tuple[int, str, str]]):
+def test_group_newborns_except(captrace: Trace):
     async def main():
         trace("enter")
 

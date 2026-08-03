@@ -13,7 +13,7 @@ from deltacycle import (
     sleep,
 )
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 def test_len():
@@ -121,7 +121,7 @@ EXP = {
 }
 
 
-def test_get_put(captrace: set[tuple[int, str, str]]):
+def test_get_put(captrace: Trace):
     async def main():
         sem = Semaphore(4)
         for i in range(8):
@@ -132,7 +132,7 @@ def test_get_put(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP
 
 
-def test_async_with(captrace: set[tuple[int, str, str]]):
+def test_async_with(captrace: Trace):
     async def main():
         sem = Semaphore(4)
         for i in range(8):

@@ -5,7 +5,7 @@ from typing import Never
 from deltacycle import any_of, create_task, run, sleep
 
 from .common import Bool, Int, IntMem
-from .conftest import trace
+from .conftest import Trace, trace
 
 # wr_en, wr_addr, wr_data, rd_addr, rd_data
 VALS = [
@@ -35,7 +35,7 @@ EXP = {
 }
 
 
-def test_regfile(captrace: set[tuple[int, str, str]]):
+def test_regfile(captrace: Trace):
     clk = Bool(name="clk")
     period = 10
 

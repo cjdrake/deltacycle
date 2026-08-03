@@ -5,7 +5,7 @@ from typing import Never
 from deltacycle import any_of, create_task, run, sleep
 
 from .common import Bool
-from .conftest import trace
+from .conftest import Trace, trace
 
 # a, b, ci, s, co
 VALS = [
@@ -24,7 +24,7 @@ EXP = {
 }
 
 
-def test_add(captrace: set[tuple[int, str, str]]):
+def test_add(captrace: Trace):
     """Test 4-bit adder simulation."""
     period = 10
 

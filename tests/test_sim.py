@@ -5,7 +5,7 @@ from typing import Never
 from deltacycle import Kernel, create_task, get_running_kernel, run, sleep, step
 
 from .common import Bool
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 async def drv_clk(clk: Bool) -> Never:
@@ -59,7 +59,7 @@ EXP = {
 }
 
 
-def test_vars_run(captrace: set[tuple[int, str, str]]):
+def test_vars_run(captrace: Trace):
     """Test run, halt, run."""
 
     clk = Bool(name="clk")
@@ -85,7 +85,7 @@ def test_vars_run(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP
 
 
-def test_vars_iter(captrace: set[tuple[int, str, str]]):
+def test_vars_iter(captrace: Trace):
     """Test iter, iter."""
 
     clk = Bool(name="clk")
@@ -116,7 +116,7 @@ def test_vars_iter(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP
 
 
-def test_vars_run_iter(captrace: set[tuple[int, str, str]]):
+def test_vars_run_iter(captrace: Trace):
     """Test run, halt, iter."""
 
     clk = Bool(name="clk")

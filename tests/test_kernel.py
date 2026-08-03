@@ -13,7 +13,7 @@ from deltacycle import (
     step,
 )
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 async def main(n: int):
@@ -23,14 +23,14 @@ async def main(n: int):
     return n
 
 
-def test_run(captrace: set[tuple[int, str, str]]):
+def test_run(captrace: Trace):
     ret = run(main(42))
     assert ret == 42
 
     assert captrace == {(i, "main", str(i)) for i in range(42)}
 
 
-def test_irun(captrace: set[tuple[int, str, str]]):
+def test_irun(captrace: Trace):
     g = step(main(42))
     try:
         while True:
@@ -41,7 +41,7 @@ def test_irun(captrace: set[tuple[int, str, str]]):
     assert captrace == {(i, "main", str(i)) for i in range(42)}
 
 
-def test_cannot_run(captrace: set[tuple[int, str, str]]):
+def test_cannot_run(captrace: Trace):
     run(main(100))
     kernel = get_kernel()
 
@@ -53,7 +53,7 @@ def test_cannot_run(captrace: set[tuple[int, str, str]]):
         list(step(kernel=kernel))
 
 
-def test_limits(captrace: set[tuple[int, str, str]]):
+def test_limits(captrace: Trace):
     run(main(1000), ticks=51)
     kernel = get_running_kernel()
     assert kernel.time() == 50
@@ -78,7 +78,7 @@ def test_nocoro():
         list(step())  # pyright: ignore[reportUnknownArgumentType]
 
 
-def test_get_running_kernel(captrace: set[tuple[int, str, str]]):
+def test_get_running_kernel(captrace: Trace):
     # No kernel
     set_kernel()
     with pytest.raises(RuntimeError):

@@ -4,7 +4,7 @@ from typing import Never
 
 from deltacycle import Kernel, create_task, finish, get_kernel, run, sleep, step
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 async def ctl() -> Never:
@@ -113,7 +113,7 @@ EXP1 = {
 }
 
 
-def test_finish1(captrace: set[tuple[int, str, str]]):
+def test_finish1(captrace: Trace):
     async def main():
         create_task(ctl(), name="CTL")
         create_task(ping(3), name="FOO")
@@ -131,7 +131,7 @@ def test_finish1(captrace: set[tuple[int, str, str]]):
     assert captrace == EXP1
 
 
-def test_finish2(captrace: set[tuple[int, str, str]]):
+def test_finish2(captrace: Trace):
     async def main():
         create_task(ctl(), name="CTL")
         create_task(ping(3), name="FOO")

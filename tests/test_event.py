@@ -2,7 +2,7 @@
 
 from deltacycle import AnyOf, Event, any_of, create_task, get_running_kernel, now, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 async def primary(event: Event):
@@ -88,7 +88,7 @@ EXP1 = {
 }
 
 
-def test_acquire_release(captrace: set[tuple[int, str, str]]):
+def test_acquire_release(captrace: Trace):
     async def main():
         event = Event()
         create_task(primary(event), name="P")

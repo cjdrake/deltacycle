@@ -4,7 +4,7 @@ import pytest
 
 from deltacycle import Container, TaskGroup, run, sleep
 
-from .conftest import trace
+from .conftest import Trace, trace
 
 
 def test_len():
@@ -111,7 +111,7 @@ EXP1 = {
 }
 
 
-def test_prod_cons1(captrace: set[tuple[int, str, str]]):
+def test_prod_cons1(captrace: Trace):
     async def p(container: Container, n: int):
         for _ in range(16):
             await container.put(n)
@@ -197,7 +197,7 @@ EXP2 = {
 }
 
 
-def test_prod_cons2(captrace: set[tuple[int, str, str]]):
+def test_prod_cons2(captrace: Trace):
     async def p(container: Container, n: int):
         for _ in range(8):
             while not container.try_put(n):
