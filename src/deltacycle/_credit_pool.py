@@ -213,6 +213,10 @@ class ReqCredit(Blocking):
     ):
         self._credits.put(self._n)
 
+    @property
+    def credits(self) -> CreditPool:
+        return self._credits
+
     def try_block(self, task: Task[Any]) -> bool:
         if self._credits.try_get(self._n):
             return False

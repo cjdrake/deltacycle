@@ -184,11 +184,11 @@ class Semaphore(KernelIf, Sendable):
 
 class ReqSemaphore(Blocking):
     def __init__(self, sem: Semaphore, priority: int):
-        self._sem = sem
+        self._semaphore = sem
         self._priority = priority
 
     async def __aenter__(self) -> Self:
-        await self._sem.get(self._priority)
+        await self._semaphore.get(self._priority)
         return self
 
     async def __aexit__(
@@ -197,17 +197,21 @@ class ReqSemaphore(Blocking):
         exc: BaseException | None,
         traceback: TracebackType | None,
     ):
-        self._sem.put()
+        self._semaphore.put()
+
+    @property
+    def semaphore(self) -> Semaphore:
+        return self._semaphore
 
     def try_block(self, task: Task[Any]) -> bool:
-        if self._sem.try_get():
+        if self._semaphore.try_get():
             return False
 
-        self._sem._getq.push(self._priority, task)
+        self._semaphore._getq.push(self._priority, task)
         return True
 
     def future(self) -> Semaphore:
-        return self._sem
+        return self._semaphore
 
 
 class Lock(Semaphore):

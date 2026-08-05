@@ -145,6 +145,7 @@ Synchronization Primitives
 
     .. automethod:: __aenter__
     .. automethod:: __aexit__
+    .. autoproperty:: semaphore
 
 .. autoclass:: deltacycle.Lock
     :show-inheritance:
@@ -163,6 +164,7 @@ Synchronization Primitives
 
     .. automethod:: __aenter__
     .. automethod:: __aexit__
+    .. autoproperty:: credits
 
 .. autoclass:: deltacycle.Queue
     :show-inheritance:
