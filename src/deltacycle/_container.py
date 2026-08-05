@@ -116,7 +116,7 @@ class Container(KernelIf):
         return bool(self._getq) and not self._empty(self._getq.peek())
 
     def _getq_pop(self) -> Task[Any]:
-        task, _ = self._getq.pop()
+        task = self._getq.pop()
         self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         return task
 
@@ -124,7 +124,7 @@ class Container(KernelIf):
         return bool(self._putq) and not self._full(self._putq.peek())
 
     def _putq_pop(self) -> Task[Any]:
-        task, _ = self._putq.pop()
+        task = self._putq.pop()
         self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         return task
 

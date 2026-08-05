@@ -93,7 +93,7 @@ class CreditPool(KernelIf, Sendable):
         return bool(self._getq) and not self._empty(self._getq.peek())
 
     def _getq_pop(self) -> Task[Any]:
-        task, _ = self._getq.pop()
+        task = self._getq.pop()
         self._kernel.join_any(task, self)
         self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
         return task

@@ -140,10 +140,10 @@ class CreditQ(SupportsDropTask):
         heapq.heappush(self._items, (priority, self._index, task, n))
         self._index += 1
 
-    def pop(self) -> tuple[Task[Any], int]:
-        _, _, task, n = heapq.heappop(self._items)
+    def pop(self) -> Task[Any]:
+        _, _, task, _ = heapq.heappop(self._items)
         task.unlink(tq=self)
-        return task, n
+        return task
 
     def peek(self) -> int:
         assert self._items
