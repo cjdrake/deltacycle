@@ -2,11 +2,49 @@
 
 from __future__ import annotations
 
+import heapq
 from collections import deque
 from typing import Any
 
 from ._kernel_if import KernelIf
-from ._task import SemaphoreQ, SupportsDropTask, Task
+from ._task import SupportsDropTask, Task
+
+
+class _PortQ(SupportsDropTask):
+    """Tasks wait for a slot to become available."""
+
+    def __init__(self):
+        # priority, index, task
+        self._items: list[tuple[int, int, Task[Any]]] = []
+
+        # Monotonically increasing integer
+        # Breaks (time, priority, ...) ties in the heapq
+        self._index: int = 0
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def _find(self, task: Task[Any]) -> int:
+        for i, (_, _, t) in enumerate(self._items):
+            if t is task:
+                return i
+        assert False  # pragma: no cover
+
+    def drop(self, task: Task[Any]):
+        index = self._find(task)
+        del self._items[index]
+        heapq.heapify(self._items)
+        task.unlink(tq=self)
+
+    def push(self, priority: int, task: Task[Any]):
+        task.link(tq=self)
+        heapq.heappush(self._items, (priority, self._index, task))
+        self._index += 1
+
+    def pop(self) -> Task[Any]:
+        _, _, task = heapq.heappop(self._items)
+        task.unlink(tq=self)
+        return task
 
 
 class _PortLock[T](SupportsDropTask):
@@ -82,10 +120,10 @@ class Queue[T](KernelIf):
         self._items: deque[T] = deque()
 
         # Tasks waiting to get an item
-        self._getq = SemaphoreQ()
+        self._getq = _PortQ()
 
         # Tasks waiting to put an item
-        self._putq = SemaphoreQ()
+        self._putq = _PortQ()
 
         # Lock ensures gets are atomic
         self._get_lock = _GetLock(parent=self)
