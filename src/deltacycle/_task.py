@@ -47,8 +47,7 @@ class Sendable(SupportsDropTask):
     pass
 
 
-# NOTE: Used by Task and Event
-class EventQ(SupportsDropTask):
+class _WaitQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
@@ -207,7 +206,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._refcnts: Counter[SupportsDropTask] = Counter()
 
         # Other tasks waiting for this task to complete
-        self._waitq = EventQ()
+        self._waitq = _WaitQ()
 
         # Flag to avoid multiple signals
         self._signal = False

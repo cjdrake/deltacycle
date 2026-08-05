@@ -2,11 +2,32 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from typing import Any, Self, cast
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, EventQ, Sendable, Task
+from ._task import Blocking, Sendable, SupportsDropTask, Task
+
+
+class _WaitQ(SupportsDropTask):
+    """Tasks wait for event trigger."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], None] = {}
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        task.unlink(tq=self)
+
+    def push(self, task: Task[Any]):
+        task.link(tq=self)
+        self._items[task] = None
+
+    def pop(self) -> Iterator[Task[Any]]:
+        tasks = list(self._items)
+        for task in tasks:
+            self.drop(task)
+            yield task
 
 
 class Event(KernelIf, Blocking, Sendable):
@@ -28,7 +49,7 @@ class Event(KernelIf, Blocking, Sendable):
 
     def __init__(self):
         self._flag = False
-        self._waitq = EventQ()
+        self._waitq = _WaitQ()
 
     def _blocking(self) -> bool:
         return not self._flag
