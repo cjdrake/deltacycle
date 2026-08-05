@@ -86,7 +86,7 @@ class Variable(KernelIf, Blocking, Sendable):
         task = self._kernel.check_task()
         # NOTE: Use default predicate
         self._waiting.push(task, self.changed)
-        v = cast(typ=Variable, val=(yield from task.switch_gen()))
+        v = cast(typ=Self, val=(yield from task.switch_gen()))
         assert v is self
         return self
 
@@ -148,7 +148,7 @@ class PredVar(KernelIf, Blocking):
         self._var = var
         self._p = p
 
-    def __await__(self) -> Generator[None, Sendable, Variable]:
+    def __await__(self) -> Generator[None, Variable, Variable]:
         """Await variable change:
 
         For variable ``v``, and predicate function ``p``:
