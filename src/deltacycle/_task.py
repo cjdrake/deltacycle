@@ -288,7 +288,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._refcnts: Counter[SupportsDropTask] = Counter()
 
         # Other tasks waiting for this task to complete
-        self._waiting = EventQ()
+        self._waitq = EventQ()
 
         # Flag to avoid multiple signals
         self._signal = False
@@ -301,12 +301,12 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         return not self.done()
 
     def drop(self, task: Task[Any]):
-        self._waiting.drop(task)
+        self._waitq.drop(task)
 
     def __await__(self) -> Generator[None, Self, ResultType]:
         if self._blocking():
             task = self._kernel.check_task()
-            self._waiting.push(task)
+            self._waitq.push(task)
             t = cast(typ=Self, val=(yield from task.switch_gen()))
             assert t is self
 
@@ -402,7 +402,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
                 assert False
 
     def _set(self):
-        for task in self._waiting.pop():
+        for task in self._waitq.pop():
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(self.Command.RESUME, self))
 
@@ -527,7 +527,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
     # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
-            self._waiting.push(task)
+            self._waitq.push(task)
             return True
         return False
 
@@ -564,7 +564,7 @@ class TaskGroup(KernelIf):
         while self._setup_tasks:
             child = self._setup_tasks.pop()
             if not child.done():
-                child._waiting.push(self._parent)
+                child._waitq.push(self._parent)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -607,7 +607,7 @@ class TaskGroup(KernelIf):
         child.group = self
         if self._setup_done:
             if not child.done():
-                child._waiting.push(self._parent)
+                child._waitq.push(self._parent)
                 self._todo.add(child)
         else:
             self._setup_tasks.add(child)

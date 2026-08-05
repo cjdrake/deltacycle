@@ -28,19 +28,19 @@ class Event(KernelIf, Blocking, Sendable):
 
     def __init__(self):
         self._flag = False
-        self._waiting = EventQ()
+        self._waitq = EventQ()
 
     def _blocking(self) -> bool:
         return not self._flag
 
     def drop(self, task: Task[Any]):
-        self._waiting.drop(task)
+        self._waitq.drop(task)
 
     def __await__(self) -> Generator[None, Self, Self]:
         """Await event set."""
         if self._blocking():
             task = self._kernel.check_task()
-            self._waiting.push(task)
+            self._waitq.push(task)
             e = cast(typ=Self, val=(yield from task.switch_gen()))
             assert e is self
 
@@ -54,7 +54,7 @@ class Event(KernelIf, Blocking, Sendable):
         """Set the flag. Stop blocking waiting tasks."""
         self._flag = True
 
-        for task in self._waiting.pop():
+        for task in self._waitq.pop():
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
@@ -65,7 +65,7 @@ class Event(KernelIf, Blocking, Sendable):
     # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
-            self._waiting.push(task)
+            self._waitq.push(task)
             return True
         return False
 

@@ -68,10 +68,10 @@ class Variable(KernelIf, Blocking, Sendable):
     """
 
     def __init__(self):
-        self._waiting = _WaitQ()
+        self._waitq = _WaitQ()
 
     def drop(self, task: Task[Any]):
-        self._waiting.drop(task)
+        self._waitq.drop(task)
 
     def __await__(self) -> Generator[None, Self, Self]:
         """Await variable change:
@@ -85,13 +85,13 @@ class Variable(KernelIf, Blocking, Sendable):
         """
         task = self._kernel.check_task()
         # NOTE: Use default predicate
-        self._waiting.push(task, self.changed)
+        self._waitq.push(task, self.changed)
         v = cast(typ=Self, val=(yield from task.switch_gen()))
         assert v is self
         return self
 
     def _set(self):
-        for task in self._waiting.pop():
+        for task in self._waitq.pop():
             self._kernel.join_any(task, self)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
 
@@ -120,7 +120,7 @@ class Variable(KernelIf, Blocking, Sendable):
     # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         # NOTE: Use default predicate
-        self._waiting.push(task, self.changed)
+        self._waitq.push(task, self.changed)
         return True
 
     def future(self) -> Variable:
@@ -158,14 +158,14 @@ class PredVariable(KernelIf, Blocking):
            to ``True``, unblock all tasks waiting for that event.
         """
         task = self._kernel.check_task()
-        self._var._waiting.push(task, self._p)
+        self._var._waitq.push(task, self._p)
         v = yield from task.switch_gen()
         assert v is self._var
         return self._var
 
     # Blocking
     def try_block(self, task: Task[Any]) -> bool:
-        self._var._waiting.push(task, self._p)
+        self._var._waitq.push(task, self._p)
         return True
 
     def future(self) -> Variable:
