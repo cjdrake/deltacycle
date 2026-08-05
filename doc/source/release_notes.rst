@@ -8,6 +8,12 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.41.0
+==============
+
+Renamed ``PredVar`` to ``PredVariable``.
+
+
 Version 0.40.0
 ==============
 

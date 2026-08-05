@@ -85,7 +85,7 @@ Variables
     .. automethod:: changed
     .. automethod:: update
 
-.. autoclass:: deltacycle.PredVar
+.. autoclass:: deltacycle.PredVariable
 
     .. automethod:: __await__
 

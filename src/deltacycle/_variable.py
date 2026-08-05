@@ -98,16 +98,16 @@ class Variable(KernelIf, Blocking, Sendable):
         # Add variable to update set
         self._kernel.touch_var(self)
 
-    def pred(self, p: Predicate) -> PredVar:
+    def pred(self, p: Predicate) -> PredVariable:
         """Return blocking, predicated variable.
 
         Args:
             p: Predicate function with no args and ``bool`` return type.
 
         Returns:
-            Predicated Variable (``PredVar``) object.
+            Predicated Variable object.
         """
-        return PredVar(self, p)
+        return PredVariable(self, p)
 
     @abstractmethod
     def changed(self) -> bool:
@@ -127,7 +127,7 @@ class Variable(KernelIf, Blocking, Sendable):
         return self
 
 
-class PredVar(KernelIf, Blocking):
+class PredVariable(KernelIf, Blocking):
     """Predicated Variable.
 
     A lightweight wrapper around a Variable instance.
