@@ -108,48 +108,6 @@ class SemaphoreQ(SupportsDropTask):
         return task
 
 
-# NOTE: Used by CreditPool and Container
-class CreditQ(SupportsDropTask):
-    """Tasks wait for credit to become available."""
-
-    def __init__(self):
-        # priority, index, task, n
-        self._items: list[tuple[int, int, Task[Any], int]] = []
-
-        # Monotonically increasing integer
-        # Breaks (time, priority, ...) ties in the heapq
-        self._index: int = 0
-
-    def __len__(self) -> int:
-        return len(self._items)
-
-    def _find(self, task: Task[Any]) -> int:
-        for i, (_, _, t, _) in enumerate(self._items):
-            if t is task:
-                return i
-        assert False  # pragma: no cover
-
-    def drop(self, task: Task[Any]):
-        index = self._find(task)
-        del self._items[index]
-        heapq.heapify(self._items)
-        task.unlink(tq=self)
-
-    def push(self, priority: int, task: Task[Any], n: int):
-        task.link(tq=self)
-        heapq.heappush(self._items, (priority, self._index, task, n))
-        self._index += 1
-
-    def pop(self) -> Task[Any]:
-        _, _, task, _ = heapq.heappop(self._items)
-        task.unlink(tq=self)
-        return task
-
-    def peek(self) -> int:
-        assert self._items
-        return self._items[0][-1]
-
-
 class _SuspendResume:
     """Suspend/Resume current task.
 
