@@ -21,6 +21,8 @@ Kernel
     .. automethod:: call_later
     .. automethod:: call_at
     .. automethod:: create_task
+    .. automethod:: _call
+    .. automethod:: _iter
 
 .. autoclass:: deltacycle.DefaultKernel
     :show-inheritance:
@@ -86,6 +88,7 @@ Variables
     .. automethod:: update
 
 .. autoclass:: deltacycle.PredVariable
+    :show-inheritance:
 
     .. automethod:: __await__
 
@@ -142,6 +145,7 @@ Synchronization Primitives
     .. automethod:: get
 
 .. autoclass:: deltacycle.ReqSemaphore
+    :show-inheritance:
 
     .. automethod:: __aenter__
     .. automethod:: __aexit__
@@ -161,6 +165,7 @@ Synchronization Primitives
     .. automethod:: get
 
 .. autoclass:: deltacycle.ReqCredit
+    :show-inheritance:
 
     .. automethod:: __aenter__
     .. automethod:: __aexit__
