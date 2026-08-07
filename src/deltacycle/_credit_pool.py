@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import heapq
 from types import TracebackType
-from typing import Any, Self, cast
+from typing import Any, Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, SupportsDropTask, Task
+from ._task import Blocking, SupportsDropTask, Task
 
 
 class _GetQ(SupportsDropTask):
@@ -15,7 +15,7 @@ class _GetQ(SupportsDropTask):
 
     def __init__(self):
         # priority, index, task, n
-        self._items: list[tuple[int, int, Task[Any], int]] = []
+        self._items: list[tuple[int, int, Task[Any], ReqCredit | None, int]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -25,7 +25,7 @@ class _GetQ(SupportsDropTask):
         return len(self._items)
 
     def _find(self, task: Task[Any]) -> int:
-        for i, (_, _, t, _) in enumerate(self._items):
+        for i, (_, _, t, _, _) in enumerate(self._items):
             if t is task:
                 return i
         assert False  # pragma: no cover
@@ -36,15 +36,15 @@ class _GetQ(SupportsDropTask):
         heapq.heapify(self._items)
         task.unlink(tq=self)
 
-    def push(self, priority: int, task: Task[Any], n: int):
+    def push(self, priority: int, task: Task[Any], req: ReqCredit | None, n: int):
         task.link(tq=self)
-        heapq.heappush(self._items, (priority, self._index, task, n))
+        heapq.heappush(self._items, (priority, self._index, task, req, n))
         self._index += 1
 
-    def pop(self) -> Task[Any]:
-        _, _, task, _ = heapq.heappop(self._items)
+    def pop(self) -> tuple[Task[Any], ReqCredit | None]:
+        _, _, task, req, _ = heapq.heappop(self._items)
         task.unlink(tq=self)
-        return task
+        return task, req
 
     def peek(self) -> int:
         assert self._items
@@ -86,7 +86,7 @@ class _GetLock(_PortLock):
             self.acquire(self._parent._getq_pop())
 
 
-class CreditPool(KernelIf, Sendable):
+class CreditPool(KernelIf):
     def __init__(self, value: int = 0, capacity: int = 0):
         self._capacity = capacity
         self._has_capacity = capacity > 0
@@ -128,16 +128,16 @@ class CreditPool(KernelIf, Sendable):
         if self._has_capacity and n > self._capacity:
             raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
 
-    def drop(self, task: Task[Any]):
-        self._getq.drop(task)
-
     def _getq_ready(self) -> bool:
         return bool(self._getq) and not self._empty(self._getq.peek())
 
     def _getq_pop(self) -> Task[Any]:
-        task = self._getq.pop()
-        self._kernel.join_any(task, self)
-        self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+        task, req = self._getq.pop()
+        if req is None:
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        else:
+            self._kernel.join_any(task, req)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
         return task
 
     def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
@@ -179,9 +179,9 @@ class CreditPool(KernelIf, Sendable):
         if self._empty(n) or self._get_lock:
             task = self._kernel.check_task()
 
-            self._getq.push(priority, task, n)
-            credits = cast(typ=CreditPool, val=(await task.switch_coro()))
-            assert credits is self
+            self._getq.push(priority, task, None, n)
+            y = await task.switch_coro()
+            assert y is None
 
             # Wakeup: complete get
             self._get(n)
@@ -196,11 +196,16 @@ class CreditPool(KernelIf, Sendable):
 
 
 class ReqCredit(Blocking):
-    def __init__(self, credits: CreditPool, n: int, priority: int):
+    def __init__(self, credits: CreditPool, n: int, priority: int = 0):
         self._credits = credits
         self._n = n
         self._priority = priority
 
+    @property
+    def credits(self) -> CreditPool:
+        return self._credits
+
+    # Blocking
     async def __aenter__(self) -> Self:
         await self._credits.get(self._n, self._priority)
         return self
@@ -213,16 +218,12 @@ class ReqCredit(Blocking):
     ):
         self._credits.put(self._n)
 
-    @property
-    def credits(self) -> CreditPool:
-        return self._credits
-
     def try_block(self, task: Task[Any]) -> bool:
         if self._credits.try_get(self._n):
             return False
 
-        self._credits._getq.push(self._priority, task, self._n)
+        self._credits._getq.push(self._priority, task, self, self._n)
         return True
 
-    def future(self) -> CreditPool:
-        return self._credits
+    def drop(self, task: Task[Any]):
+        self._credits._getq.drop(task)

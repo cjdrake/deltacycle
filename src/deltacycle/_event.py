@@ -6,7 +6,7 @@ from collections.abc import Generator, Iterator
 from typing import Any, Self, cast
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, SupportsDropTask, Task
+from ._task import Blocking, SupportsDropTask, Task
 
 
 class _WaitQ(SupportsDropTask):
@@ -30,7 +30,7 @@ class _WaitQ(SupportsDropTask):
             yield task
 
 
-class Event(KernelIf, Blocking, Sendable):
+class Event(KernelIf, Blocking):
     """Notify multiple tasks that some event has happened.
 
     An event instance is lightweight.
@@ -51,22 +51,6 @@ class Event(KernelIf, Blocking, Sendable):
         self._flag = False
         self._waitq = _WaitQ()
 
-    def _blocking(self) -> bool:
-        return not self._flag
-
-    def drop(self, task: Task[Any]):
-        self._waitq.drop(task)
-
-    def __await__(self) -> Generator[None, Self, Self]:
-        """Await event set."""
-        if self._blocking():
-            task = self._kernel.check_task()
-            self._waitq.push(task)
-            e = cast(typ=Self, val=(yield from task.switch_gen()))
-            assert e is self
-
-        return self
-
     def __bool__(self) -> bool:
         """Return flag state."""
         return self._flag
@@ -84,11 +68,22 @@ class Event(KernelIf, Blocking, Sendable):
         self._flag = False
 
     # Blocking
+    def _blocking(self) -> bool:
+        return not self._flag
+
+    def __await__(self) -> Generator[None, Self, None]:
+        """Await event set."""
+        if self._blocking():
+            task = self._kernel.check_task()
+            self._waitq.push(task)
+            e = cast(typ=Self, val=(yield from task.switch_gen()))
+            assert e is self
+
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
             self._waitq.push(task)
             return True
         return False
 
-    def future(self) -> Event:
-        return self
+    def drop(self, task: Task[Any]):
+        self._waitq.drop(task)

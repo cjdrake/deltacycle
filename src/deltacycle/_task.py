@@ -11,12 +11,12 @@ from typing import Any, ClassVar, Iterator, Literal, Self, cast
 
 from ._kernel_if import KernelIf
 
-type TaskCoro[ResultType] = Coroutine[None, Sendable | None, ResultType]
+type TaskCoro[ResultType] = Coroutine[None, Blocking | None, ResultType]
 
 type TaskArgs = (
     tuple[Literal[Task.Command.START]]
     | tuple[Literal[Task.Command.RESUME]]
-    | tuple[Literal[Task.Command.RESUME], Sendable]
+    | tuple[Literal[Task.Command.RESUME], Blocking]
     | tuple[Literal[Task.Command.SIGNAL], BaseException]
 )
 
@@ -29,28 +29,18 @@ class Kill(BaseException):
     """Kill task."""
 
 
-class Blocking(ABC):
-    """Object capable of blocking task forward progress"""
-
-    @abstractmethod
-    def try_block(self, task: Task[Any]) -> bool:
-        """Attempt to block task; return True if successful."""
-
-    @abstractmethod
-    def future(self) -> Sendable:
-        """Object that will be sent to unblock task."""
-
-
 class SupportsDropTask(ABC):
-    """Object capable of unblocking task forward progress."""
-
     @abstractmethod
     def drop(self, task: Task[Any]) -> None:
         """Drop task from object's waiting queue."""
 
 
-class Sendable(SupportsDropTask):
-    pass
+class Blocking(SupportsDropTask):
+    """Object capable of blocking task forward progress"""
+
+    @abstractmethod
+    def try_block(self, task: Task[Any]) -> bool:
+        """Attempt to block task; return True if successful."""
 
 
 class _SuspendResume:
@@ -66,7 +56,7 @@ class _SuspendResume:
     The value X can be used to pass information to the task.
     """
 
-    def __await__(self) -> Generator[None, Sendable | None, Sendable | None]:
+    def __await__(self) -> Generator[None, Blocking | None, Blocking | None]:
         # Suspend
         value = yield
         # Resume
@@ -81,18 +71,18 @@ class _Condition(KernelIf):
 
 
 class AllOf(_Condition):
-    def __await__(self) -> Generator[None, Sendable, tuple[Sendable, ...]]:
+    def __await__(self) -> Generator[None, Blocking, tuple[Blocking, ...]]:
         task = self._kernel.check_task()
 
         while True:
-            blocked: list[Sendable] = []
-            unblocked: list[Sendable] = []
+            blocked: list[Blocking] = []
+            unblocked: list[Blocking] = []
 
             for b in self._bs:
                 if b.try_block(task):
-                    blocked.append(b.future())
+                    blocked.append(b)
                 else:
-                    unblocked.append(b.future())
+                    unblocked.append(b)
 
             if not blocked:
                 return tuple(unblocked)
@@ -102,19 +92,19 @@ class AllOf(_Condition):
 
 
 class AnyOf(_Condition):
-    def __await__(self) -> Generator[None, Sendable, Sendable]:
+    def __await__(self) -> Generator[None, Blocking, Blocking]:
         task = self._kernel.check_task()
 
-        blocked: list[Sendable] = []
+        blocked: list[Blocking] = []
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.append(b.future())
+                blocked.append(b)
             else:
                 while blocked:
                     x = blocked.pop()
                     x.drop(task)
-                return b.future()
+                return b
 
         self._kernel.fork(task, *blocked)
         x = yield from task.switch_gen()
@@ -142,7 +132,7 @@ class _WaitQ(SupportsDropTask):
             yield task
 
 
-class Task[ResultType](KernelIf, Blocking, Sendable):
+class Task[ResultType](KernelIf, Blocking):
     """Manage the life cycle of a coroutine.
 
     Do NOT instantiate a Task directly.
@@ -221,21 +211,6 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         self._result: ResultType | None = None
         self._exception: BaseException | None = None
 
-    def _blocking(self) -> bool:
-        return not self.done()
-
-    def drop(self, task: Task[Any]):
-        self._waitq.drop(task)
-
-    def __await__(self) -> Generator[None, Self, ResultType]:
-        if self._blocking():
-            task = self._kernel.check_task()
-            self._waitq.push(task)
-            t = cast(typ=Self, val=(yield from task.switch_gen()))
-            assert t is self
-
-        return self.result()
-
     @property
     def coro(self) -> TaskCoro[ResultType]:
         """Wrapped coroutine."""
@@ -291,7 +266,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
                 tq.drop(self)
             del self._refcnts[tq]
 
-    async def switch_coro(self) -> Sendable | None:
+    async def switch_coro(self) -> Blocking | None:
         self._set_state(Task.State.PENDING)
 
         # Suspend
@@ -300,7 +275,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         # Resume
         return value
 
-    def switch_gen(self) -> Generator[None, Sendable, Sendable]:
+    def switch_gen(self) -> Generator[None, Blocking, Blocking]:
         self._set_state(self.State.PENDING)
 
         # Suspend
@@ -317,7 +292,7 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
                 self._coro.send(None)
             case (self.Command.RESUME,):
                 self._coro.send(None)
-            case (self.Command.RESUME, Sendable() as x):
+            case (self.Command.RESUME, Blocking() as x):
                 self._coro.send(x)
             case (self.Command.SIGNAL, BaseException() as x):
                 self._signal = False
@@ -449,14 +424,27 @@ class Task[ResultType](KernelIf, Blocking, Sendable):
         return True
 
     # Blocking
+    def _blocking(self) -> bool:
+        return not self.done()
+
+    def __await__(self) -> Generator[None, Self, ResultType]:
+        """Await task done."""
+        if self._blocking():
+            task = self._kernel.check_task()
+            self._waitq.push(task)
+            t = cast(typ=Self, val=(yield from task.switch_gen()))
+            assert t is self
+
+        return self.result()
+
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
             self._waitq.push(task)
             return True
         return False
 
-    def future(self) -> Task[ResultType]:
-        return self
+    def drop(self, task: Task[Any]):
+        self._waitq.drop(task)
 
 
 class TaskGroup(KernelIf):

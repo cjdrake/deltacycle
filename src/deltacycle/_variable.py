@@ -5,10 +5,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
-from typing import Any, Iterator, Self, cast
+from typing import Any, Iterator, Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, SupportsDropTask, Task
+from ._task import Blocking, SupportsDropTask, Task
 
 type Predicate = Callable[[], bool]
 
@@ -17,33 +17,34 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._items: dict[Task[Any], list[Predicate]] = {}
+        self._items: dict[Task[Any], list[PredVariable]] = {}
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         task.unlink(tq=self)
 
-    def push(self, task: Task[Any], p: Predicate):
+    def push(self, task: Task[Any], pv: PredVariable):
         if task not in self._items:
             task.link(tq=self)
-            self._items[task] = [p]
+            self._items[task] = [pv]
         else:
-            self._items[task].append(p)
+            self._items[task].append(pv)
 
-    def pop(self) -> Iterator[Task[Any]]:
-        tasks: list[Task[Any]] = []
-        for task, ps in self._items.items():
-            for p in ps:
-                if p():
-                    tasks.append(task)
+    def pop(self) -> Iterator[tuple[Task[Any], list[PredVariable], PredVariable]]:
+        items: list[tuple[Task[Any], list[PredVariable], PredVariable]] = []
+
+        for task, pvs in self._items.items():
+            for pv in pvs:
+                if pv:
+                    items.append((task, pvs, pv))
                     break
 
-        for task in tasks:
-            self.drop(task)
-            yield task
+        for item in items:
+            self.drop(item[0])
+            yield item
 
 
-class Variable(KernelIf, Blocking, Sendable):
+class Variable(KernelIf):
     """Model component that changes over time.
 
     The instantaneous state of a simulation is represented by a collection of variables.
@@ -70,35 +71,15 @@ class Variable(KernelIf, Blocking, Sendable):
     def __init__(self):
         self._waitq = _WaitQ()
 
-    def drop(self, task: Task[Any]):
-        self._waitq.drop(task)
-
-    def __await__(self) -> Generator[None, Self, Self]:
-        """Await variable change:
-
-        For variable ``v``:
-
-        1. Suspend the current task.
-        2. When another task invokes ``v.set_next(...)`` *and*
-           ``v.changed()`` evaluates to ``True``,
-           unblock all tasks waiting for that event.
-        """
-        task = self._kernel.check_task()
-        # NOTE: Use default predicate
-        self._waitq.push(task, self.changed)
-        v = cast(typ=Self, val=(yield from task.switch_gen()))
-        assert v is self
-        return self
-
     def _set(self):
-        for task in self._waitq.pop():
-            self._kernel.join_any(task, self)
-            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+        for task, pvs, pv in self._waitq.pop():
+            self._kernel.join_any(task, *pvs)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, pv))
 
         # Add variable to update set
         self._kernel.touch_var(self)
 
-    def pred(self, p: Predicate) -> PredVariable:
+    def pred(self, p: Predicate | None = None) -> PredVariable:
         """Return blocking, predicated variable.
 
         Args:
@@ -116,15 +97,6 @@ class Variable(KernelIf, Blocking, Sendable):
     @abstractmethod
     def update(self) -> None:
         """Update variable value."""
-
-    # Blocking
-    def try_block(self, task: Task[Any]) -> bool:
-        # NOTE: Use default predicate
-        self._waitq.push(task, self.changed)
-        return True
-
-    def future(self) -> Variable:
-        return self
 
 
 class PredVariable(KernelIf, Blocking):
@@ -144,11 +116,22 @@ class PredVariable(KernelIf, Blocking):
     those conditions are all true.
     """
 
-    def __init__(self, var: Variable, p: Predicate):
-        self._var = var
-        self._p = p
+    def __init__(self, v: Variable, p: Predicate | None = None):
+        self._var = v
+        if p is None:
+            self._p = v.changed
+        else:
+            self._p = p
 
-    def __await__(self) -> Generator[None, Variable, Variable]:
+    @property
+    def var(self) -> Variable:
+        return self._var
+
+    def __bool__(self) -> bool:
+        return self._p()
+
+    # Blocking
+    def __await__(self) -> Generator[None, Self, None]:
         """Await variable change:
 
         For variable ``v``, and predicate function ``p``:
@@ -158,18 +141,16 @@ class PredVariable(KernelIf, Blocking):
            to ``True``, unblock all tasks waiting for that event.
         """
         task = self._kernel.check_task()
-        self._var._waitq.push(task, self._p)
-        v = yield from task.switch_gen()
-        assert v is self._var
-        return self._var
+        self._var._waitq.push(task, pv=self)
+        pv = yield from task.switch_gen()
+        assert pv is self
 
-    # Blocking
     def try_block(self, task: Task[Any]) -> bool:
-        self._var._waitq.push(task, self._p)
+        self._var._waitq.push(task, pv=self)
         return True
 
-    def future(self) -> Variable:
-        return self._var
+    def drop(self, task: Task[Any]):
+        self._var._waitq.drop(task)
 
 
 class Value[T](ABC):

@@ -81,7 +81,7 @@ def test_regfile(captrace: Trace):
 
     async def rd_port() -> Never:
         while True:
-            await any_of(regs, rd_addr)
+            await any_of(regs.pred(), rd_addr.pred())
             rd_data.next = regs.value[rd_addr.value]
 
     async def main():

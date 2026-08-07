@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Any, ClassVar, Never
 from weakref import WeakKeyDictionary
 
-from ._task import Kill, Sendable, SupportsDropTask, Task, TaskArgs, TaskCoro
+from ._task import Blocking, Kill, SupportsDropTask, Task, TaskArgs, TaskCoro
 from ._variable import Variable
 
 
@@ -91,7 +91,7 @@ class Kernel[MainResultType](ABC):
         self._task_index = 0
 
         # Forked Tasks
-        self._forks: dict[Task[Any], set[Sendable]] = {}
+        self._forks: dict[Task[Any], set[Blocking]] = {}
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
@@ -168,13 +168,14 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
-    def fork(self, task: Task[Any], *xs: Sendable):
+    def fork(self, task: Task[Any], *xs: Blocking):
         self._forks[task] = set(xs)
 
-    def join_any(self, task: Task[Any], x: Sendable):
+    def join_any(self, task: Task[Any], *ys: Blocking):
         if task in self._forks:
             xs = self._forks[task]
-            xs.remove(x)
+            for y in ys:
+                xs.remove(y)
             while xs:
                 x = xs.pop()
                 x.drop(task)

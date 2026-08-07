@@ -82,7 +82,6 @@ Variables
 .. autoclass:: deltacycle.Variable
     :show-inheritance:
 
-    .. automethod:: __await__
     .. automethod:: pred
     .. automethod:: changed
     .. automethod:: update
@@ -91,6 +90,8 @@ Variables
     :show-inheritance:
 
     .. automethod:: __await__
+    .. automethod:: __bool__
+    .. autoproperty:: var
 
 .. autoclass:: deltacycle.Value
     :show-inheritance:
@@ -198,13 +199,9 @@ Scheduling
 ==========
 
 .. autoclass:: deltacycle.Blocking
+    :show-inheritance:
 
     .. automethod:: try_block
-    .. automethod:: future
-
-.. autoclass:: deltacycle.Sendable
-
-    .. automethod:: drop
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf

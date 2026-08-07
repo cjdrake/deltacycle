@@ -13,7 +13,7 @@ def test_var_await():
 
     async def cf(y: Singular[int], x: Singular[int]) -> Never:
         while True:
-            _ = await x
+            await x.pred()
             y.next = 2 * x.value
 
     async def main():

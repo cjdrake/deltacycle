@@ -41,17 +41,17 @@ async def customer(counter: Lock):
 
     # Wait for the counter or abort at the end of our tether
     timeout = create_task(sleep(round(patience * TIMESCALE)))
-    y = await AnyOf(counter.req(), timeout)
+    cr = counter.req()
+    y = await AnyOf(cr, timeout)
     wait = now() - arrive
 
-    if y is counter:
-        assert isinstance(y, Lock)  # Help type checker
+    if y is cr:
         # We got to the counter
         tprint(f"Waited {wait / TIMESCALE:<7.3f}")
         t = random.expovariate(1.0 / TIME_IN_BANK)
         await sleep(round(t * TIMESCALE))
         tprint("Finished")
-        y.put()
+        cr.semaphore.put()
     else:
         # We reneged
         tprint(f"RENEGED after {wait / TIMESCALE:<7.3f}")

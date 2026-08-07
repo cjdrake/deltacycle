@@ -115,12 +115,12 @@ def test_serial():
         create_task(sleep_set(e1, 20), name="second")
         create_task(sleep_set(e2, 30), name="third")
 
-        e: Event = await e0
-        assert e is e0 and now() == 10
-        e: Event = await e1
-        assert e is e1 and now() == 20
-        e: Event = await e2
-        assert e is e2 and now() == 30
+        await e0
+        assert now() == 10
+        await e1
+        assert now() == 20
+        await e2
+        assert now() == 30
 
     run(main())
 

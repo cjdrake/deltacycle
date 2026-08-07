@@ -4,7 +4,7 @@ from collections.abc import Generator
 from typing import Any
 
 from ._kernel import DefaultKernel, Kernel
-from ._task import Blocking, Sendable, Task, TaskCoro
+from ._task import Blocking, Task, TaskCoro
 
 _kernel: Kernel[Any] | None = None
 
@@ -213,7 +213,7 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
+async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Blocking, ...]:
     """Block forward progress until all items are unblocked.
 
     Args:
@@ -229,14 +229,14 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
     kernel, task = _get_kt()
 
     while True:
-        blocked: list[Sendable] = []
-        unblocked: list[Sendable] = []
+        blocked: list[Blocking] = []
+        unblocked: list[Blocking] = []
 
         for b in bs:
             if b.try_block(task):
-                blocked.append(b.future())
+                blocked.append(b)
             else:
-                unblocked.append(b.future())
+                unblocked.append(b)
 
         if not blocked:
             return tuple(unblocked)
@@ -245,7 +245,7 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Sendable, ...]:
         await task.switch_coro()
 
 
-async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
+async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
     """Block forward progress until at least one item is unblocked.
 
     Args:
@@ -260,16 +260,16 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Sendable:
 
     kernel, task = _get_kt()
 
-    blocked: list[Sendable] = []
+    blocked: list[Blocking] = []
 
     for b in bs:
         if b.try_block(task):
-            blocked.append(b.future())
+            blocked.append(b)
         else:
             while blocked:
                 x = blocked.pop()
                 x.drop(task)
-            return b.future()
+            return b
 
     kernel.fork(task, *blocked)
     x = await task.switch_coro()

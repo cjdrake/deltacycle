@@ -54,7 +54,7 @@ def test_add(captrace: Trace):
 
     async def drv_outputs() -> Never:
         while True:
-            await any_of(a, b, ci)
+            await any_of(a.pred(), b.pred(), ci.pred())
             g = a.value & b.value
             p = a.value | b.value
             s.next = a.value ^ b.value ^ ci.value

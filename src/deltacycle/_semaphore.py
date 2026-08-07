@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import heapq
 from types import TracebackType
-from typing import Any, Self, cast
+from typing import Any, Self
 
 from ._kernel_if import KernelIf
-from ._task import Blocking, Sendable, SupportsDropTask, Task
+from ._task import Blocking, SupportsDropTask, Task
 
 
 class _GetQ(SupportsDropTask):
@@ -15,7 +15,7 @@ class _GetQ(SupportsDropTask):
 
     def __init__(self):
         # priority, index, task
-        self._items: list[tuple[int, int, Task[Any]]] = []
+        self._items: list[tuple[int, int, Task[Any], ReqSemaphore | None]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -25,7 +25,7 @@ class _GetQ(SupportsDropTask):
         return len(self._items)
 
     def _find(self, task: Task[Any]) -> int:
-        for i, (_, _, t) in enumerate(self._items):
+        for i, (_, _, t, _) in enumerate(self._items):
             if t is task:
                 return i
         assert False  # pragma: no cover
@@ -36,15 +36,15 @@ class _GetQ(SupportsDropTask):
         heapq.heapify(self._items)
         task.unlink(tq=self)
 
-    def push(self, priority: int, task: Task[Any]):
+    def push(self, priority: int, task: Task[Any], req: ReqSemaphore | None):
         task.link(tq=self)
-        heapq.heappush(self._items, (priority, self._index, task))
+        heapq.heappush(self._items, (priority, self._index, task, req))
         self._index += 1
 
-    def pop(self) -> Task[Any]:
-        _, _, task = heapq.heappop(self._items)
+    def pop(self) -> tuple[Task[Any], ReqSemaphore | None]:
+        _, _, task, req = heapq.heappop(self._items)
         task.unlink(tq=self)
-        return task
+        return task, req
 
 
 class _PortLock(SupportsDropTask):
@@ -84,7 +84,7 @@ class _GetLock(_PortLock):
             self.acquire(self._parent._getq_pop())
 
 
-class Semaphore(KernelIf, Sendable):
+class Semaphore(KernelIf):
     def __init__(self, value: int = 0, capacity: int = 0):
         self._capacity = capacity
         self._has_capacity = capacity > 0
@@ -120,16 +120,16 @@ class Semaphore(KernelIf, Sendable):
         assert self._cnt >= 0
         assert not self._has_capacity or self._cnt <= self._capacity
 
-    def drop(self, task: Task[Any]):
-        self._getq.drop(task)
-
     def _getq_ready(self) -> bool:
         return bool(self._getq) and not self._empty()
 
     def _getq_pop(self) -> Task[Any]:
-        task = self._getq.pop()
-        self._kernel.join_any(task, self)
-        self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+        task, req = self._getq.pop()
+        if req is None:
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        else:
+            self._kernel.join_any(task, req)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
         return task
 
     def req(self, priority: int = 0) -> ReqSemaphore:
@@ -167,9 +167,9 @@ class Semaphore(KernelIf, Sendable):
         if self._empty() or self._get_lock:
             task = self._kernel.check_task()
 
-            self._getq.push(priority, task)
-            x = cast(typ=Semaphore, val=(await task.switch_coro()))
-            assert x is self
+            self._getq.push(priority, task, None)
+            y = await task.switch_coro()
+            assert y is None
 
             # Wakeup: complete get
             self._get()
@@ -183,10 +183,15 @@ class Semaphore(KernelIf, Sendable):
 
 
 class ReqSemaphore(Blocking):
-    def __init__(self, sem: Semaphore, priority: int):
+    def __init__(self, sem: Semaphore, priority: int = 0):
         self._semaphore = sem
         self._priority = priority
 
+    @property
+    def semaphore(self) -> Semaphore:
+        return self._semaphore
+
+    # Blocking
     async def __aenter__(self) -> Self:
         await self._semaphore.get(self._priority)
         return self
@@ -199,19 +204,15 @@ class ReqSemaphore(Blocking):
     ):
         self._semaphore.put()
 
-    @property
-    def semaphore(self) -> Semaphore:
-        return self._semaphore
-
     def try_block(self, task: Task[Any]) -> bool:
         if self._semaphore.try_get():
             return False
 
-        self._semaphore._getq.push(self._priority, task)
+        self._semaphore._getq.push(self._priority, task, self)
         return True
 
-    def future(self) -> Semaphore:
-        return self._semaphore
+    def drop(self, task: Task[Any]):
+        self._semaphore._getq.drop(task)
 
 
 class Lock(Semaphore):

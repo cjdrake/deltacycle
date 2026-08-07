@@ -1,10 +1,10 @@
 """Test bugs"""
 
-from typing import Never
+from typing import Never, cast
 
 import pytest
 
-from deltacycle import Queue, Semaphore, TaskGroup, any_of, finish, run, sleep, step
+from deltacycle import Queue, ReqSemaphore, Semaphore, TaskGroup, any_of, finish, run, sleep, step
 
 from .common import Bool
 from .conftest import Trace, trace
@@ -148,12 +148,12 @@ def test_12():
     run(main())
 
 
-@pytest.mark.xfail(reason="https://github.com/cjdrake/deltacycle/issues/14")
 def test_14():
     s = Semaphore(value=2)
 
     async def main():
-        _ = await any_of(s.req(), s.req())
+        rs = cast(ReqSemaphore, await any_of(s.req(), s.req()))
+        rs.semaphore.put()
         assert s._cnt == 2
 
     run(main())
