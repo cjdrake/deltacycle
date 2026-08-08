@@ -12,6 +12,7 @@ from typing import Any, ClassVar, Iterator, Literal, Self, cast
 from ._kernel_if import KernelIf
 
 type TaskCoro[ResultType] = Coroutine[None, Sendable | None, ResultType]
+
 type TaskArgs = (
     tuple[Literal[Task.Command.START]]
     | tuple[Literal[Task.Command.RESUME]]
