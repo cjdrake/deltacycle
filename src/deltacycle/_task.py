@@ -53,27 +53,6 @@ class Sendable(SupportsDropTask):
     pass
 
 
-class _WaitQ(SupportsDropTask):
-    """Tasks wait for event trigger."""
-
-    def __init__(self):
-        self._items: dict[Task[Any], None] = {}
-
-    def drop(self, task: Task[Any]):
-        del self._items[task]
-        task.unlink(tq=self)
-
-    def push(self, task: Task[Any]):
-        task.link(tq=self)
-        self._items[task] = None
-
-    def pop(self) -> Iterator[Task[Any]]:
-        tasks = list(self._items)
-        for task in tasks:
-            self.drop(task)
-            yield task
-
-
 class _SuspendResume:
     """Suspend/Resume current task.
 
@@ -140,6 +119,27 @@ class AnyOf(_Condition):
         self._kernel.fork(task, *blocked)
         x = yield from task.switch_gen()
         return x
+
+
+class _WaitQ(SupportsDropTask):
+    """Tasks wait for event trigger."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], None] = {}
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        task.unlink(tq=self)
+
+    def push(self, task: Task[Any]):
+        task.link(tq=self)
+        self._items[task] = None
+
+    def pop(self) -> Iterator[Task[Any]]:
+        tasks = list(self._items)
+        for task in tasks:
+            self.drop(task)
+            yield task
 
 
 class Task[ResultType](KernelIf, Blocking, Sendable):
