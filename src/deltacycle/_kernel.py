@@ -245,7 +245,7 @@ class _PendQ(SupportsDropTask):
 
     def __init__(self):
         # time, priority, index, task, value
-        self._items: list[tuple[int, int, int, Task[Any], Any]] = []
+        self._items: list[tuple[int, int, int, Task[Any], TaskArgs]] = []
 
         # Monotonically increasing integer
         # Breaks (time, priority, ...) ties in the heapq
@@ -266,15 +266,15 @@ class _PendQ(SupportsDropTask):
         heapq.heapify(self._items)
         task.unlink(tq=self)
 
-    def push(self, time: int, priority: int, task: Task[Any], value: Any):
+    def push(self, time: int, priority: int, task: Task[Any], args: TaskArgs):
         task.link(tq=self)
-        heapq.heappush(self._items, (time, priority, self._index, task, value))
+        heapq.heappush(self._items, (time, priority, self._index, task, args))
         self._index += 1
 
-    def pop(self) -> tuple[Task[Any], Any]:
-        _, _, _, task, value = heapq.heappop(self._items)
+    def pop(self) -> tuple[Task[Any], TaskArgs]:
+        _, _, _, task, args = heapq.heappop(self._items)
         task.unlink(tq=self)
-        return (task, value)
+        return (task, args)
 
     def peek(self) -> int:
         assert self._items
@@ -339,11 +339,11 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         The first task has already been peeked.
         This is a do-while loop.
         """
-        task, value = self._queue.pop()
-        yield (task, value)
+        task, args = self._queue.pop()
+        yield (task, args)
         while self._queue and self._queue.peek() == time:
-            task, value = self._queue.pop()
-            yield (task, value)
+            task, args = self._queue.pop()
+            yield (task, args)
 
     def _call(self, limit: int | None):
         self._start()

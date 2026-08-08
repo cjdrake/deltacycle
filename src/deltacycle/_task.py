@@ -7,12 +7,17 @@ from collections import Counter
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
-from typing import Any, ClassVar, Iterator, Self, cast
+from typing import Any, ClassVar, Iterator, Literal, Self, cast
 
 from ._kernel_if import KernelIf
 
 type TaskCoro[ResultType] = Coroutine[None, Sendable | None, ResultType]
-type TaskArgs = tuple[Task.Command] | tuple[Task.Command, Sendable | BaseException]
+type TaskArgs = (
+    tuple[Literal[Task.Command.START]]
+    | tuple[Literal[Task.Command.RESUME]]
+    | tuple[Literal[Task.Command.RESUME], Sendable]
+    | tuple[Literal[Task.Command.SIGNAL], BaseException]
+)
 
 
 class Interrupt(Exception):
