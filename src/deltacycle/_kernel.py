@@ -11,6 +11,42 @@ from ._task import Blocking, Kill, SupportsDropTask, Task, TaskArgs, TaskCoro
 from ._variable import Variable
 
 
+class _ForkTable(SupportsDropTask):
+    """Tasks wait for event trigger."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], set[Blocking]] = {}
+
+    def __contains__(self, task: Task[Any]) -> bool:
+        return task in self._items
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        task._unlink(tq=self)
+
+    def set(self, task: Task[Any], *bs: Blocking):
+        task._link(tq=self)
+        self._items[task] = set(bs)
+
+    def clr(self, task: Task[Any], *bs: Blocking):
+        items = self._items[task]
+
+        # Unblocked: Remove from table
+        for b in bs:
+            items.remove(b)
+
+        # Still blocking: Renege from queues
+        while items:
+            b = items.pop()
+            b.drop(task)
+
+        # Drop reference to ForkTable
+        self.drop(task)
+
+
 class KernelExit(BaseException):
     """Force the kernel to exit."""
 
@@ -91,7 +127,7 @@ class Kernel[MainResultType](ABC):
         self._task_index = 0
 
         # Forked Tasks
-        self._forks: dict[Task[Any], set[Blocking]] = {}
+        self._forks = _ForkTable()
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
@@ -168,18 +204,12 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
-    def fork(self, task: Task[Any], *xs: Blocking):
-        self._forks[task] = set(xs)
+    def fork(self, task: Task[Any], *bs: Blocking):
+        self._forks.set(task, *bs)
 
-    def join_any(self, task: Task[Any], *ys: Blocking):
+    def join_any(self, task: Task[Any], *bs: Blocking):
         if task in self._forks:
-            xs = self._forks[task]
-            for y in ys:
-                xs.remove(y)
-            while xs:
-                x = xs.pop()
-                x.drop(task)
-            del self._forks[task]
+            self._forks.clr(task, *bs)
 
     def touch_var(self, v: Variable):
         self._dirty_vars.add(v)

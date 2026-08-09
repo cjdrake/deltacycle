@@ -172,7 +172,6 @@ def test_14():
     run(main())
 
 
-@pytest.mark.xfail(reason="https://github.com/cjdrake/deltacycle/issues/15")
 def test_15():
     e1 = Event()
     e2 = Event()
