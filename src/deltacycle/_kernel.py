@@ -112,8 +112,7 @@ class Kernel[MainResultType](ABC):
     main_name = "main"
 
     def __init__(self, coro: TaskCoro[MainResultType]):
-        self._name = f"Kernel-{self.__class__._index}"
-        self.__class__._index += 1
+        self._name = f"Kernel-{self._get_index()}"
 
         self._state = self.State.INIT
 
@@ -134,6 +133,12 @@ class Kernel[MainResultType](ABC):
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
+
+    @classmethod
+    def _get_index(cls) -> int:
+        index = cls._index
+        cls._index += 1
+        return index
 
     def _get_task_index(self) -> int:
         index = self._task_index
