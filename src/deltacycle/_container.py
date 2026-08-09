@@ -82,7 +82,7 @@ class _GetLock(_PortLock):
 
         if self._parent._getq_ready():
             # Get task waiting, port unlocked, resource available
-            self.acquire(self._parent._getq_pop())
+            self.acquire(task=self._parent._getq_pop())
 
 
 class _PutLock(_PortLock):
@@ -95,7 +95,7 @@ class _PutLock(_PortLock):
 
         if self._parent._putq_ready():
             # Put task waiting, port unlocked, space available
-            self.acquire(self._parent._putq_pop())
+            self.acquire(task=self._parent._putq_pop())
 
 
 class Container(KernelIf):
@@ -174,7 +174,7 @@ class Container(KernelIf):
         self._cnt += n
         if self._getq_ready() and not self._get_lock:
             # Get task waiting, port unlocked, NEW resource available
-            self._get_lock.acquire(self._getq_pop())
+            self._get_lock.acquire(task=self._getq_pop())
 
     def try_put(self, n: int = 1) -> bool:
         self._check_cnt()
@@ -203,7 +203,7 @@ class Container(KernelIf):
 
             if self._putq_ready():
                 # Put task waiting, port unlocked, space available
-                self._put_lock.acquire(self._putq_pop())
+                self._put_lock.acquire(task=self._putq_pop())
         else:
             self._put(n)
 
@@ -211,7 +211,7 @@ class Container(KernelIf):
         self._cnt -= n
         if self._putq_ready() and not self._put_lock:
             # Put task waiting, port unlocked, NEW space available
-            self._put_lock.acquire(self._putq_pop())
+            self._put_lock.acquire(task=self._putq_pop())
 
     def try_get(self, n: int = 1) -> bool:
         self._check_cnt()
@@ -240,6 +240,6 @@ class Container(KernelIf):
 
             if self._getq_ready():
                 # Get task waiting, port unlocked, resource available
-                self._get_lock.acquire(self._getq_pop())
+                self._get_lock.acquire(task=self._getq_pop())
         else:
             self._get(n)

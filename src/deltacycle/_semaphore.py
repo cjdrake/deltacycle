@@ -81,7 +81,7 @@ class _GetLock(_PortLock):
 
         if self._parent._getq:
             # Get task waiting, port unlocked, credit available
-            self.acquire(self._parent._getq_pop())
+            self.acquire(task=self._parent._getq_pop())
 
 
 class Semaphore(KernelIf):
@@ -139,7 +139,7 @@ class Semaphore(KernelIf):
         self._cnt += 1
         if self._getq and not self._get_lock:
             # Get task waiting, port unlocked, NEW credit available
-            self._get_lock.acquire(self._getq_pop())
+            self._get_lock.acquire(task=self._getq_pop())
 
     def put(self):
         self._check_cnt()
@@ -177,7 +177,7 @@ class Semaphore(KernelIf):
 
             if self._getq_ready():
                 # Get task waiting, port unlocked, credit available
-                self._get_lock.acquire(self._getq_pop())
+                self._get_lock.acquire(task=self._getq_pop())
         else:
             self._get()
 

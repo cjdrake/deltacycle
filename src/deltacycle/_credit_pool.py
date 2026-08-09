@@ -83,7 +83,7 @@ class _GetLock(_PortLock):
 
         if self._parent._getq_ready():
             # Get task waiting, port unlocked, credit available
-            self.acquire(self._parent._getq_pop())
+            self.acquire(task=self._parent._getq_pop())
 
 
 class CreditPool(KernelIf):
@@ -148,7 +148,7 @@ class CreditPool(KernelIf):
         self._cnt += n
         if self._getq_ready() and not self._get_lock:
             # Get task waiting, port unlocked, NEW credit available
-            self._get_lock.acquire(self._getq_pop())
+            self._get_lock.acquire(task=self._getq_pop())
 
     def put(self, n: int = 1):
         self._check_cnt()
@@ -189,7 +189,7 @@ class CreditPool(KernelIf):
 
             if self._getq_ready():
                 # Get task waiting, port unlocked, credit available
-                self._get_lock.acquire(self._getq_pop())
+                self._get_lock.acquire(task=self._getq_pop())
         else:
             # Get credit
             self._get(n)

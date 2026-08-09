@@ -81,7 +81,7 @@ class _GetLock[T](_PortLock[T]):
 
         if self._parent._getq:
             # Get task waiting, port unlocked, item available
-            self.acquire(self._parent._getq_pop())
+            self.acquire(task=self._parent._getq_pop())
 
 
 class _PutLock[T](_PortLock[T]):
@@ -96,7 +96,7 @@ class _PutLock[T](_PortLock[T]):
 
         if self._parent._putq:
             # Put task waiting, port unlocked, space available
-            self.acquire(self._parent._putq_pop())
+            self.acquire(task=self._parent._putq_pop())
 
 
 class Queue[T](KernelIf):
@@ -164,7 +164,7 @@ class Queue[T](KernelIf):
         self._items.append(item)
         if self._getq and not self._get_lock:
             # Get task waiting, port unlocked, NEW item available
-            self._get_lock.acquire(self._getq_pop())
+            self._get_lock.acquire(task=self._getq_pop())
 
     def try_put(self, item: T) -> bool:
         """Nonblocking put: Return True if a put attempt is successful."""
@@ -189,7 +189,7 @@ class Queue[T](KernelIf):
 
             if self._putq_ready():
                 # Put task waiting, port unlocked, space available
-                self._put_lock.acquire(self._putq_pop())
+                self._put_lock.acquire(task=self._putq_pop())
         else:
             self._put(item)
 
@@ -197,7 +197,7 @@ class Queue[T](KernelIf):
         item = self._items.popleft()
         if self._putq and not self._put_lock:
             # Put task waiting, port unlocked, NEW space available
-            self._put_lock.acquire(self._putq_pop())
+            self._put_lock.acquire(task=self._putq_pop())
         return item
 
     def try_get(self) -> tuple[bool, T | None]:
@@ -228,7 +228,7 @@ class Queue[T](KernelIf):
 
             if self._getq_ready():
                 # Get task waiting, port unlocked, item available
-                self._get_lock.acquire(self._getq_pop())
+                self._get_lock.acquire(task=self._getq_pop())
 
             return item
         else:
