@@ -10,7 +10,7 @@ from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
 
 
-class _GetQ(SupportsDropTask):
+class _PortQ(SupportsDropTask):
     """Tasks wait for credit to become available."""
 
     def __init__(self):
@@ -100,7 +100,7 @@ class CreditPool(KernelIf):
         self._cnt = value
 
         # Tasks waiting to get credit
-        self._getq = _GetQ()
+        self._getq = _PortQ()
 
         # Lock ensures gets are atomic
         self._get_lock = _GetLock(parent=self)

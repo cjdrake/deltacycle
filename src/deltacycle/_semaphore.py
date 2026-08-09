@@ -10,7 +10,7 @@ from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
 
 
-class _GetQ(SupportsDropTask):
+class _PortQ(SupportsDropTask):
     """Tasks wait for a slot to become available."""
 
     def __init__(self):
@@ -98,7 +98,7 @@ class Semaphore(KernelIf):
         self._cnt = value
 
         # Tasks waiting to get a credit
-        self._getq = _GetQ()
+        self._getq = _PortQ()
 
         # Lock ensures gets are atomic
         self._get_lock = _GetLock(parent=self)
