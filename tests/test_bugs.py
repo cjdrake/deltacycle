@@ -4,7 +4,20 @@ from typing import Never, cast
 
 import pytest
 
-from deltacycle import Queue, ReqSemaphore, Semaphore, TaskGroup, any_of, finish, run, sleep, step
+from deltacycle import (
+    Event,
+    Queue,
+    ReqSemaphore,
+    Semaphore,
+    TaskGroup,
+    any_of,
+    create_task,
+    finish,
+    get_running_kernel,
+    run,
+    sleep,
+    step,
+)
 
 from .common import Bool
 from .conftest import Trace, trace
@@ -155,5 +168,31 @@ def test_14():
         rs = cast(ReqSemaphore, await any_of(s.req(), s.req()))
         rs.semaphore.put()
         assert s._cnt == 2
+
+    run(main())
+
+
+@pytest.mark.xfail(reason="https://github.com/cjdrake/deltacycle/issues/15")
+def test_15():
+    e1 = Event()
+    e2 = Event()
+
+    async def forker():
+        # No intention to ever trigger this
+        await any_of(e1, e2)
+
+    async def main():
+        kernel = get_running_kernel()
+
+        # Fork task
+        t = create_task(forker())
+
+        await sleep(10)
+        # forker should appear in fork table
+        assert len(kernel._forks)
+
+        t.interrupt()
+        # forker should NOT appear in fork table
+        assert len(kernel._forks) == 0
 
     run(main())
