@@ -302,7 +302,7 @@ class _PendQ(SupportsDropTask):
         for i, (_, _, _, t, _) in enumerate(self._items):
             if t is task:
                 return i
-        assert False  # pragma: no cover
+        raise ValueError(f"Task not in queue: {task}")  # pragma: no cover
 
     def drop(self, task: Task[Any]):
         index = self._find(task)

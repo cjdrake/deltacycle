@@ -304,7 +304,7 @@ class Task[ResultType](KernelIf, Blocking):
                 self._signal = False
                 self._coro.throw(x)
             case _:  # pragma: no cover
-                assert False
+                raise TypeError(f"Invalid task command: {args}")
 
     def _set(self):
         for task in self._waitq.pop():
