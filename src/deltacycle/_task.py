@@ -187,12 +187,14 @@ class Task[ResultType](KernelIf, Blocking):
     def __init__(
         self,
         coro: TaskCoro[ResultType],
+        index: int,
         name: str,
     ):
         self._state = self.State.INIT
 
         # Attributes
         self._coro = coro
+        self._index = index
         self._name = name
 
         # Set if created within a group
@@ -215,6 +217,10 @@ class Task[ResultType](KernelIf, Blocking):
     def coro(self) -> TaskCoro[ResultType]:
         """Wrapped coroutine."""
         return self._coro
+
+    @property
+    def index(self) -> int:
+        return self._index
 
     @property
     def name(self) -> str:

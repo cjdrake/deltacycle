@@ -108,6 +108,7 @@ class Kernel[MainResultType](ABC):
     init_time = -1
     start_time = 0
 
+    main_index = 0
     main_name = "main"
 
     def __init__(self, coro: TaskCoro[MainResultType]):
@@ -119,18 +120,25 @@ class Kernel[MainResultType](ABC):
         # Simulation time
         self._time: int = self.init_time
 
-        # Main task
-        self._main: Task[MainResultType] = Task(coro, name=self.main_name)
-
         # Currently executing task
         self._task: Task[Any] | None = None
         self._task_index = 0
+
+        # Main task
+        main_index = self._get_task_index()
+        assert main_index == self.main_index
+        self._main: Task[MainResultType] = Task(coro, index=main_index, name=self.main_name)
 
         # Forked Tasks
         self._forks = _ForkTable()
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
+
+    def _get_task_index(self) -> int:
+        index = self._task_index
+        self._task_index += 1
+        return index
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]
@@ -186,10 +194,10 @@ class Kernel[MainResultType](ABC):
         name: str | None = None,
     ) -> Task[ResultType]:
         assert self._time >= self.start_time
+        index = self._get_task_index()
         if name is None:
-            name = f"Task-{self._task_index}"
-            self._task_index += 1
-        return Task(coro, name)
+            name = f"Task-{index}"
+        return Task(coro, index, name)
 
     @abstractmethod
     def create_task[ResultType](
