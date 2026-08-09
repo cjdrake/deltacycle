@@ -523,10 +523,9 @@ class TaskGroup(KernelIf):
     ) -> Task[ResultType]:
         child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
         child.group = self
-        if self._setup_done:
-            if not child.done():
-                child._waitq.push(self._parent)
-                self._todo.add(child)
-        else:
+        if not self._setup_done:
             self._setup_tasks.add(child)
+        else:
+            child._waitq.push(self._parent)
+            self._todo.add(child)
         return child
