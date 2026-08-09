@@ -34,16 +34,16 @@ class _GetQ(SupportsDropTask):
         index = self._find(task)
         del self._items[index]
         heapq.heapify(self._items)
-        task.unlink(tq=self)
+        task._unlink(tq=self)
 
     def push(self, priority: int, task: Task[Any], req: ReqSemaphore | None):
-        task.link(tq=self)
+        task._link(tq=self)
         heapq.heappush(self._items, (priority, self._index, task, req))
         self._index += 1
 
     def pop(self) -> tuple[Task[Any], ReqSemaphore | None]:
         _, _, task, req = heapq.heappop(self._items)
-        task.unlink(tq=self)
+        task._unlink(tq=self)
         return task, req
 
 
@@ -58,7 +58,7 @@ class _PortLock(SupportsDropTask):
     def acquire(self, task: Task[Any]):
         assert self._task is None
 
-        task.link(tq=self)
+        task._link(tq=self)
         self._task = task
 
     def release(self):
@@ -66,7 +66,7 @@ class _PortLock(SupportsDropTask):
 
         task = self._task
         self._task = None
-        task.unlink(tq=self)
+        task._unlink(tq=self)
 
 
 class _GetLock(_PortLock):

@@ -265,16 +265,16 @@ class _PendQ(SupportsDropTask):
         index = self._find(task)
         del self._items[index]
         heapq.heapify(self._items)
-        task.unlink(tq=self)
+        task._unlink(tq=self)
 
     def push(self, time: int, priority: int, task: Task[Any], args: TaskArgs):
-        task.link(tq=self)
+        task._link(tq=self)
         heapq.heappush(self._items, (time, priority, self._index, task, args))
         self._index += 1
 
     def pop(self) -> tuple[Task[Any], TaskArgs]:
         _, _, _, task, args = heapq.heappop(self._items)
-        task.unlink(tq=self)
+        task._unlink(tq=self)
         return (task, args)
 
     def peek(self) -> int:

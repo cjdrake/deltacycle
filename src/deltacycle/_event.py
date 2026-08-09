@@ -17,10 +17,10 @@ class _WaitQ(SupportsDropTask):
 
     def drop(self, task: Task[Any]):
         del self._items[task]
-        task.unlink(tq=self)
+        task._unlink(tq=self)
 
     def push(self, task: Task[Any]):
-        task.link(tq=self)
+        task._link(tq=self)
         self._items[task] = None
 
     def pop(self) -> Iterator[Task[Any]]:

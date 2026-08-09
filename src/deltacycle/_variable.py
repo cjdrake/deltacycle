@@ -21,11 +21,11 @@ class _WaitQ(SupportsDropTask):
 
     def drop(self, task: Task[Any]):
         del self._items[task]
-        task.unlink(tq=self)
+        task._unlink(tq=self)
 
     def push(self, task: Task[Any], pv: PredVariable):
         if task not in self._items:
-            task.link(tq=self)
+            task._link(tq=self)
             self._items[task] = [pv]
         else:
             self._items[task].append(pv)
