@@ -13,6 +13,22 @@ Version 0.41.0
 
 Renamed ``PredVar`` to ``PredVariable``.
 
+Added ``Task.index`` attribute.
+
+Fixed bugs:
+
+* `Issue #13 <https://github.com/cjdrake/deltacycle/issues/13>`_
+* `Issue #14 <https://github.com/cjdrake/deltacycle/issues/14>`_
+* `Issue #15 <https://github.com/cjdrake/deltacycle/issues/15>`_
+
+Issue 14 required breaking API changes.
+The ``Sendable`` class went away, replaced by ``Blocking``.
+The subclasses of ``Blocking`` are: ``Task``, ``Event``, ``PredVariable``,
+``ReqSemaphore``, and ``ReqCredit``.
+The most significant consequence is that ``Variable`` can no longer be awaited
+or used in condition (i.e. ``AnyOf``, ``AllOf``) expressions.
+Instead use ``Variable.pred`` method to create a ``PredVariable``.
+
 
 Version 0.40.0
 ==============
