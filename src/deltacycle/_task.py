@@ -213,6 +213,8 @@ class Task[ResultType](KernelIf, Blocking):
         self._result: ResultType | None = None
         self._exception: BaseException | None = None
 
+        self._exception_raised = False
+
     @property
     def coro(self) -> TaskCoro[ResultType]:
         """Wrapped coroutine."""
@@ -348,6 +350,7 @@ class Task[ResultType](KernelIf, Blocking):
             return cast(ResultType, self._result)
         if self._state is self.State.EXCEPTED:
             assert self._result is None and self._exception is not None
+            self._exception_raised = True
             raise self._exception
         raise RuntimeError("Task is not done")
 
@@ -441,6 +444,7 @@ class Task[ResultType](KernelIf, Blocking):
             t = cast(typ=Self, val=(yield from task.switch_gen()))
             assert t is self
 
+        # NOTE: This propagates exceptions to parent task
         return self.result()
 
     def try_block(self, task: Task[Any]) -> bool:
@@ -510,7 +514,8 @@ class TaskGroup(KernelIf):
         while done:
             child = done.pop()
             exc = child.exception()
-            if exc is not None:
+            # NOTE: If child exception was raised, parent already handled it.
+            if exc is not None and not child._exception_raised:
                 child_excs.append(exc)
 
         # DONE children raised exceptions

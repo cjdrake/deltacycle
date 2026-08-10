@@ -79,7 +79,7 @@ EXP2 = {
     (0, "main", "enter"),
     (10, "main", "exit"),
     # Weirdo
-    # (0, "X0", "enter"),
+    (0, "X0", "enter"),
     # Coro 0 - completes
     (0, "C0", "enter"),
     (5, "C0", "exit"),
@@ -113,10 +113,11 @@ def test_group_child_except(captrace: Trace):
                 await tg.create_task(sleep(0))
 
                 # Another weird case of done child that raised an exception
-                # try:
-                #    await tg.create_task(cf_x(0, 69), name="X0")
-                # except ArithmeticError:
-                #    pass
+                try:
+                    await tg.create_task(cf_x(0, 69), name="X0")
+                except ArithmeticError:
+                    # Parent handles this exception; not propagated
+                    pass
 
                 # These tasks will complete successfully
                 ts.append(tg.create_task(cf_r(5, 0), name="C0"))
