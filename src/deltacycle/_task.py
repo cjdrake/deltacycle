@@ -467,6 +467,13 @@ class TaskGroup(KernelIf):
         # Tasks in running/pending/killing state
         self._todo: set[Task[Any]] = set()
 
+    async def _quiesce(self):
+        for child in self._todo:
+            child._kill()
+        while self._todo:
+            child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
+            self._todo.remove(child)
+
     async def __aenter__(self) -> Self:
         return self
 
@@ -476,30 +483,46 @@ class TaskGroup(KernelIf):
         exc: BaseException | None,
         traceback: TracebackType | None,
     ):
-        self._setup_done = True
+        done: set[Task[Any]] = set()
 
-        # Start newly created tasks; ignore exceptions handled by parent
         while self._setup_tasks:
             child = self._setup_tasks.pop()
-            if not child.done():
+            if child.done():
+                done.add(child)
+            else:
                 child._waitq.push(self._parent)
                 self._todo.add(child)
 
-        # Parent raised an exception:
-        # Kill children; suppress exceptions
-        if exc:
-            for child in self._todo:
-                child._kill()
-            while self._todo:
-                child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
-                self._todo.remove(child)
+        # Done w/ setup phase
+        self._setup_done = True
 
+        # Parent raised an exception:
+        if exc:
+            # Ignore DONE children; Kill NOT DONE children; suppress exceptions
+            await self._quiesce()
             # Re-raise parent exception
             return False
 
         # Parent did NOT raise an exception:
-        # Await children; collect exceptions
         child_excs: list[BaseException] = []
+
+        # Search DONE children for exceptions
+        while done:
+            child = done.pop()
+            exc = child.exception()
+            if exc is not None:
+                child_excs.append(exc)
+
+        # DONE children raised exceptions
+        if child_excs:
+            # Kill NOT DONE children; suppress exceptions
+            await self._quiesce()
+            # Re-raise child exceptions
+            raise BaseExceptionGroup("Child task(s) raised exception(s)", child_excs)
+
+        # DONE children did NOT raise any exceptions:
+
+        # Await NOT DONE / NEW children; collect exceptions
         killed: set[Task[Any]] = set()
         while self._todo:
             child = cast(typ=Task[Any], val=(await self._parent.switch_coro()))
