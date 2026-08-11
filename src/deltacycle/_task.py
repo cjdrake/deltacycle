@@ -460,12 +460,20 @@ class Task[ResultType](KernelIf, Blocking):
 class TaskGroup(KernelIf):
     """Group of tasks."""
 
+    class State(IntEnum):
+        INIT = 0
+        ENTERED = 2
+        EXITED = 3
+        EXCEPTED = 4
+        RETURNED = 5
+
     def __init__(self):
+        self._state = self.State.INIT
+
         task = self._kernel.check_task()
         self._parent = task
 
         # Tasks started in the with block
-        self._setup_done = False
         self._setup_tasks: set[Task[Any]] = set()
 
         # Tasks in running/pending/killing state
@@ -479,6 +487,7 @@ class TaskGroup(KernelIf):
             self._todo.remove(child)
 
     async def __aenter__(self) -> Self:
+        self._state = self.State.ENTERED
         return self
 
     async def __aexit__(
@@ -487,6 +496,8 @@ class TaskGroup(KernelIf):
         exc: BaseException | None,
         traceback: TracebackType | None,
     ):
+        self._state = self.State.EXITED
+
         done: set[Task[Any]] = set()
 
         while self._setup_tasks:
@@ -497,14 +508,12 @@ class TaskGroup(KernelIf):
                 child._waitq.push(self._parent)
                 self._todo.add(child)
 
-        # Done w/ setup phase
-        self._setup_done = True
-
         # Parent raised an exception:
         if exc is not None:
             # Ignore DONE children; Kill NOT DONE children; suppress exceptions
             await self._quiesce()
             # Re-raise parent exception
+            self._state = self.State.EXCEPTED
             return False
 
         # Parent did NOT raise an exception:
@@ -523,6 +532,7 @@ class TaskGroup(KernelIf):
             # Kill NOT DONE children; suppress exceptions
             await self._quiesce()
             # Re-raise child exceptions
+            self._state = self.State.EXCEPTED
             raise BaseExceptionGroup("Child task(s) raised exception(s)", child_excs)
 
         # DONE children did NOT raise any exceptions:
@@ -541,7 +551,11 @@ class TaskGroup(KernelIf):
 
         # Re-raise child exceptions
         if child_excs:
+            self._state = self.State.EXCEPTED
             raise BaseExceptionGroup("Child task(s) raised exception(s)", child_excs)
+
+        self._state = self.State.RETURNED
+        return
 
     def create_task[ResultType](
         self,
@@ -551,9 +565,12 @@ class TaskGroup(KernelIf):
     ) -> Task[ResultType]:
         child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
         child.group = self
-        if not self._setup_done:
+        if self._state is self.State.ENTERED:
             self._setup_tasks.add(child)
-        else:
+        elif self._state is self.State.EXITED:
             child._waitq.push(self._parent)
             self._todo.add(child)
+        else:
+            # TODO(cjdrake): Handle this scenario
+            assert False  # pragma: no cover
         return child
