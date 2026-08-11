@@ -218,9 +218,6 @@ async def all_of(fst: Blocking, *rst: Blocking):
 
     Args:
         fst, rst: Sequence of blocking items.
-
-    Returns:
-        Tuple of items in unblocking order.
     """
     args = (fst, *rst)
     # Uniquify
