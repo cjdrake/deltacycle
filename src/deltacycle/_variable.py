@@ -17,31 +17,33 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._items: dict[Task[Any], list[PredVariable]] = {}
+        self._items: dict[Task[Any], None] = {}
+        self._pvs: defaultdict[Task[Any], list[PredVariable]] = defaultdict(list)
 
     def drop(self, task: Task[Any]):
         del self._items[task]
+        del self._pvs[task]
         task._unlink(tq=self)
 
     def push(self, task: Task[Any], pv: PredVariable):
         if task not in self._items:
             task._link(tq=self)
-            self._items[task] = [pv]
-        else:
-            self._items[task].append(pv)
+            self._items[task] = None
+        self._pvs[task].append(pv)
 
     def pop(self) -> Iterator[tuple[Task[Any], list[PredVariable], PredVariable]]:
         items: list[tuple[Task[Any], list[PredVariable], PredVariable]] = []
 
-        for task, pvs in self._items.items():
+        for task, _ in self._items.items():
+            pvs = self._pvs[task]
             for pv in pvs:
                 if pv:
                     items.append((task, pvs, pv))
                     break
 
-        for item in items:
-            self.drop(item[0])
-            yield item
+        for task, pvs, pv in items:
+            self.drop(task)
+            yield (task, pvs, pv)
 
 
 class Variable(KernelIf):
