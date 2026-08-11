@@ -563,14 +563,18 @@ class TaskGroup(KernelIf):
         name: str | None = None,
         **kwargs: Any,
     ) -> Task[ResultType]:
-        child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
-        child.group = self
         if self._state is self.State.ENTERED:
+            child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
+            child.group = self
             self._setup_tasks.add(child)
-        elif self._state is self.State.EXITED:
+            return child
+
+        if self._state is self.State.EXITED:
+            child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
+            child.group = self
             child._waitq.push(self._parent)
             self._todo.add(child)
-        else:
-            # TODO(cjdrake): Handle this scenario
-            assert False  # pragma: no cover
-        return child
+            return child
+
+        # TODO(cjdrake): Handle this scenario
+        assert False  # pragma: no cover
