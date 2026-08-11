@@ -71,7 +71,7 @@ class _Condition(KernelIf):
 
 
 class AllOf(_Condition):
-    def __await__(self) -> Generator[None, Blocking, tuple[Blocking, ...]]:
+    def __await__(self) -> Generator[None, Blocking, None]:
         task = self._kernel.check_task()
 
         while True:
@@ -85,7 +85,7 @@ class AllOf(_Condition):
                     unblocked.append(b)
 
             if not blocked:
-                return tuple(unblocked)
+                break
 
             self._kernel.fork(task, *blocked)
             yield from task.switch_gen()

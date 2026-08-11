@@ -213,7 +213,7 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Blocking, ...]:
+async def all_of(fst: Blocking, *rst: Blocking):
     """Block forward progress until all items are unblocked.
 
     Args:
@@ -239,7 +239,7 @@ async def all_of(fst: Blocking, *rst: Blocking) -> tuple[Blocking, ...]:
                 unblocked.append(b)
 
         if not blocked:
-            return tuple(unblocked)
+            break
 
         kernel.fork(task, *blocked)
         await task.switch_coro()
