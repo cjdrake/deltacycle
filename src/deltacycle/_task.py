@@ -501,7 +501,7 @@ class TaskGroup(KernelIf):
         self._setup_done = True
 
         # Parent raised an exception:
-        if exc:
+        if exc is not None:
             # Ignore DONE children; Kill NOT DONE children; suppress exceptions
             await self._quiesce()
             # Re-raise parent exception
