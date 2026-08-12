@@ -35,12 +35,16 @@ class SupportsDropTask(ABC):
         """Drop task from object's waiting queue."""
 
 
-class Blocking(SupportsDropTask):
+class Blocking(ABC):
     """Object capable of blocking task forward progress"""
 
     @abstractmethod
     def try_block(self, task: Task[Any]) -> bool:
         """Attempt to block task; return True if successful."""
+
+    @abstractmethod
+    def unblock(self, task: Task[Any]):
+        """Unblock task."""
 
 
 class _SuspendResume:
@@ -103,7 +107,7 @@ class AnyOf(_Condition):
             else:
                 while blocked:
                     x = blocked.pop()
-                    x.drop(task)
+                    x.unblock(task)
                 return b
 
         self._kernel._forks.set(task, *blocked)
@@ -438,7 +442,6 @@ class Task[ResultType](KernelIf, Blocking):
         # Success
         return True
 
-    # Blocking
     def _blocking(self) -> bool:
         return not self.done()
 
@@ -453,13 +456,14 @@ class Task[ResultType](KernelIf, Blocking):
         # NOTE: This propagates exceptions to parent task
         return self.result()
 
+    # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
             self._waitq.push(task, join=self, send=self)
             return True
         return False
 
-    def drop(self, task: Task[Any]):
+    def unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
 

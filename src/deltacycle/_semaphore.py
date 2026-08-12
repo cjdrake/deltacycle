@@ -191,7 +191,6 @@ class ReqSemaphore(Blocking):
     def semaphore(self) -> Semaphore:
         return self._semaphore
 
-    # Blocking
     async def __aenter__(self) -> Self:
         await self._semaphore.get(self._priority)
         return self
@@ -204,6 +203,7 @@ class ReqSemaphore(Blocking):
     ):
         self._semaphore.put()
 
+    # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         if self._semaphore.try_get():
             return False
@@ -211,7 +211,7 @@ class ReqSemaphore(Blocking):
         self._semaphore._getq.push(self._priority, task, req=self)
         return True
 
-    def drop(self, task: Task[Any]):
+    def unblock(self, task: Task[Any]):
         self._semaphore._getq.drop(task)
 
 

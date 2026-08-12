@@ -18,21 +18,29 @@ class _WaitQ(SupportsDropTask):
 
     def __init__(self):
         self._items: dict[Task[Any], bool] = {}
-        self._pvs: defaultdict[Task[Any], list[PredVariable]] = defaultdict(list)
+        self._pvs: defaultdict[Task[Any], set[PredVariable]] = defaultdict(set)
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         del self._pvs[task]
         task._unlink(tq=self)
 
+    def remove(self, task: Task[Any], pv: PredVariable):
+        pvs = self._pvs[task]
+        pvs.remove(pv)
+        if not pvs:
+            self.drop(task)
+
     def push(self, task: Task[Any], unblock: bool, pv: PredVariable):
         if task not in self._items:
             task._link(tq=self)
             self._items[task] = unblock
-        self._pvs[task].append(pv)
+        else:
+            assert unblock == self._items[task]
+        self._pvs[task].add(pv)
 
-    def pop(self) -> Iterator[tuple[Task[Any], bool, list[PredVariable], PredVariable]]:
-        items: list[tuple[Task[Any], bool, list[PredVariable], PredVariable]] = []
+    def pop(self) -> Iterator[tuple[Task[Any], bool, set[PredVariable], PredVariable]]:
+        items: list[tuple[Task[Any], bool, set[PredVariable], PredVariable]] = []
 
         for task, unblock in self._items.items():
             pvs = self._pvs[task]
@@ -135,7 +143,6 @@ class PredVariable(KernelIf, Blocking):
     def __bool__(self) -> bool:
         return self._p()
 
-    # Blocking
     def __await__(self) -> Generator[None, Self, None]:
         """Await variable change:
 
@@ -150,12 +157,13 @@ class PredVariable(KernelIf, Blocking):
         y = yield from task.switch_gen()
         assert y is None
 
+    # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         self._var._waitq.push(task, unblock=True, pv=self)
         return True
 
-    def drop(self, task: Task[Any]):
-        self._var._waitq.drop(task)
+    def unblock(self, task: Task[Any]):
+        self._var._waitq.remove(task, pv=self)
 
 
 class Value[T](ABC):

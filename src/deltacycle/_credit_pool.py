@@ -205,7 +205,6 @@ class ReqCredit(Blocking):
     def credits(self) -> CreditPool:
         return self._credits
 
-    # Blocking
     async def __aenter__(self) -> Self:
         await self._credits.get(self._n, self._priority)
         return self
@@ -218,6 +217,7 @@ class ReqCredit(Blocking):
     ):
         self._credits.put(self._n)
 
+    # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         if self._credits.try_get(self._n):
             return False
@@ -225,5 +225,5 @@ class ReqCredit(Blocking):
         self._credits._getq.push(self._priority, task, req=self, n=self._n)
         return True
 
-    def drop(self, task: Task[Any]):
+    def unblock(self, task: Task[Any]):
         self._credits._getq.drop(task)

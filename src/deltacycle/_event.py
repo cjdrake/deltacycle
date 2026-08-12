@@ -70,7 +70,6 @@ class Event(KernelIf, Blocking):
         """Clear the flag. Start blocking waiting tasks."""
         self._flag = False
 
-    # Blocking
     def _blocking(self) -> bool:
         return not self._flag
 
@@ -82,11 +81,12 @@ class Event(KernelIf, Blocking):
             y = yield from task.switch_gen()
             assert y is None
 
+    # Blocking
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
             self._waitq.push(task, event=self)
             return True
         return False
 
-    def drop(self, task: Task[Any]):
+    def unblock(self, task: Task[Any]):
         self._waitq.drop(task)

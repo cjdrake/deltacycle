@@ -265,7 +265,7 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
         else:
             while blocked:
                 x = blocked.pop()
-                x.drop(task)
+                x.unblock(task)
             return b
 
     kernel._forks.set(task, *blocked)
