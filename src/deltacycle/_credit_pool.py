@@ -179,7 +179,7 @@ class CreditPool(KernelIf):
         if self._empty(n) or self._get_lock:
             task = self._kernel.check_task()
 
-            self._getq.push(priority, task, None, n)
+            self._getq.push(priority, task, req=None, n=n)
             y = await task.switch_coro()
             assert y is None
 
@@ -222,7 +222,7 @@ class ReqCredit(Blocking):
         if self._credits.try_get(self._n):
             return False
 
-        self._credits._getq.push(self._priority, task, self, self._n)
+        self._credits._getq.push(self._priority, task, req=self, n=self._n)
         return True
 
     def drop(self, task: Task[Any]):

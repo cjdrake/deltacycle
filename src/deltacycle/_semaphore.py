@@ -167,7 +167,7 @@ class Semaphore(KernelIf):
         if self._empty() or self._get_lock:
             task = self._kernel.check_task()
 
-            self._getq.push(priority, task, None)
+            self._getq.push(priority, task, req=None)
             y = await task.switch_coro()
             assert y is None
 
@@ -208,7 +208,7 @@ class ReqSemaphore(Blocking):
         if self._semaphore.try_get():
             return False
 
-        self._semaphore._getq.push(self._priority, task, self)
+        self._semaphore._getq.push(self._priority, task, req=self)
         return True
 
     def drop(self, task: Task[Any]):
