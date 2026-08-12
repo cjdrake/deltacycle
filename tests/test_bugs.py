@@ -10,6 +10,7 @@ from deltacycle import (
     ReqSemaphore,
     Semaphore,
     TaskGroup,
+    Variable,
     any_of,
     create_task,
     finish,
@@ -193,5 +194,16 @@ def test_15():
         t.interrupt()
         # forker should NOT appear in fork table
         assert len(kernel._forks) == 0
+
+    run(main())
+
+
+def test_16():
+    v = Variable()
+    e = Event()
+
+    async def main():
+        e.set()
+        await any_of(v.pred(), v.pred(), e)
 
     run(main())
