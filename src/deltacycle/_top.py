@@ -238,7 +238,7 @@ async def all_of(fst: Blocking, *rst: Blocking):
         if not blocked:
             break
 
-        kernel.fork(task, *blocked)
+        kernel._forks.set(task, *blocked)
         await task.switch_coro()
 
 
@@ -268,7 +268,7 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
                 x.drop(task)
             return b
 
-    kernel.fork(task, *blocked)
+    kernel._forks.set(task, *blocked)
     x = await task.switch_coro()
     assert x is not None
     return x

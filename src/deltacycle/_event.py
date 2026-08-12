@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator
-from typing import Any, Self, cast
+from typing import Any, Self
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
@@ -13,21 +13,21 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._items: dict[Task[Any], None] = {}
+        self._items: dict[Task[Any], Event | None] = {}
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         task._unlink(tq=self)
 
-    def push(self, task: Task[Any]):
+    def push(self, task: Task[Any], event: Event | None):
         task._link(tq=self)
-        self._items[task] = None
+        self._items[task] = event
 
-    def pop(self) -> Iterator[Task[Any]]:
-        tasks = list(self._items)
-        for task in tasks:
+    def pop(self) -> Iterator[tuple[Task[Any], Event | None]]:
+        items = list(self._items.items())
+        for task, event in items:
             self.drop(task)
-            yield task
+            yield task, event
 
 
 class Event(KernelIf, Blocking):
@@ -59,9 +59,12 @@ class Event(KernelIf, Blocking):
         """Set the flag. Stop blocking waiting tasks."""
         self._flag = True
 
-        for task in self._waitq.pop():
-            self._kernel.join_any(task, self)
-            self._kernel.call_soon(task, args=(Task.Command.RESUME, self))
+        for task, event in self._waitq.pop():
+            if event is not None:
+                self._kernel._forks.clr(task, event)
+                self._kernel.call_soon(task, args=(Task.Command.RESUME, event))
+            else:
+                self._kernel.call_soon(task, args=(Task.Command.RESUME,))
 
     def clear(self):
         """Clear the flag. Start blocking waiting tasks."""
@@ -75,13 +78,13 @@ class Event(KernelIf, Blocking):
         """Await event set."""
         if self._blocking():
             task = self._kernel.check_task()
-            self._waitq.push(task)
-            e = cast(typ=Self, val=(yield from task.switch_gen()))
-            assert e is self
+            self._waitq.push(task, event=None)
+            y = yield from task.switch_gen()
+            assert y is None
 
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
-            self._waitq.push(task)
+            self._waitq.push(task, event=self)
             return True
         return False
 

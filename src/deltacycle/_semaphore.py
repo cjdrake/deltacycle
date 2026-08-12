@@ -125,11 +125,11 @@ class Semaphore(KernelIf):
 
     def _getq_pop(self) -> Task[Any]:
         task, req = self._getq.pop()
-        if req is None:
-            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
-        else:
-            self._kernel.join_any(task, req)
+        if req is not None:
+            self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
+        else:
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         return task
 
     def req(self, priority: int = 0) -> ReqSemaphore:

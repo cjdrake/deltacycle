@@ -87,7 +87,7 @@ class AllOf(_Condition):
             if not blocked:
                 break
 
-            self._kernel.fork(task, *blocked)
+            self._kernel._forks.set(task, *blocked)
             yield from task.switch_gen()
 
 
@@ -106,7 +106,7 @@ class AnyOf(_Condition):
                     x.drop(task)
                 return b
 
-        self._kernel.fork(task, *blocked)
+        self._kernel._forks.set(task, *blocked)
         x = yield from task.switch_gen()
         return x
 
@@ -115,21 +115,21 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._items: dict[Task[Any], None] = {}
+        self._items: dict[Task[Any], tuple[Task | None, Task | None]] = {}
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         task._unlink(tq=self)
 
-    def push(self, task: Task[Any]):
+    def push(self, task: Task[Any], join: Task | None, send: Task | None):
         task._link(tq=self)
-        self._items[task] = None
+        self._items[task] = (join, send)
 
-    def pop(self) -> Iterator[Task[Any]]:
-        tasks = list(self._items)
-        for task in tasks:
+    def pop(self) -> Iterator[tuple[Task[Any], Task[Any] | None, Task[Any] | None]]:
+        items = list(self._items.items())
+        for task, (join, send) in items:
             self.drop(task)
-            yield task
+            yield task, join, send
 
 
 class Task[ResultType](KernelIf, Blocking):
@@ -311,9 +311,13 @@ class Task[ResultType](KernelIf, Blocking):
                 raise TypeError(f"Invalid task command: {args}")
 
     def _set(self):
-        for task in self._waitq.pop():
-            self._kernel.join_any(task, self)
-            self._kernel.call_soon(task, args=(self.Command.RESUME, self))
+        for task, join, send in self._waitq.pop():
+            if join is not None:
+                self._kernel._forks.clr(task, join)
+            if send is not None:
+                self._kernel.call_soon(task, args=(self.Command.RESUME, send))
+            else:
+                self._kernel.call_soon(task, args=(self.Command.RESUME,))
 
     def do_result(self, exc: StopIteration):
         self._result = exc.value
@@ -442,16 +446,16 @@ class Task[ResultType](KernelIf, Blocking):
         """Await task done."""
         if self._blocking():
             task = self._kernel.check_task()
-            self._waitq.push(task)
-            t = cast(typ=Self, val=(yield from task.switch_gen()))
-            assert t is self
+            self._waitq.push(task, join=None, send=None)
+            y = yield from task.switch_gen()
+            assert y is None
 
         # NOTE: This propagates exceptions to parent task
         return self.result()
 
     def try_block(self, task: Task[Any]) -> bool:
         if self._blocking():
-            self._waitq.push(task)
+            self._waitq.push(task, join=self, send=self)
             return True
         return False
 
@@ -507,7 +511,7 @@ class TaskGroup(KernelIf):
             if child.done():
                 done.add(child)
             else:
-                child._waitq.push(self._parent)
+                child._waitq.push(self._parent, join=None, send=child)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -574,7 +578,7 @@ class TaskGroup(KernelIf):
         if self._state is self.State.EXITED:
             child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
             child.group = self
-            child._waitq.push(self._parent)
+            child._waitq.push(self._parent, join=None, send=child)
             self._todo.add(child)
             return child
 

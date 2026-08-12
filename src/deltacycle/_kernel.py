@@ -217,13 +217,6 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
-    def fork(self, task: Task[Any], *bs: Blocking):
-        self._forks.set(task, *bs)
-
-    def join_any(self, task: Task[Any], *bs: Blocking):
-        if task in self._forks:
-            self._forks.clr(task, *bs)
-
     def touch_var(self, v: Variable):
         self._dirty_vars.add(v)
 
