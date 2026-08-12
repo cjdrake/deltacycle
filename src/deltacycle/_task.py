@@ -115,13 +115,13 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._items: dict[Task[Any], tuple[Task | None, Task | None]] = {}
+        self._items: dict[Task[Any], tuple[Task[Any] | None, Task[Any] | None]] = {}
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         task._unlink(tq=self)
 
-    def push(self, task: Task[Any], join: Task | None, send: Task | None):
+    def push(self, task: Task[Any], join: Task[Any] | None, send: Task[Any] | None):
         task._link(tq=self)
         self._items[task] = (join, send)
 
