@@ -8,6 +8,16 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.42.0
+==============
+
+Removed the redundant return value for ``AllOf`` / ``all_of``.
+
+Fixed bugs:
+
+* `Issue #16 <https://github.com/cjdrake/deltacycle/issues/16>`_
+
+
 Version 0.41.0
 ==============
 
