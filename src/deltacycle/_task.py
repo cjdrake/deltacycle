@@ -279,7 +279,7 @@ class Task[ResultType](KernelIf, Blocking):
         while tqs:
             tq = tqs.pop()
             while self._refcnts[tq]:
-                tq.drop(self)
+                tq.drop(task=self)
             del self._refcnts[tq]
 
     async def switch_coro(self) -> Blocking | None:
