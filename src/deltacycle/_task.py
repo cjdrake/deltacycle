@@ -270,7 +270,7 @@ class Task[ResultType](KernelIf, Blocking):
     def _unlink(self, tq: SupportsDropTask):
         assert self._refcnts[tq] > 0
         self._refcnts[tq] -= 1
-        if self._refcnts[tq] == 0:
+        if not self._refcnts[tq]:
             del self._refcnts[tq]
 
     def _renege(self):

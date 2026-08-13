@@ -26,9 +26,8 @@ class _WaitQ(SupportsDropTask):
         task._unlink(tq=self)
 
     def remove(self, task: Task[Any], pv: PredVariable):
-        pvs = self._pvs[task]
-        pvs.remove(pv)
-        if not pvs:
+        self._pvs[task].remove(pv)
+        if not self._pvs[task]:
             self.drop(task)
 
     def push(self, task: Task[Any], unblock: bool, pv: PredVariable):
