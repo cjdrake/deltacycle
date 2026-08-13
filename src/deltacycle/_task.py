@@ -217,6 +217,7 @@ class Task[ResultType](KernelIf, Blocking):
         self._result: ResultType | None = None
         self._exception: BaseException | None = None
 
+        self._result_returned = False
         self._exception_raised = False
 
     @property
@@ -358,6 +359,7 @@ class Task[ResultType](KernelIf, Blocking):
         """
         if self._state is self.State.RETURNED:
             assert self._exception is None
+            self._result_returned = True
             return cast(ResultType, self._result)
         if self._state is self.State.EXCEPTED:
             assert self._result is None and self._exception is not None
