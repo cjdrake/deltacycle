@@ -264,6 +264,7 @@ class Task[ResultType](KernelIf, Blocking):
         return self._state
 
     def _link(self, tq: SupportsDropTask):
+        assert self._refcnts[tq] >= 0
         self._refcnts[tq] += 1
 
     def _unlink(self, tq: SupportsDropTask):
