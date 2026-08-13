@@ -207,3 +207,15 @@ def test_16():
         await any_of(v.pred(), v.pred(), e)
 
     run(main())
+
+
+@pytest.mark.xfail(reason="https://github.com/cjdrake/deltacycle/issues/17")
+def test_17():
+    e = Event()
+
+    async def main():
+        await e
+
+    run(main())
+
+    assert not e._waitq
