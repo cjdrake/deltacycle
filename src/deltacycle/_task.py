@@ -43,7 +43,7 @@ class Blocking(ABC):
         """Attempt to block task; return True if successful."""
 
     @abstractmethod
-    def unblock(self, task: Task[Any]):
+    def unblock(self, task: Task[Any]) -> None:
         """Unblock task."""
 
 
