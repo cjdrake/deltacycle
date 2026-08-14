@@ -217,8 +217,14 @@ class Container(KernelIf):
         self._check_cnt()
         self._check_n(n)
 
-        if self._empty(n) or self._get_lock:
+        if self._empty(n):
             return False
+
+        if self._get_lock:
+            task = self._kernel.check_task()
+            if task is not self._get_lock._task:
+                return False
+            self._get_lock.release()
 
         self._get(n)
         return True

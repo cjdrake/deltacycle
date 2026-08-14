@@ -207,8 +207,14 @@ class Queue[T](KernelIf):
             If the get is successful, ``(True, item)``;
             If unsuccessful, ``(False, None)``.
         """
-        if self.empty() or self._get_lock:
+        if self.empty():
             return False, None
+
+        if self._get_lock:
+            task = self._kernel.check_task()
+            if task is not self._get_lock._task:
+                return False, None
+            self._get_lock.release()
 
         item = self._get()
         return True, item

@@ -155,8 +155,14 @@ class Semaphore(KernelIf):
     def try_get(self) -> bool:
         self._check_cnt()
 
-        if self._empty() or self._get_lock:
+        if self._empty():
             return False
+
+        if self._get_lock:
+            task = self._kernel.check_task()
+            if task is not self._get_lock._task:
+                return False
+            self._get_lock.release()
 
         self._get()
         return True
