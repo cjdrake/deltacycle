@@ -180,8 +180,14 @@ class Container(KernelIf):
         self._check_cnt()
         self._check_n(n)
 
-        if self._full(n) or self._put_lock:
+        if self._full(n):
             return False
+
+        if self._put_lock:
+            task = self._kernel.check_task()
+            if task is not self._put_lock._task:
+                return False
+            self._put_lock.release()
 
         self._put(n)
         return True

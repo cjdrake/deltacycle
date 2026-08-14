@@ -168,8 +168,14 @@ class Queue[T](KernelIf):
 
     def try_put(self, item: T) -> bool:
         """Nonblocking put: Return True if a put attempt is successful."""
-        if self.full() or self._put_lock:
+        if self.full():
             return False
+
+        if self._put_lock:
+            task = self._kernel.check_task()
+            if task is not self._put_lock._task:
+                return False
+            self._put_lock.release()
 
         self._put(item)
         return True
