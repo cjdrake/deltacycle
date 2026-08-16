@@ -211,12 +211,12 @@ class ReqSemaphore(Blocking):
         self._semaphore.put()
 
     # Blocking
-    def try_block(self, task: Task[Any]) -> bool:
+    def try_block(self, task: Task[Any]) -> Blocking.Type:
         if self._semaphore.try_get():
-            return False
+            return Blocking.Type.PERM_NONBLOCKING
 
         self._semaphore._getq.push(self._priority, task, req=self)
-        return True
+        return Blocking.Type.TEMP_BLOCKING
 
     def unblock(self, task: Task[Any]):
         self._semaphore._getq.drop(task)

@@ -220,26 +220,43 @@ async def all_of(fst: Blocking, *rst: Blocking):
         fst, rst: Sequence of blocking items.
     """
     args = (fst, *rst)
-    # Uniquify
-    bs = list(dict.fromkeys(args))
 
     kernel, task = _get_kt()
 
+    # Uniquify
+    bs = list(dict.fromkeys(args))
+
     while True:
         blocking: list[Blocking] = []
-        nonblocking: list[Blocking] = []
+        temp_nonblocking: list[Blocking] = []
 
-        for b in bs:
-            if b.try_block(task):
+        while bs:
+            b = bs.pop()
+            bt = b.try_block(task)
+
+            # Task, Event, ReqSemaphore, ReqCredit
+            if bt is Blocking.Type.TEMP_BLOCKING:
                 blocking.append(b)
+            # PredVariable
+            elif bt is Blocking.Type.PERM_BLOCKING:
+                # TODO(cjdrake): Check deadlock
+                blocking.append(b)
+            # Task, Event
+            elif bt is Blocking.Type.TEMP_NONBLOCKING:
+                temp_nonblocking.append(b)
+            # ReqSemaphore, ReqCredit
+            elif bt is Blocking.Type.PERM_NONBLOCKING:
+                pass
             else:
-                nonblocking.append(b)
+                assert False  # pragma: no cover
 
         if not blocking:
             break
 
         kernel._forks.set(task, *blocking)
         await task.switch_coro()
+
+        bs = blocking + temp_nonblocking
 
 
 async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
@@ -252,15 +269,14 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
         Item that unblocked first.
     """
     args = (fst, *rst)
-    # Uniquify
-    bs = list(dict.fromkeys(args))
 
     kernel, task = _get_kt()
 
     blocking: list[Blocking] = []
 
-    for b in bs:
-        if b.try_block(task):
+    for b in dict.fromkeys(args):
+        bt = b.try_block(task)
+        if bt.is_blocking():
             blocking.append(b)
         else:
             while blocking:

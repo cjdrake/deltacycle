@@ -224,12 +224,12 @@ class ReqCredit(Blocking):
         self._credits.put(self._n)
 
     # Blocking
-    def try_block(self, task: Task[Any]) -> bool:
+    def try_block(self, task: Task[Any]) -> Blocking.Type:
         if self._credits.try_get(self._n):
-            return False
+            return Blocking.Type.PERM_NONBLOCKING
 
         self._credits._getq.push(self._priority, task, req=self, n=self._n)
-        return True
+        return Blocking.Type.TEMP_BLOCKING
 
     def unblock(self, task: Task[Any]):
         self._credits._getq.drop(task)

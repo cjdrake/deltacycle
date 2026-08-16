@@ -219,9 +219,8 @@ def test_schedule_all1():
         t1 = create_task(cf(lock, 0, 10, 10))
 
         await sleep(1)
-        ys = await AllOf(t1, lock.req())
+        await AllOf(t1, lock.req())
 
-        assert ys == (lock, t1)
         assert now() == 20
         assert not lock
         lock.put()
@@ -244,7 +243,6 @@ def test_schedule_all2():
         await sleep(1)
         await all_of(t1, lock.req())
 
-        # TODO(cjdrake): Debug below here
         assert now() == 20
         assert not lock
         lock.put()

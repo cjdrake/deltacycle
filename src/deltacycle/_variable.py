@@ -157,9 +157,9 @@ class PredVariable(KernelIf, Blocking):
         assert y is None
 
     # Blocking
-    def try_block(self, task: Task[Any]) -> bool:
+    def try_block(self, task: Task[Any]) -> Blocking.Type:
         self._var._waitq.push(task, unblock=True, pv=self)
-        return True
+        return Blocking.Type.PERM_BLOCKING
 
     def unblock(self, task: Task[Any]):
         self._var._waitq.remove(task, pv=self)

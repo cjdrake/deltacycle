@@ -313,9 +313,8 @@ def test_schedule_all1():
         t1 = create_task(cf(credits, 0, 10, 10))
 
         await sleep(1)
-        ys = await AllOf(t1, credits.req(n=10))
+        await AllOf(t1, credits.req(n=10))
 
-        assert ys == (credits, t1)
         assert now() == 20
         assert not credits
         credits.put(n=2)
@@ -336,9 +335,8 @@ def test_schedule_all2():
         t1 = create_task(cf(credits, 0, 10, 10))
 
         await sleep(1)
-        ys = await all_of(t1, credits.req(n=10))
+        await all_of(t1, credits.req(n=10))
 
-        assert ys == (credits, t1)
         assert now() == 20
         assert not credits
         credits.put(n=10)

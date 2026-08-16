@@ -38,8 +38,17 @@ class SupportsDropTask(ABC):
 class Blocking(ABC):
     """Object capable of blocking task forward progress"""
 
+    class Type(IntEnum):
+        TEMP_BLOCKING = 0
+        PERM_BLOCKING = 1
+        TEMP_NONBLOCKING = 2
+        PERM_NONBLOCKING = 3
+
+        def is_blocking(self) -> bool:
+            return self is self.TEMP_BLOCKING or self is self.PERM_BLOCKING
+
     @abstractmethod
-    def try_block(self, task: Task[Any]) -> bool:
+    def try_block(self, task: Task[Any]) -> Type:
         """Attempt to block task; return True if successful."""
 
     @abstractmethod
@@ -69,30 +78,47 @@ class _SuspendResume:
 
 class _Condition(KernelIf):
     def __init__(self, fst: Blocking, *rst: Blocking):
-        args = (fst, *rst)
-        # Uniquify arguments
-        self._bs = list(dict.fromkeys(args))
+        self._args = (fst, *rst)
 
 
 class AllOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, None]:
         task = self._kernel.check_task()
 
+        # Uniquify
+        bs = list(dict.fromkeys(self._args))
+
         while True:
             blocking: list[Blocking] = []
-            nonblocking: list[Blocking] = []
+            temp_nonblocking: list[Blocking] = []
 
-            for b in self._bs:
-                if b.try_block(task):
+            while bs:
+                b = bs.pop()
+                bt = b.try_block(task)
+
+                # Task, Event, ReqSemaphore, ReqCredit
+                if bt is Blocking.Type.TEMP_BLOCKING:
                     blocking.append(b)
+                # PredVariable
+                elif bt is Blocking.Type.PERM_BLOCKING:
+                    # TODO(cjdrake): Check deadlock
+                    blocking.append(b)
+                # Task, Event
+                elif bt is Blocking.Type.TEMP_NONBLOCKING:
+                    temp_nonblocking.append(b)
+                # ReqSemaphore, ReqCredit
+                elif bt is Blocking.Type.PERM_NONBLOCKING:
+                    pass
                 else:
-                    nonblocking.append(b)
+                    assert False  # pragma: no cover
 
             if not blocking:
                 break
 
             self._kernel._forks.set(task, *blocking)
             yield from task.switch_gen()
+
+            bs = blocking + temp_nonblocking
 
 
 class AnyOf(_Condition):
@@ -101,8 +127,9 @@ class AnyOf(_Condition):
 
         blocking: list[Blocking] = []
 
-        for b in self._bs:
-            if b.try_block(task):
+        for b in dict.fromkeys(self._args):
+            bt = b.try_block(task)
+            if bt.is_blocking():
                 blocking.append(b)
             else:
                 while blocking:
@@ -460,11 +487,11 @@ class Task[ResultType](KernelIf, Blocking):
         return self.result()
 
     # Blocking
-    def try_block(self, task: Task[Any]) -> bool:
+    def try_block(self, task: Task[Any]) -> Blocking.Type:
         if self._blocking():
             self._waitq.push(task, join=self, send=self)
-            return True
-        return False
+            return Blocking.Type.TEMP_BLOCKING
+        return Blocking.Type.PERM_NONBLOCKING
 
     def unblock(self, task: Task[Any]):
         self._waitq.drop(task)
