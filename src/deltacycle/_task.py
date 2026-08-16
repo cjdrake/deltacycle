@@ -79,19 +79,19 @@ class AllOf(_Condition):
         task = self._kernel.check_task()
 
         while True:
-            blocked: list[Blocking] = []
-            unblocked: list[Blocking] = []
+            blocking: list[Blocking] = []
+            nonblocking: list[Blocking] = []
 
             for b in self._bs:
                 if b.try_block(task):
-                    blocked.append(b)
+                    blocking.append(b)
                 else:
-                    unblocked.append(b)
+                    nonblocking.append(b)
 
-            if not blocked:
+            if not blocking:
                 break
 
-            self._kernel._forks.set(task, *blocked)
+            self._kernel._forks.set(task, *blocking)
             yield from task.switch_gen()
 
 
@@ -99,18 +99,18 @@ class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, Blocking]:
         task = self._kernel.check_task()
 
-        blocked: list[Blocking] = []
+        blocking: list[Blocking] = []
 
         for b in self._bs:
             if b.try_block(task):
-                blocked.append(b)
+                blocking.append(b)
             else:
-                while blocked:
-                    x = blocked.pop()
+                while blocking:
+                    x = blocking.pop()
                     x.unblock(task)
                 return b
 
-        self._kernel._forks.set(task, *blocked)
+        self._kernel._forks.set(task, *blocking)
         x = yield from task.switch_gen()
         return x
 

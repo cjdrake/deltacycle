@@ -214,7 +214,7 @@ async def sleep(delay: int):
 
 
 async def all_of(fst: Blocking, *rst: Blocking):
-    """Block forward progress until all items are unblocked.
+    """Block forward progress until all items are nonblocking.
 
     Args:
         fst, rst: Sequence of blocking items.
@@ -226,24 +226,24 @@ async def all_of(fst: Blocking, *rst: Blocking):
     kernel, task = _get_kt()
 
     while True:
-        blocked: list[Blocking] = []
-        unblocked: list[Blocking] = []
+        blocking: list[Blocking] = []
+        nonblocking: list[Blocking] = []
 
         for b in bs:
             if b.try_block(task):
-                blocked.append(b)
+                blocking.append(b)
             else:
-                unblocked.append(b)
+                nonblocking.append(b)
 
-        if not blocked:
+        if not blocking:
             break
 
-        kernel._forks.set(task, *blocked)
+        kernel._forks.set(task, *blocking)
         await task.switch_coro()
 
 
 async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
-    """Block forward progress until at least one item is unblocked.
+    """Block forward progress until at least one item is nonblocking.
 
     Args:
         fst, rst: Sequence of blocking items.
@@ -257,18 +257,18 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
 
     kernel, task = _get_kt()
 
-    blocked: list[Blocking] = []
+    blocking: list[Blocking] = []
 
     for b in bs:
         if b.try_block(task):
-            blocked.append(b)
+            blocking.append(b)
         else:
-            while blocked:
-                x = blocked.pop()
+            while blocking:
+                x = blocking.pop()
                 x.unblock(task)
             return b
 
-    kernel._forks.set(task, *blocked)
+    kernel._forks.set(task, *blocking)
     x = await task.switch_coro()
     assert x is not None
     return x
