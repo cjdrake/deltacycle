@@ -170,6 +170,7 @@ class Semaphore(KernelIf):
     async def get(self, priority: int = 0):
         self._check_cnt()
 
+        # TODO(cjdrake): Review case: task == _get_lock._task
         if self._empty() or self._get_lock:
             task = self._kernel.check_task()
 
