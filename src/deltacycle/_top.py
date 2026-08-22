@@ -224,14 +224,14 @@ async def all_of(fst: Blocking, *rst: Blocking):
     kernel, task = _get_kt()
 
     # Uniquify
-    bs = list(dict.fromkeys(args))
+    blockers = list(dict.fromkeys(args))
 
     while True:
         blocking: list[Blocking] = []
         temp_nonblocking: list[Blocking] = []
 
-        while bs:
-            b = bs.pop()
+        while blockers:
+            b = blockers.pop()
             bt = b.try_block(task)
 
             # Task, Event, ReqSemaphore, ReqCredit
@@ -256,7 +256,7 @@ async def all_of(fst: Blocking, *rst: Blocking):
         kernel._forks.set(task, *blocking)
         await task.switch_coro()
 
-        bs = blocking + temp_nonblocking
+        blockers = blocking + temp_nonblocking
 
 
 async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
@@ -272,9 +272,12 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
 
     kernel, task = _get_kt()
 
+    # Uniquify
+    blockers = list(dict.fromkeys(args))
+
     blocking: list[Blocking] = []
 
-    for b in dict.fromkeys(args):
+    for b in blockers:
         bt = b.try_block(task)
         if bt.is_blocking():
             blocking.append(b)

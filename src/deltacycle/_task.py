@@ -86,14 +86,14 @@ class AllOf(_Condition):
         task = self._kernel.check_task()
 
         # Uniquify
-        bs = list(dict.fromkeys(self._args))
+        blockers = list(dict.fromkeys(self._args))
 
         while True:
             blocking: list[Blocking] = []
             temp_nonblocking: list[Blocking] = []
 
-            while bs:
-                b = bs.pop()
+            while blockers:
+                b = blockers.pop()
                 bt = b.try_block(task)
 
                 # Task, Event, ReqSemaphore, ReqCredit
@@ -118,16 +118,19 @@ class AllOf(_Condition):
             self._kernel._forks.set(task, *blocking)
             yield from task.switch_gen()
 
-            bs = blocking + temp_nonblocking
+            blockers = blocking + temp_nonblocking
 
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, Blocking]:
         task = self._kernel.check_task()
 
+        # Uniquify
+        blockers = list(dict.fromkeys(self._args))
+
         blocking: list[Blocking] = []
 
-        for b in dict.fromkeys(self._args):
+        for b in blockers:
             bt = b.try_block(task)
             if bt.is_blocking():
                 blocking.append(b)
