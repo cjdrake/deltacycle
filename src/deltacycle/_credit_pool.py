@@ -105,9 +105,6 @@ class CreditPool(KernelIf):
         # Lock ensures gets are atomic
         self._get_lock = _GetLock(parent=self)
 
-    def __len__(self) -> int:
-        return self._cnt
-
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None

@@ -20,17 +20,17 @@ def test_len():
     async def main():
         sem = Semaphore(capacity=5)
         assert sem.capacity == 5
-        assert len(sem) == 0
+        assert sem._cnt == 0
         sem.put()
-        assert len(sem) == 1
+        assert sem._cnt == 1
         sem.put()
-        assert len(sem) == 2
+        assert sem._cnt == 2
         assert sem
         await sem.get()
-        assert len(sem) == 1
+        assert sem._cnt == 1
         await sem.get()
-        assert len(sem) == 0
-        assert not sem
+        assert sem._cnt == 0
+        # assert not sem
 
     run(main())
 
@@ -222,7 +222,7 @@ def test_schedule_all1():
         await AllOf(t1, lock.req())
 
         assert now() == 20
-        assert not lock
+        # assert not lock
         lock.put()
 
     run(main())
@@ -244,7 +244,7 @@ def test_schedule_all2():
         await all_of(t1, lock.req())
 
         assert now() == 20
-        assert not lock
+        # assert not lock
         lock.put()
 
     run(main())

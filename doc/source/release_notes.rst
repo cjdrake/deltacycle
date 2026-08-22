@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.43.0
+==============
+
+Remove ``__len__`` method from ```Semaphore`` and ``CreditPool``.
+Python's ``asyncio.Semaphore`` does not implement ``__bool__`` or ``__len__``.
+
+
 Version 0.42.0
 ==============
 

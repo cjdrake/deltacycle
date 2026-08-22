@@ -139,7 +139,6 @@ Synchronization Primitives
 .. autoclass:: deltacycle.Semaphore
     :show-inheritance:
 
-    .. automethod:: __len__
     .. autoproperty:: capacity
     .. automethod:: req
     .. automethod:: put
@@ -159,7 +158,6 @@ Synchronization Primitives
 .. autoclass:: deltacycle.CreditPool
     :show-inheritance:
 
-    .. automethod:: __len__
     .. autoproperty:: capacity
     .. automethod:: req
     .. automethod:: put
