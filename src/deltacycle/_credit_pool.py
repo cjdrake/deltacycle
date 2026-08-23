@@ -163,7 +163,7 @@ class CreditPool(KernelIf):
             # No available credit: Suspend
             task = self._kernel._check_task()
             self._getq.push(priority, task, req=None, n=n)
-            y = await task.switch_coro()
+            y = await task._switch_coro()
 
             # Suspend => Schedule => Resume[Get]
             assert y is None

@@ -200,7 +200,7 @@ class Container(KernelIf):
             task = self._kernel._check_task()
 
             self._putq.push(priority, task, n)
-            y = await task.switch_coro()
+            y = await task._switch_coro()
             assert y is None
 
             # Wakeup: complete put
@@ -243,7 +243,7 @@ class Container(KernelIf):
             task = self._kernel._check_task()
 
             self._getq.push(priority, task, n)
-            y = await task.switch_coro()
+            y = await task._switch_coro()
             assert y is None
 
             # Wakeup: complete get

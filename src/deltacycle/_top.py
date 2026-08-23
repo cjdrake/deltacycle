@@ -209,7 +209,7 @@ async def sleep(delay: int):
         raise ValueError(f"Expected delay ≥ 0, got {delay}")
     kernel, task = _get_kt()
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
-    y = await task.switch_coro()
+    y = await task._switch_coro()
     assert y is None
 
 
@@ -254,7 +254,7 @@ async def all_of(fst: Blocking, *rst: Blocking):
             break
 
         kernel._forks.set(task, *blocking)
-        await task.switch_coro()
+        await task._switch_coro()
 
         blockers = blocking + temp_nonblocking
 
@@ -288,7 +288,7 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
             return b
 
     kernel._forks.set(task, *blocking)
-    x = await task.switch_coro()
+    x = await task._switch_coro()
     assert x is not None
     x.do_resume(task)
     return x

@@ -397,16 +397,16 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
             for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task.do_run(args)
+                    task._do_run(args)
                 except KernelExit:
                     self._exit()
                     return
                 except StopIteration as exc:
-                    task.do_result(exc)
+                    task._do_result(exc)
                 except Kill as exc:
-                    task.do_except(exc)
+                    task._do_except(exc)
                 except Exception as exc:
-                    task.do_except(exc)
+                    task._do_except(exc)
                 finally:
                     self._task = None
 
@@ -436,16 +436,16 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
             for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task.do_run(args)
+                    task._do_run(args)
                 except KernelExit:
                     self._exit()
                     return
                 except StopIteration as exc:
-                    task.do_result(exc)
+                    task._do_result(exc)
                 except Kill as exc:
-                    task.do_except(exc)
+                    task._do_except(exc)
                 except Exception as exc:
-                    task.do_except(exc)
+                    task._do_except(exc)
                 finally:
                     self._task = None
 
