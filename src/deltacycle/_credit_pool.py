@@ -41,49 +41,37 @@ class _PortQ(SupportsDropTask):
         heapq.heappush(self._items, (priority, self._index, task, req, n))
         self._index += 1
 
-    def pop(self) -> tuple[Task[Any], ReqCredit | None]:
-        _, _, task, req, _ = heapq.heappop(self._items)
+    def pop(self) -> tuple[Task[Any], ReqCredit | None, int]:
+        _, _, task, req, n = heapq.heappop(self._items)
         task._unlink(tq=self)
-        return task, req
+        return task, req, n
 
     def peek(self) -> int:
         assert self._items
         return self._items[0][-1]
 
 
-class _PortLock(SupportsDropTask):
+class _PortLocks(SupportsDropTask):
     def __init__(self, parent: CreditPool):
         self._parent = parent
-        self._task: Task[Any] | None = None
+        self._tasks: dict[Task[Any], int] = {}
 
-    def __bool__(self) -> bool:
-        return self._task is not None
-
-    def acquire(self, task: Task[Any]):
-        assert self._task is None
-
+    def acquire(self, task: Task[Any], n: int):
+        assert task not in self._tasks
         task._link(tq=self)
-        self._task = task
+        self._tasks[task] = n
 
-    def release(self):
-        assert self._task is not None
-
-        task = self._task
-        self._task = None
+    def release(self, task: Task[Any]):
+        del self._tasks[task]
         task._unlink(tq=self)
 
 
-class _GetLock(_PortLock):
+class _GetLocks(_PortLocks):
     def drop(self, task: Task[Any]):
-        assert self._task is task
-
-        self.release()
-
-        # Task was interrupted before get completed
-
-        if self._parent._getq_ready():
-            # Get task waiting, port unlocked, credit available
-            self.acquire(task=self._parent._getq_pop())
+        # Suspend => Schedule => Interrupt[Put]
+        n = self._tasks[task]
+        self.release(task)
+        self._parent.put(n)
 
 
 class CreditPool(KernelIf):
@@ -103,14 +91,11 @@ class CreditPool(KernelIf):
         self._getq = _PortQ()
 
         # Lock ensures gets are atomic
-        self._get_lock = _GetLock(parent=self)
+        self._get_locks = _GetLocks(parent=self)
 
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
-
-    def _empty(self, n: int) -> bool:
-        return (self._cnt - n) < 0
 
     def _full(self, n: int) -> bool:
         return self._has_capacity and (self._cnt + n) > self._capacity
@@ -125,27 +110,22 @@ class CreditPool(KernelIf):
         if self._has_capacity and n > self._capacity:
             raise ValueError(f"Expected n ≤ {self._capacity}, got {n}")
 
-    def _getq_ready(self) -> bool:
-        return bool(self._getq) and not self._empty(self._getq.peek())
+    def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
+        self._check_n(n)
+        return ReqCredit(self, n, priority)
 
-    def _getq_pop(self) -> Task[Any]:
-        task, req = self._getq.pop()
+    def _transfer(self) -> int:
+        task, req, n = self._getq.pop()
+
+        # Suspend => Schedule => Resume[Get] | Interrupt[Put]
+        self._get_locks.acquire(task, n)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
         else:
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
-        return task
 
-    def req(self, n: int = 1, priority: int = 0) -> ReqCredit:
-        self._check_n(n)
-        return ReqCredit(self, n, priority)
-
-    def _put(self, n: int):
-        self._cnt += n
-        if self._getq_ready() and not self._get_lock:
-            # Get task waiting, port unlocked, NEW credit available
-            self._get_lock.acquire(task=self._getq_pop())
+        return n
 
     def put(self, n: int = 1):
         self._check_cnt()
@@ -154,48 +134,40 @@ class CreditPool(KernelIf):
         if self._full(n):
             raise OverflowError(f"{self._cnt} + {n} > {self._capacity}")
 
-        self._put(n)
+        while self._getq and (self._cnt + n) >= self._getq.peek():
+            # At least one waiting task: Transfer
+            n -= self._transfer()
 
-    def _get(self, n: int):
-        self._cnt -= n
+        # No waiting tasks: Increment
+        self._cnt += n
 
     def try_get(self, n: int = 1) -> bool:
         self._check_cnt()
         self._check_n(n)
 
-        if self._empty(n):
-            return False
+        if self._cnt >= n:
+            # At least n available credit: Decrement
+            self._cnt -= n
+            return True
 
-        if self._get_lock:
-            task = self._kernel.check_task()
-            if task is not self._get_lock._task:
-                return False
-            self._get_lock.release()
-
-        self._get(n)
-        return True
+        return False
 
     async def get(self, n: int = 1, priority: int = 0):
         self._check_cnt()
         self._check_n(n)
 
-        if self._empty(n) or self._get_lock:
+        if self._cnt >= n:
+            # At least n available credit: Decrement
+            self._cnt -= n
+        else:
+            # No available credit: Suspend
             task = self._kernel.check_task()
-
             self._getq.push(priority, task, req=None, n=n)
             y = await task.switch_coro()
+
+            # Suspend => Schedule => Resume[Get]
             assert y is None
-
-            # Wakeup: complete get
-            self._get(n)
-            self._get_lock.release()
-
-            if self._getq_ready():
-                # Get task waiting, port unlocked, credit available
-                self._get_lock.acquire(task=self._getq_pop())
-        else:
-            # Get credit
-            self._get(n)
+            self._get_locks.release(task)
 
 
 class ReqCredit(Blocking):
@@ -230,3 +202,6 @@ class ReqCredit(Blocking):
 
     def unblock(self, task: Task[Any]):
         self._credits._getq.drop(task)
+
+    def do_resume(self, task: Task[Any]):
+        self._credits._get_locks.release(task)

@@ -47,41 +47,26 @@ class _PortQ(SupportsDropTask):
         return task, req
 
 
-class _PortLock(SupportsDropTask):
+class _PortLocks(SupportsDropTask):
     def __init__(self, parent: Semaphore):
         self._parent = parent
-        self._task: Task[Any] | None = None
-
-    def __bool__(self) -> bool:
-        return self._task is not None
+        self._tasks: set[Task[Any]] = set()
 
     def acquire(self, task: Task[Any]):
-        assert self._task is None
-
+        assert task not in self._tasks
         task._link(tq=self)
-        self._task = task
+        self._tasks.add(task)
 
-    def release(self):
-        assert self._task is not None
-
-        task = self._task
-        self._task = None
+    def release(self, task: Task[Any]):
+        self._tasks.remove(task)
         task._unlink(tq=self)
 
 
-class _GetLock(_PortLock):
+class _GetLocks(_PortLocks):
     def drop(self, task: Task[Any]):
-        assert self._task is task
-
-        self.release()
-
-        # Task was interrupted before get completed.
-        # Semaphore should still have a free credit.
-        assert not self._parent._empty()
-
-        if self._parent._getq:
-            # Get task waiting, port unlocked, credit available
-            self.acquire(task=self._parent._getq_pop())
+        # Suspend => Schedule => Interrupt[Put]
+        self.release(task)
+        self._parent.put()
 
 
 class Semaphore(KernelIf):
@@ -101,14 +86,11 @@ class Semaphore(KernelIf):
         self._getq = _PortQ()
 
         # Lock ensures gets are atomic
-        self._get_lock = _GetLock(parent=self)
+        self._get_locks = _GetLocks(parent=self)
 
     @property
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
-
-    def _empty(self) -> bool:
-        return self._cnt == 0
 
     def _full(self) -> bool:
         return self._has_capacity and self._cnt == self._capacity
@@ -117,26 +99,19 @@ class Semaphore(KernelIf):
         assert self._cnt >= 0
         assert not self._has_capacity or self._cnt <= self._capacity
 
-    def _getq_ready(self) -> bool:
-        return bool(self._getq) and not self._empty()
+    def req(self, priority: int = 0) -> ReqSemaphore:
+        return ReqSemaphore(self, priority)
 
-    def _getq_pop(self) -> Task[Any]:
+    def _transfer(self):
         task, req = self._getq.pop()
+
+        # Suspend => Schedule => Resume[Get] | Interrupt[Put]
+        self._get_locks.acquire(task)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
         else:
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
-        return task
-
-    def req(self, priority: int = 0) -> ReqSemaphore:
-        return ReqSemaphore(self, priority)
-
-    def _put(self):
-        self._cnt += 1
-        if self._getq and not self._get_lock:
-            # Get task waiting, port unlocked, NEW credit available
-            self._get_lock.acquire(task=self._getq_pop())
 
     def put(self):
         self._check_cnt()
@@ -144,46 +119,38 @@ class Semaphore(KernelIf):
         if self._full():
             raise OverflowError(f"{self._cnt} + 1 > {self._capacity}")
 
-        self._put()
-
-    def _get(self):
-        self._cnt -= 1
+        if self._getq:
+            # At least one waiting task: Transfer
+            self._transfer()
+        else:
+            # No waiting tasks: Increment
+            self._cnt += 1
 
     def try_get(self) -> bool:
         self._check_cnt()
 
-        if self._empty():
-            return False
+        if self._cnt >= 1:
+            # At least one available credit: Decrement
+            self._cnt -= 1
+            return True
 
-        if self._get_lock:
-            task = self._kernel.check_task()
-            if task is not self._get_lock._task:
-                return False
-            self._get_lock.release()
-
-        self._get()
-        return True
+        return False
 
     async def get(self, priority: int = 0):
         self._check_cnt()
 
-        # TODO(cjdrake): Review case: task == _get_lock._task
-        if self._empty() or self._get_lock:
+        if self._cnt >= 1:
+            # At least one available credit: Decrement
+            self._cnt -= 1
+        else:
+            # No available credit: Suspend
             task = self._kernel.check_task()
-
             self._getq.push(priority, task, req=None)
             y = await task.switch_coro()
+
+            # Suspend => Schedule => Resume[Get]
             assert y is None
-
-            # Wakeup: complete get
-            self._get()
-            self._get_lock.release()
-
-            if self._getq_ready():
-                # Get task waiting, port unlocked, credit available
-                self._get_lock.acquire(task=self._getq_pop())
-        else:
-            self._get()
+            self._get_locks.release(task)
 
 
 class ReqSemaphore(Blocking):
@@ -217,6 +184,9 @@ class ReqSemaphore(Blocking):
 
     def unblock(self, task: Task[Any]):
         self._semaphore._getq.drop(task)
+
+    def do_resume(self, task: Task[Any]):
+        self._semaphore._get_locks.release(task)
 
 
 class Lock(Semaphore):

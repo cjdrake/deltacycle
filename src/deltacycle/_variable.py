@@ -164,6 +164,9 @@ class PredVariable(KernelIf, Blocking):
     def unblock(self, task: Task[Any]):
         self._var._waitq.remove(task, pv=self)
 
+    def do_resume(self, task: Task[Any]):
+        pass
+
 
 class Value[T](ABC):
     """Variable value."""

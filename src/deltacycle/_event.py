@@ -90,3 +90,6 @@ class Event(KernelIf, Blocking):
 
     def unblock(self, task: Task[Any]):
         self._waitq.drop(task)
+
+    def do_resume(self, task: Task[Any]):
+        pass

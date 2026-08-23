@@ -290,4 +290,5 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
     kernel._forks.set(task, *blocking)
     x = await task.switch_coro()
     assert x is not None
+    x.do_resume(task)
     return x

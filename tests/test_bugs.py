@@ -221,7 +221,6 @@ def test_17():
     assert not e._waitq
 
 
-@pytest.mark.xfail(reason="https://github.com/cjdrake/deltacycle/issues/18")
 def test_18():
     s = Semaphore()
 
@@ -230,7 +229,7 @@ def test_18():
         req.semaphore.put()
 
     async def main():
-        create_task(waiter())
+        create_task(waiter(), name="waiter")
         await sleep(1)
         s.put()
         await sleep(1)

@@ -55,6 +55,10 @@ class Blocking(ABC):
     def unblock(self, task: Task[Any]) -> None:
         """Unblock task."""
 
+    @abstractmethod
+    def do_resume(self, task: Task[Any]):
+        """Resume callback."""
+
 
 class _SuspendResume:
     """Suspend/Resume current task.
@@ -142,6 +146,7 @@ class AnyOf(_Condition):
 
         self._kernel._forks.set(task, *blocking)
         x = yield from task.switch_gen()
+        x.do_resume(task)
         return x
 
 
@@ -498,6 +503,9 @@ class Task[ResultType](KernelIf, Blocking):
 
     def unblock(self, task: Task[Any]):
         self._waitq.drop(task)
+
+    def do_resume(self, task: Task[Any]):
+        pass
 
 
 class TaskGroup(KernelIf):
