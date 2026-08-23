@@ -17,9 +17,6 @@ class _ForkTable(SupportsDropTask):
     def __init__(self):
         self._items: dict[Task[Any], set[Blocking]] = {}
 
-    def __contains__(self, task: Task[Any]) -> bool:
-        return task in self._items
-
     def __len__(self) -> int:
         return len(self._items)
 
