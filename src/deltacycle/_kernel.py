@@ -17,9 +17,6 @@ class _ForkTable(SupportsDropTask):
     def __init__(self):
         self._items: dict[Task[Any], set[Blocking]] = {}
 
-    def __len__(self) -> int:
-        return len(self._items)
-
     def drop(self, task: Task[Any]):
         del self._items[task]
         task._unlink(tq=self)

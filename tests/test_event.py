@@ -143,7 +143,7 @@ def test_list_any_list_1():
         assert e is e10
 
         kernel = get_running_kernel()
-        assert not kernel._forks
+        assert not kernel._forks._items
 
     run(main())
 
@@ -166,7 +166,7 @@ def test_list_any_list_2():
         assert e is e10
 
         kernel = get_running_kernel()
-        assert not kernel._forks
+        assert not kernel._forks._items
 
     run(main())
 
@@ -192,7 +192,7 @@ def test_list_any_one_set_1():
         assert now() == 0
 
         kernel = get_running_kernel()
-        assert not kernel._forks
+        assert not kernel._forks._items
 
     run(main())
 
@@ -218,6 +218,6 @@ def test_list_any_one_set_2():
         assert now() == 0
 
         kernel = get_running_kernel()
-        assert not kernel._forks
+        assert not kernel._forks._items
 
     run(main())
