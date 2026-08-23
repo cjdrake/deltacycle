@@ -48,15 +48,15 @@ class Blocking(ABC):
             return self is self.TEMP_BLOCKING or self is self.PERM_BLOCKING
 
     @abstractmethod
-    def try_block(self, task: Task[Any]) -> Type:
+    def _try_block(self, task: Task[Any]) -> Type:
         """Attempt to block task; return True if successful."""
 
     @abstractmethod
-    def unblock(self, task: Task[Any]) -> None:
+    def _unblock(self, task: Task[Any]) -> None:
         """Unblock task."""
 
     @abstractmethod
-    def do_resume(self, task: Task[Any]):
+    def _do_resume(self, task: Task[Any]):
         """Resume callback."""
 
 
@@ -98,7 +98,7 @@ class AllOf(_Condition):
 
             while blockers:
                 b = blockers.pop()
-                bt = b.try_block(task)
+                bt = b._try_block(task)
 
                 # Task, Event, ReqSemaphore, ReqCredit
                 if bt is Blocking.Type.TEMP_BLOCKING:
@@ -135,18 +135,18 @@ class AnyOf(_Condition):
         blocking: list[Blocking] = []
 
         for b in blockers:
-            bt = b.try_block(task)
+            bt = b._try_block(task)
             if bt.is_blocking():
                 blocking.append(b)
             else:
                 while blocking:
                     x = blocking.pop()
-                    x.unblock(task)
+                    x._unblock(task)
                 return b
 
         self._kernel._forks.set(task, *blocking)
         x = yield from task._switch_gen()
-        x.do_resume(task)
+        x._do_resume(task)
         return x
 
 
@@ -495,16 +495,16 @@ class Task[ResultType](KernelIf, Blocking):
         return self.result()
 
     # Blocking
-    def try_block(self, task: Task[Any]) -> Blocking.Type:
+    def _try_block(self, task: Task[Any]) -> Blocking.Type:
         if self._blocking():
             self._waitq.push(task, join=self, send=self)
             return Blocking.Type.TEMP_BLOCKING
         return Blocking.Type.PERM_NONBLOCKING
 
-    def unblock(self, task: Task[Any]):
+    def _unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
-    def do_resume(self, task: Task[Any]):
+    def _do_resume(self, task: Task[Any]):
         pass
 
 

@@ -200,9 +200,6 @@ Scheduling
 ==========
 
 .. autoclass:: deltacycle.Blocking
-    :show-inheritance:
-
-    .. automethod:: try_block
 
 .. autoclass:: deltacycle.AllOf
 .. autoclass:: deltacycle.AnyOf

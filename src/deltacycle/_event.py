@@ -82,14 +82,14 @@ class Event(KernelIf, Blocking):
             assert y is None
 
     # Blocking
-    def try_block(self, task: Task[Any]) -> Blocking.Type:
+    def _try_block(self, task: Task[Any]) -> Blocking.Type:
         if self._blocking():
             self._waitq.push(task, event=self)
             return Blocking.Type.TEMP_BLOCKING
         return Blocking.Type.TEMP_NONBLOCKING
 
-    def unblock(self, task: Task[Any]):
+    def _unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
-    def do_resume(self, task: Task[Any]):
+    def _do_resume(self, task: Task[Any]):
         pass

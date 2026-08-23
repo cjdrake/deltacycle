@@ -35,7 +35,7 @@ class _ForkTable(SupportsDropTask):
         # Still blocking: Renege from queues
         while items:
             b = items.pop()
-            b.unblock(task)
+            b._unblock(task)
 
         # Drop reference to ForkTable
         self.drop(task)

@@ -232,7 +232,7 @@ async def all_of(fst: Blocking, *rst: Blocking):
 
         while blockers:
             b = blockers.pop()
-            bt = b.try_block(task)
+            bt = b._try_block(task)
 
             # Task, Event, ReqSemaphore, ReqCredit
             if bt is Blocking.Type.TEMP_BLOCKING:
@@ -278,17 +278,17 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
     blocking: list[Blocking] = []
 
     for b in blockers:
-        bt = b.try_block(task)
+        bt = b._try_block(task)
         if bt.is_blocking():
             blocking.append(b)
         else:
             while blocking:
                 x = blocking.pop()
-                x.unblock(task)
+                x._unblock(task)
             return b
 
     kernel._forks.set(task, *blocking)
     x = await task._switch_coro()
     assert x is not None
-    x.do_resume(task)
+    x._do_resume(task)
     return x
