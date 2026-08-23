@@ -28,7 +28,7 @@ TIMESCALE = 1_000_000.0
 
 def tprint(s: str):
     kernel = get_running_kernel()
-    task = kernel.check_task()
+    task = kernel._check_task()
     print(f"{kernel.time() / TIMESCALE:7.4f} {task.name}:", s)
 
 

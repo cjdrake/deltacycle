@@ -8,6 +8,9 @@
 Kernel
 ======
 
+.. autoexception:: deltacycle.KernelExit
+    :show-inheritance:
+
 .. autoclass:: deltacycle.Kernel.State
 
 .. autoclass:: deltacycle.Kernel
@@ -21,13 +24,12 @@ Kernel
     .. automethod:: call_later
     .. automethod:: call_at
     .. automethod:: create_task
-    .. automethod:: _call
-    .. automethod:: _iter
+    .. automethod:: do_call
+    .. automethod:: __call__
+    .. automethod:: do_iter
+    .. automethod:: __iter__
 
 .. autoclass:: deltacycle.DefaultKernel
-    :show-inheritance:
-
-.. autoexception:: deltacycle.KernelExit
     :show-inheritance:
 
 .. autofunction:: deltacycle.finish

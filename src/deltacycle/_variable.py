@@ -89,7 +89,7 @@ class Variable(KernelIf):
                 self._kernel.call_soon(task, args=(Task.Command.RESUME,))
 
         # Add variable to update set
-        self._kernel.touch_var(self)
+        self._kernel._touch_var(self)
 
     def pred(self, p: Predicate | None = None) -> PredVariable:
         """Return blocking, predicated variable.
@@ -151,7 +151,7 @@ class PredVariable(KernelIf, Blocking):
         2. When another task invokes ``v.set_next(...)`` *and* ``p`` evaluates
            to ``True``, unblock all tasks waiting for that event.
         """
-        task = self._kernel.check_task()
+        task = self._kernel._check_task()
         self._var._waitq.push(task, unblock=False, pv=self)
         y = yield from task.switch_gen()
         assert y is None

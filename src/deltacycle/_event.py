@@ -76,7 +76,7 @@ class Event(KernelIf, Blocking):
     def __await__(self) -> Generator[None, Self, None]:
         """Await event set."""
         if self._blocking():
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
             self._waitq.push(task, event=None)
             y = yield from task.switch_gen()
             assert y is None

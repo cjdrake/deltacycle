@@ -172,7 +172,7 @@ class Queue[T](KernelIf):
             return False
 
         if self._put_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
             if task is not self._put_lock._task:
                 return False
             self._put_lock.release()
@@ -183,7 +183,7 @@ class Queue[T](KernelIf):
     async def put(self, item: T, priority: int = 0):
         """Block until there is space for an item."""
         if self.full() or self._put_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
 
             self._putq.push(priority, task)
             y = await task.switch_coro()
@@ -217,7 +217,7 @@ class Queue[T](KernelIf):
             return False, None
 
         if self._get_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
             if task is not self._get_lock._task:
                 return False, None
             self._get_lock.release()
@@ -228,7 +228,7 @@ class Queue[T](KernelIf):
     async def get(self, priority: int = 0) -> T:
         """Block until an item is available."""
         if self.empty() or self._get_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
 
             self._getq.push(priority, task)
             y = await task.switch_coro()

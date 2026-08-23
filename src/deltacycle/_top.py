@@ -58,7 +58,7 @@ def set_kernel(kernel: Kernel[Any] | None = None):
 
 def _get_kt() -> tuple[Kernel[Any], Task[Any]]:
     kernel = get_running_kernel()
-    task = kernel.check_task()
+    task = kernel._check_task()
     return kernel, task
 
 

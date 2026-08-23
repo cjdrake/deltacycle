@@ -160,7 +160,7 @@ class Kernel[MainResultType](ABC):
         """Currently running task."""
         return self._task
 
-    def check_task(self) -> Task[Any]:
+    def _check_task(self) -> Task[Any]:
         assert self._task is not None
         return self._task
 
@@ -211,7 +211,7 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
-    def touch_var(self, v: Variable):
+    def _touch_var(self, v: Variable):
         self._dirty_vars.add(v)
 
     def _update_vars(self):
@@ -238,7 +238,7 @@ class Kernel[MainResultType](ABC):
         self._set_state(self.State.EXITED)
 
     @abstractmethod
-    def _call(self, limit: int | None) -> None:
+    def do_call(self, limit: int | None) -> None:
         """Run a simulation.
 
         Invoked by the public ``__call__`` method.
@@ -257,10 +257,10 @@ class Kernel[MainResultType](ABC):
                 # Both relative & absolute given; clamp to soonest
                 limit = min(limit, until)
 
-        self._call(limit)
+        self.do_call(limit)
 
     @abstractmethod
-    def _iter(self) -> Iterator[int]:
+    def do_iter(self) -> Iterator[int]:
         """Step (iterate) a simulation.
 
         Invoked by the public ``__iter__`` method.
@@ -268,7 +268,7 @@ class Kernel[MainResultType](ABC):
         """
 
     def __iter__(self) -> Iterator[int]:
-        yield from self._iter()
+        yield from self.do_iter()
 
 
 class _PendQ(SupportsDropTask):
@@ -376,7 +376,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
             task, args = self._queue.pop()
             yield (task, args)
 
-    def _call(self, limit: int | None):
+    def do_call(self, limit: int | None):
         self._start()
 
         while self._queue:
@@ -416,7 +416,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         # All tasks exhausted
         self._complete()
 
-    def _iter(self) -> Iterator[int]:
+    def do_iter(self) -> Iterator[int]:
         self._start()
 
         while self._queue:

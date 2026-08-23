@@ -18,7 +18,7 @@ def trace(msg: str = ""):
         task_name = ""
     else:
         time = kernel.time()
-        task = kernel.check_task()
+        task = kernel._check_task()
         task_name = task.name
     msgs.add((time, task_name, msg))
 

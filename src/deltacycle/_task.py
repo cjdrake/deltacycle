@@ -87,7 +87,7 @@ class _Condition(KernelIf):
 
 class AllOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, None]:
-        task = self._kernel.check_task()
+        task = self._kernel._check_task()
 
         # Uniquify
         blockers = list(dict.fromkeys(self._args))
@@ -127,7 +127,7 @@ class AllOf(_Condition):
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, Blocking]:
-        task = self._kernel.check_task()
+        task = self._kernel._check_task()
 
         # Uniquify
         blockers = list(dict.fromkeys(self._args))
@@ -486,7 +486,7 @@ class Task[ResultType](KernelIf, Blocking):
     def __await__(self) -> Generator[None, Self, ResultType]:
         """Await task done."""
         if self._blocking():
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
             self._waitq.push(task, join=None, send=None)
             y = yield from task.switch_gen()
             assert y is None
@@ -521,7 +521,7 @@ class TaskGroup(KernelIf):
     def __init__(self):
         self._state = self.State.INIT
 
-        task = self._kernel.check_task()
+        task = self._kernel._check_task()
         self._parent = task
 
         # Tasks started in the with block

@@ -184,7 +184,7 @@ class Container(KernelIf):
             return False
 
         if self._put_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
             if task is not self._put_lock._task:
                 return False
             self._put_lock.release()
@@ -197,7 +197,7 @@ class Container(KernelIf):
         self._check_n(n)
 
         if self._full(n) or self._put_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
 
             self._putq.push(priority, task, n)
             y = await task.switch_coro()
@@ -227,7 +227,7 @@ class Container(KernelIf):
             return False
 
         if self._get_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
             if task is not self._get_lock._task:
                 return False
             self._get_lock.release()
@@ -240,7 +240,7 @@ class Container(KernelIf):
         self._check_n(n)
 
         if self._empty(n) or self._get_lock:
-            task = self._kernel.check_task()
+            task = self._kernel._check_task()
 
             self._getq.push(priority, task, n)
             y = await task.switch_coro()
