@@ -126,7 +126,7 @@ def test_finish1(captrace: Trace):
 
     kernel = get_kernel()
     assert kernel is not None
-    assert kernel.state() is Kernel.State.FINISHED
+    assert kernel.state() is Kernel.State.EXITED
 
     assert captrace == EXP1
 
@@ -144,7 +144,7 @@ def test_finish2(captrace: Trace):
 
     kernel = get_kernel()
     assert kernel is not None
-    assert kernel.state() is Kernel.State.FINISHED
+    assert kernel.state() is Kernel.State.EXITED
     assert kernel.done()
 
     assert captrace == EXP1

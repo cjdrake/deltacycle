@@ -72,7 +72,7 @@ class Kernel[MainResultType](ABC):
         Transitions::
 
             INIT -> RUNNING -> COMPLETED
-                            -> FINISHED
+                            -> EXITED
         """
 
         # Initialized
@@ -84,10 +84,10 @@ class Kernel[MainResultType](ABC):
         # All tasks completed
         COMPLETED = 0b100
 
-        # finish() called
-        FINISHED = 0b101
+        # KernelExit raised
+        EXITED = 0b101
 
-    _done = State.COMPLETED & State.FINISHED
+    _done = State.COMPLETED & State.EXITED
 
     _state_transitions: ClassVar = {
         State.INIT: {
@@ -95,7 +95,7 @@ class Kernel[MainResultType](ABC):
         },
         State.RUNNING: {
             State.COMPLETED,
-            State.FINISHED,
+            State.EXITED,
         },
     }
 
@@ -170,7 +170,7 @@ class Kernel[MainResultType](ABC):
         A kernel that is "done" either:
 
         * Exhausted all tasks (COMPLETED), or
-        * Called ``finish`` (FINISHED)
+        * Raised ``KernelExit`` (EXITED)
         """
         return bool(self._state & self._done)
 
@@ -234,8 +234,8 @@ class Kernel[MainResultType](ABC):
     def _complete(self):
         self._set_state(self.State.COMPLETED)
 
-    def _finish(self):
-        self._set_state(self.State.FINISHED)
+    def _exit(self):
+        self._set_state(self.State.EXITED)
 
     @abstractmethod
     def _call(self, limit: int | None) -> None:
@@ -399,7 +399,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                 try:
                     task.do_run(args)
                 except KernelExit:
-                    self._finish()
+                    self._exit()
                     return
                 except StopIteration as exc:
                     task.do_result(exc)
@@ -438,7 +438,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                 try:
                     task.do_run(args)
                 except KernelExit:
-                    self._finish()
+                    self._exit()
                     return
                 except StopIteration as exc:
                     task.do_result(exc)
@@ -459,7 +459,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
 def finish() -> Never:
     """Halt all incomplete coroutines, and immediately exit simulation.
 
-    Transition state to FINISHED.
+    Transition state to EXITED.
     Do NOT clear any kernel data.
     """
     raise KernelExit()
