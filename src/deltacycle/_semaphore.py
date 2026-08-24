@@ -47,7 +47,7 @@ class _PortQ(SupportsDropTask):
         return task, req
 
 
-class _PortLocks(SupportsDropTask):
+class _Reservations(SupportsDropTask):
     def __init__(self, parent: Semaphore):
         self._parent = parent
         self._tasks: set[Task[Any]] = set()
@@ -61,8 +61,6 @@ class _PortLocks(SupportsDropTask):
         self._tasks.remove(task)
         task._unlink(tq=self)
 
-
-class _GetLocks(_PortLocks):
     def drop(self, task: Task[Any]):
         # Suspend => Schedule => Interrupt[Put]
         self.release(task)
@@ -86,7 +84,7 @@ class Semaphore(KernelIf):
         self._getq = _PortQ()
 
         # Lock ensures gets are atomic
-        self._get_locks = _GetLocks(parent=self)
+        self._rsvns = _Reservations(parent=self)
 
     @property
     def capacity(self) -> int | None:
@@ -106,7 +104,7 @@ class Semaphore(KernelIf):
         task, req = self._getq.pop()
 
         # Suspend => Schedule => Resume[Get] | Interrupt[Put]
-        self._get_locks.acquire(task)
+        self._rsvns.acquire(task)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
@@ -150,7 +148,7 @@ class Semaphore(KernelIf):
 
             # Suspend => Schedule => Resume[Get]
             assert y is None
-            self._get_locks.release(task)
+            self._rsvns.release(task)
 
 
 class ReqSemaphore(Blocking):
@@ -188,11 +186,11 @@ class ReqSemaphore(Blocking):
         self._semaphore._getq.drop(task)
 
     def _do_all_resume(self, task: Task[Any]):
-        self._semaphore._get_locks.release(task)
+        self._semaphore._rsvns.release(task)
         self._semaphore.put()
 
     def _do_any_resume(self, task: Task[Any]):
-        self._semaphore._get_locks.release(task)
+        self._semaphore._rsvns.release(task)
 
 
 class Lock(Semaphore):

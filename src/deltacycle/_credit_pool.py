@@ -51,7 +51,7 @@ class _PortQ(SupportsDropTask):
         return self._items[0][-1]
 
 
-class _PortLocks(SupportsDropTask):
+class _Reservations(SupportsDropTask):
     def __init__(self, parent: CreditPool):
         self._parent = parent
         self._tasks: dict[Task[Any], int] = {}
@@ -65,8 +65,6 @@ class _PortLocks(SupportsDropTask):
         del self._tasks[task]
         task._unlink(tq=self)
 
-
-class _GetLocks(_PortLocks):
     def drop(self, task: Task[Any]):
         # Suspend => Schedule => Interrupt[Put]
         n = self._tasks[task]
@@ -91,7 +89,7 @@ class CreditPool(KernelIf):
         self._getq = _PortQ()
 
         # Lock ensures gets are atomic
-        self._get_locks = _GetLocks(parent=self)
+        self._rsvns = _Reservations(parent=self)
 
     @property
     def capacity(self) -> int | None:
@@ -118,7 +116,7 @@ class CreditPool(KernelIf):
         task, req, n = self._getq.pop()
 
         # Suspend => Schedule => Resume[Get] | Interrupt[Put]
-        self._get_locks.acquire(task, n)
+        self._rsvns.acquire(task, n)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
@@ -167,7 +165,7 @@ class CreditPool(KernelIf):
 
             # Suspend => Schedule => Resume[Get]
             assert y is None
-            self._get_locks.release(task)
+            self._rsvns.release(task)
 
 
 class ReqCredit(Blocking):
@@ -206,8 +204,8 @@ class ReqCredit(Blocking):
         self._credits._getq.drop(task)
 
     def _do_all_resume(self, task: Task[Any]):
-        self._credits._get_locks.release(task)
+        self._credits._rsvns.release(task)
         self._credits.put(self._n)
 
     def _do_any_resume(self, task: Task[Any]):
-        self._credits._get_locks.release(task)
+        self._credits._rsvns.release(task)
