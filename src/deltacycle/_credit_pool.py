@@ -56,6 +56,9 @@ class _Reservations(SupportsDropTask):
         self._parent = parent
         self._tasks: dict[Task[Any], int] = {}
 
+    def __len__(self) -> int:
+        return len(self._tasks)
+
     def acquire(self, task: Task[Any], n: int):
         assert task not in self._tasks
         task._link(tq=self)
@@ -96,7 +99,7 @@ class CreditPool(KernelIf):
         return self._capacity if self._has_capacity else None
 
     def _full(self, n: int) -> bool:
-        return self._has_capacity and (self._cnt + n) > self._capacity
+        return self._has_capacity and (self._cnt + len(self._rsvns) + n) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0

@@ -52,6 +52,9 @@ class _Reservations(SupportsDropTask):
         self._parent = parent
         self._tasks: set[Task[Any]] = set()
 
+    def __len__(self) -> int:
+        return len(self._tasks)
+
     def acquire(self, task: Task[Any]):
         assert task not in self._tasks
         task._link(tq=self)
@@ -91,7 +94,7 @@ class Semaphore(KernelIf):
         return self._capacity if self._has_capacity else None
 
     def _full(self) -> bool:
-        return self._has_capacity and self._cnt == self._capacity
+        return self._has_capacity and self._cnt + len(self._rsvns) + 1 > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0
