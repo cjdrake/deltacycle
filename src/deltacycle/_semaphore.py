@@ -55,19 +55,19 @@ class _Reservations(SupportsDropTask):
     def __len__(self) -> int:
         return len(self._tasks)
 
-    def acquire(self, task: Task[Any]):
+    def drop(self, task: Task[Any]):
+        # Suspend => Schedule => Interrupt[Put]
+        self.pop(task)
+        self._parent.put()
+
+    def push(self, task: Task[Any]):
         assert task not in self._tasks
         task._link(tq=self)
         self._tasks.add(task)
 
-    def release(self, task: Task[Any]):
+    def pop(self, task: Task[Any]):
         self._tasks.remove(task)
         task._unlink(tq=self)
-
-    def drop(self, task: Task[Any]):
-        # Suspend => Schedule => Interrupt[Put]
-        self.release(task)
-        self._parent.put()
 
 
 class Semaphore(KernelIf):
@@ -94,7 +94,7 @@ class Semaphore(KernelIf):
         return self._capacity if self._has_capacity else None
 
     def _full(self) -> bool:
-        return self._has_capacity and self._cnt + len(self._rsvns) + 1 > self._capacity
+        return self._has_capacity and (self._cnt + len(self._rsvns) + 1) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0
@@ -107,7 +107,7 @@ class Semaphore(KernelIf):
         task, req = self._getq.pop()
 
         # Suspend => Schedule => Resume[Get] | Interrupt[Put]
-        self._rsvns.acquire(task)
+        self._rsvns.push(task)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
@@ -151,7 +151,7 @@ class Semaphore(KernelIf):
 
             # Suspend => Schedule => Resume[Get]
             assert y is None
-            self._rsvns.release(task)
+            self._rsvns.pop(task)
 
 
 class ReqSemaphore(Blocking):
@@ -189,11 +189,11 @@ class ReqSemaphore(Blocking):
         self._semaphore._getq.drop(task)
 
     def _do_all_resume(self, task: Task[Any]):
-        self._semaphore._rsvns.release(task)
+        self._semaphore._rsvns.pop(task)
         self._semaphore.put()
 
     def _do_any_resume(self, task: Task[Any]):
-        self._semaphore._rsvns.release(task)
+        self._semaphore._rsvns.pop(task)
 
 
 class Lock(Semaphore):
