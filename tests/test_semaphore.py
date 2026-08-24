@@ -4,6 +4,7 @@ import pytest
 
 from deltacycle import (
     AllOf,
+    Event,
     Lock,
     Semaphore,
     all_of,
@@ -287,3 +288,45 @@ def test_chain_gets(captrace: Trace):
     run(main())
 
     assert captrace == EXP2
+
+
+def test_allof_irq():
+    s = Semaphore(1)
+    e = Event()
+
+    async def waiter():
+        await AllOf(s.req(), e)
+
+    async def main():
+        t = create_task(waiter(), name="waiter")
+        await sleep(1)
+        t.interrupt()
+        await sleep(1)
+        assert s.try_get()
+
+    run(main())
+
+
+def test_multi_sem():
+    s0 = Semaphore()
+    s1 = Semaphore()
+    s2 = Semaphore()
+
+    async def waiter():
+        await AllOf(s0.req(), s1.req(), s2.req())
+
+        assert s0._cnt == 0
+        assert s1._cnt == 0
+        assert s2._cnt == 0
+
+    async def main():
+        create_task(waiter(), name="waiter")
+
+        await sleep(1)
+        s0.put()
+        await sleep(1)
+        s1.put()
+        await sleep(1)
+        s2.put()
+
+    run(main())
