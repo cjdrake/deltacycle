@@ -193,15 +193,21 @@ class ReqCredit(Blocking):
         self._credits.put(self._n)
 
     # Blocking
-    def _try_block(self, task: Task[Any]) -> Blocking.Type:
-        if self._credits.try_get(self._n):
-            return Blocking.Type.PERM_NONBLOCKING
+    def _is_blocking(self) -> bool:
+        return self._credits._cnt < self._n
 
+    def _do_block(self, task: Task[Any]):
         self._credits._getq.push(self._priority, task, req=self, n=self._n)
-        return Blocking.Type.TEMP_BLOCKING
+
+    def _do_nonblock(self):
+        self._credits._cnt -= self._n
 
     def _unblock(self, task: Task[Any]):
         self._credits._getq.drop(task)
 
-    def _do_resume(self, task: Task[Any]):
+    def _do_all_resume(self, task: Task[Any]):
+        self._credits._get_locks.release(task)
+        self._credits.put(self._n)
+
+    def _do_any_resume(self, task: Task[Any]):
         self._credits._get_locks.release(task)

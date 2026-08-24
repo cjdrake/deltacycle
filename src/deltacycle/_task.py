@@ -38,25 +38,28 @@ class SupportsDropTask(ABC):
 class Blocking(ABC):
     """Object capable of blocking task forward progress"""
 
-    class Type(IntEnum):
-        TEMP_BLOCKING = 0
-        PERM_BLOCKING = 1
-        TEMP_NONBLOCKING = 2
-        PERM_NONBLOCKING = 3
-
-        def is_blocking(self) -> bool:
-            return self is self.TEMP_BLOCKING or self is self.PERM_BLOCKING
+    @abstractmethod
+    def _is_blocking(self) -> bool:
+        """TODO(cjdrake): Write docstring."""
 
     @abstractmethod
-    def _try_block(self, task: Task[Any]) -> Type:
-        """Attempt to block task; return True if successful."""
+    def _do_block(self, task: Task[Any]):
+        """TODO(cjdrake): Write docstring."""
+
+    @abstractmethod
+    def _do_nonblock(self):
+        """TODO(cjdrake): Write docstring."""
 
     @abstractmethod
     def _unblock(self, task: Task[Any]) -> None:
         """Unblock task."""
 
     @abstractmethod
-    def _do_resume(self, task: Task[Any]):
+    def _do_all_resume(self, task: Task[Any]):
+        """Resume callback."""
+
+    @abstractmethod
+    def _do_any_resume(self, task: Task[Any]):
         """Resume callback."""
 
 
@@ -82,72 +85,52 @@ class _SuspendResume:
 
 class _Condition(KernelIf):
     def __init__(self, fst: Blocking, *rst: Blocking):
-        self._args = (fst, *rst)
+        # Uniquify
+        args = (fst, *rst)
+        self._blockers = list(dict.fromkeys(args))
 
 
 class AllOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, None]:
         task = self._kernel._check_task()
 
-        # Uniquify
-        blockers = list(dict.fromkeys(self._args))
-
         while True:
-            blocking: list[Blocking] = []
-            temp_nonblocking: list[Blocking] = []
-
-            while blockers:
-                b = blockers.pop()
-                bt = b._try_block(task)
-
-                # Task, Event, ReqSemaphore, ReqCredit
-                if bt is Blocking.Type.TEMP_BLOCKING:
-                    blocking.append(b)
-                # PredVariable
-                elif bt is Blocking.Type.PERM_BLOCKING:
-                    # TODO(cjdrake): Check deadlock
-                    blocking.append(b)
-                # Task, Event
-                elif bt is Blocking.Type.TEMP_NONBLOCKING:
-                    temp_nonblocking.append(b)
-                # ReqSemaphore, ReqCredit
-                elif bt is Blocking.Type.PERM_NONBLOCKING:
-                    pass
-                else:
-                    assert False  # pragma: no cover
+            blocking = [b for b in self._blockers if b._is_blocking()]
 
             if not blocking:
                 break
 
+            # Suspend
+            for blocker in blocking:
+                blocker._do_block(task)
             self._kernel._forks.set(task, *blocking)
-            yield from task._switch_gen()
+            b = yield from task._switch_gen()
 
-            blockers = blocking + temp_nonblocking
+            # Resume
+            b._do_all_resume(task)
+
+        for blocker in self._blockers:
+            blocker._do_nonblock()
 
 
 class AnyOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, Blocking]:
+        for blocker in self._blockers:
+            if not blocker._is_blocking():
+                blocker._do_nonblock()
+                return blocker
+
         task = self._kernel._check_task()
 
-        # Uniquify
-        blockers = list(dict.fromkeys(self._args))
+        # Suspend
+        for blocker in self._blockers:
+            blocker._do_block(task)
+        self._kernel._forks.set(task, *self._blockers)
+        b = yield from task._switch_gen()
 
-        blocking: list[Blocking] = []
-
-        for b in blockers:
-            bt = b._try_block(task)
-            if bt.is_blocking():
-                blocking.append(b)
-            else:
-                while blocking:
-                    x = blocking.pop()
-                    x._unblock(task)
-                return b
-
-        self._kernel._forks.set(task, *blocking)
-        x = yield from task._switch_gen()
-        x._do_resume(task)
-        return x
+        # Resume
+        b._do_any_resume(task)
+        return b
 
 
 class _WaitQ(SupportsDropTask):
@@ -480,12 +463,9 @@ class Task[ResultType](KernelIf, Blocking):
         # Success
         return True
 
-    def _blocking(self) -> bool:
-        return not self.done()
-
     def __await__(self) -> Generator[None, Self, ResultType]:
         """Await task done."""
-        if self._blocking():
+        if self._is_blocking():
             task = self._kernel._check_task()
             self._waitq.push(task, join=None, send=None)
             y = yield from task._switch_gen()
@@ -495,16 +475,22 @@ class Task[ResultType](KernelIf, Blocking):
         return self.result()
 
     # Blocking
-    def _try_block(self, task: Task[Any]) -> Blocking.Type:
-        if self._blocking():
-            self._waitq.push(task, join=self, send=self)
-            return Blocking.Type.TEMP_BLOCKING
-        return Blocking.Type.PERM_NONBLOCKING
+    def _is_blocking(self) -> bool:
+        return not self.done()
+
+    def _do_block(self, task: Task[Any]):
+        self._waitq.push(task, join=self, send=self)
+
+    def _do_nonblock(self):
+        pass
 
     def _unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
-    def _do_resume(self, task: Task[Any]):
+    def _do_all_resume(self, task: Task[Any]):
+        pass
+
+    def _do_any_resume(self, task: Task[Any]):
         pass
 
 

@@ -157,14 +157,22 @@ class PredVariable(KernelIf, Blocking):
         assert y is None
 
     # Blocking
-    def _try_block(self, task: Task[Any]) -> Blocking.Type:
+    def _is_blocking(self) -> bool:
+        return True
+
+    def _do_block(self, task: Task[Any]):
         self._var._waitq.push(task, unblock=True, pv=self)
-        return Blocking.Type.PERM_BLOCKING
+
+    def _do_nonblock(self):
+        pass
 
     def _unblock(self, task: Task[Any]):
         self._var._waitq.remove(task, pv=self)
 
-    def _do_resume(self, task: Task[Any]):
+    def _do_all_resume(self, task: Task[Any]):
+        pass
+
+    def _do_any_resume(self, task: Task[Any]):
         pass
 
 

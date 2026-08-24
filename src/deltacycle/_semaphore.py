@@ -175,17 +175,23 @@ class ReqSemaphore(Blocking):
         self._semaphore.put()
 
     # Blocking
-    def _try_block(self, task: Task[Any]) -> Blocking.Type:
-        if self._semaphore.try_get():
-            return Blocking.Type.PERM_NONBLOCKING
+    def _is_blocking(self) -> bool:
+        return self._semaphore._cnt == 0
 
+    def _do_block(self, task: Task[Any]):
         self._semaphore._getq.push(self._priority, task, req=self)
-        return Blocking.Type.TEMP_BLOCKING
+
+    def _do_nonblock(self):
+        self._semaphore._cnt -= 1
 
     def _unblock(self, task: Task[Any]):
         self._semaphore._getq.drop(task)
 
-    def _do_resume(self, task: Task[Any]):
+    def _do_all_resume(self, task: Task[Any]):
+        self._semaphore._get_locks.release(task)
+        self._semaphore.put()
+
+    def _do_any_resume(self, task: Task[Any]):
         self._semaphore._get_locks.release(task)
 
 

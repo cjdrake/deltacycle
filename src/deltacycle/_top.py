@@ -219,44 +219,30 @@ async def all_of(fst: Blocking, *rst: Blocking):
     Args:
         fst, rst: Sequence of blocking items.
     """
+    # Uniquify
     args = (fst, *rst)
+    blockers = list(dict.fromkeys(args))
 
     kernel, task = _get_kt()
 
-    # Uniquify
-    blockers = list(dict.fromkeys(args))
-
     while True:
-        blocking: list[Blocking] = []
-        temp_nonblocking: list[Blocking] = []
-
-        while blockers:
-            b = blockers.pop()
-            bt = b._try_block(task)
-
-            # Task, Event, ReqSemaphore, ReqCredit
-            if bt is Blocking.Type.TEMP_BLOCKING:
-                blocking.append(b)
-            # PredVariable
-            elif bt is Blocking.Type.PERM_BLOCKING:
-                # TODO(cjdrake): Check deadlock
-                blocking.append(b)
-            # Task, Event
-            elif bt is Blocking.Type.TEMP_NONBLOCKING:
-                temp_nonblocking.append(b)
-            # ReqSemaphore, ReqCredit
-            elif bt is Blocking.Type.PERM_NONBLOCKING:
-                pass
-            else:
-                assert False  # pragma: no cover
+        blocking = [b for b in blockers if b._is_blocking()]
 
         if not blocking:
             break
 
+        # Suspend
+        for blocker in blocking:
+            blocker._do_block(task)
         kernel._forks.set(task, *blocking)
-        await task._switch_coro()
+        b = await task._switch_coro()
 
-        blockers = blocking + temp_nonblocking
+        # Resume
+        assert b is not None
+        b._do_all_resume(task)
+
+    for blocker in blockers:
+        blocker._do_nonblock()
 
 
 async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
@@ -268,27 +254,24 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
     Returns:
         Item that unblocked first.
     """
+    # Uniquify
     args = (fst, *rst)
+    blockers = list(dict.fromkeys(args))
+
+    for blocker in blockers:
+        if not blocker._is_blocking():
+            blocker._do_nonblock()
+            return blocker
 
     kernel, task = _get_kt()
 
-    # Uniquify
-    blockers = list(dict.fromkeys(args))
+    # Suspend
+    for blocker in blockers:
+        blocker._do_block(task)
+    kernel._forks.set(task, *blockers)
+    b = await task._switch_coro()
 
-    blocking: list[Blocking] = []
-
-    for b in blockers:
-        bt = b._try_block(task)
-        if bt.is_blocking():
-            blocking.append(b)
-        else:
-            while blocking:
-                x = blocking.pop()
-                x._unblock(task)
-            return b
-
-    kernel._forks.set(task, *blocking)
-    x = await task._switch_coro()
-    assert x is not None
-    x._do_resume(task)
-    return x
+    # Resume
+    assert b is not None
+    b._do_any_resume(task)
+    return b

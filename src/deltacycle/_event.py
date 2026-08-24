@@ -70,26 +70,29 @@ class Event(KernelIf, Blocking):
         """Clear the flag. Start blocking waiting tasks."""
         self._flag = False
 
-    def _blocking(self) -> bool:
-        return not self._flag
-
     def __await__(self) -> Generator[None, Self, None]:
         """Await event set."""
-        if self._blocking():
+        if self._is_blocking():
             task = self._kernel._check_task()
             self._waitq.push(task, event=None)
             y = yield from task._switch_gen()
             assert y is None
 
     # Blocking
-    def _try_block(self, task: Task[Any]) -> Blocking.Type:
-        if self._blocking():
-            self._waitq.push(task, event=self)
-            return Blocking.Type.TEMP_BLOCKING
-        return Blocking.Type.TEMP_NONBLOCKING
+    def _is_blocking(self) -> bool:
+        return not self._flag
+
+    def _do_block(self, task: Task[Any]):
+        self._waitq.push(task, event=self)
+
+    def _do_nonblock(self):
+        pass
 
     def _unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
-    def _do_resume(self, task: Task[Any]):
+    def _do_all_resume(self, task: Task[Any]):
+        pass
+
+    def _do_any_resume(self, task: Task[Any]):
         pass
