@@ -511,7 +511,7 @@ class TaskGroup(KernelIf):
         self._parent = task
 
         # Tasks started in the with block
-        self._setup_tasks: set[Task[Any]] = set()
+        self._setup_tasks: list[Task[Any]] = []
 
         # Tasks in running/pending/killing state
         self._todo: set[Task[Any]] = set()
@@ -535,12 +535,12 @@ class TaskGroup(KernelIf):
     ):
         self._state = self.State.EXITED
 
-        done: set[Task[Any]] = set()
+        done: list[Task[Any]] = []
 
         while self._setup_tasks:
             child = self._setup_tasks.pop()
             if child.done():
-                done.add(child)
+                done.append(child)
             else:
                 child._waitq.push(self._parent, join=None, send=child)
                 self._todo.add(child)
@@ -603,7 +603,7 @@ class TaskGroup(KernelIf):
         if self._state is self.State.ENTERED:
             child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
             child.group = self
-            self._setup_tasks.add(child)
+            self._setup_tasks.append(child)
             return child
 
         if self._state is self.State.EXITED:
