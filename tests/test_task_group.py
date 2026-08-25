@@ -292,3 +292,20 @@ def test_group_child_done():
         trace("exit")
 
     run(main())
+
+
+def test_group_bad_create_task():
+    async def c():
+        return 42
+
+    async def main():
+        tg = TaskGroup()
+        with pytest.raises(RuntimeError):
+            tg.create_task(c())
+
+        async with TaskGroup() as tg:
+            pass
+        with pytest.raises(RuntimeError):
+            tg.create_task(c())
+
+    run(main())

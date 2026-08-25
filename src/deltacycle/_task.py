@@ -601,5 +601,8 @@ class TaskGroup(KernelIf):
             self._todo.add(child)
             return child
 
-        s = "Cannot invoke TaskGroup.create_task outside of with block"
+        # Cleanup coroutine (avoids "coroutine was never awaited" warning)
+        coro.close()
+
+        s = "Cannot invoke TaskGroup.create_task outside of async with block"
         raise RuntimeError(s)
