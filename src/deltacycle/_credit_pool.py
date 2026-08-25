@@ -142,13 +142,16 @@ class CreditPool(KernelIf):
         # No waiting tasks: Increment
         self._cnt += n
 
+    def _get(self, n: int):
+        self._cnt -= n
+
     def try_get(self, n: int = 1) -> bool:
         self._check_cnt()
         self._check_n(n)
 
         if self._cnt >= n:
             # At least n available credit: Decrement
-            self._cnt -= n
+            self._get(n)
             return True
 
         return False
@@ -159,7 +162,7 @@ class CreditPool(KernelIf):
 
         if self._cnt >= n:
             # At least n available credit: Decrement
-            self._cnt -= n
+            self._get(n)
         else:
             # No available credit: Suspend
             task = self._kernel._check_task()
@@ -204,7 +207,7 @@ class ReqCredit(Blocking):
         self._credits._getq.push(self._priority, task, req=self, n=self._n)
 
     def _do_nonblock(self):
-        self._credits._cnt -= self._n
+        self._credits._get(self._n)
 
     @override
     def _do_all_resume(self, task: Task[Any]):

@@ -127,12 +127,15 @@ class Semaphore(KernelIf):
             # No waiting tasks: Increment
             self._cnt += 1
 
+    def _get(self):
+        self._cnt -= 1
+
     def try_get(self) -> bool:
         self._check_cnt()
 
         if self._cnt >= 1:
             # At least one available credit: Decrement
-            self._cnt -= 1
+            self._get()
             return True
 
         return False
@@ -142,7 +145,7 @@ class Semaphore(KernelIf):
 
         if self._cnt >= 1:
             # At least one available credit: Decrement
-            self._cnt -= 1
+            self._get()
         else:
             # No available credit: Suspend
             task = self._kernel._check_task()
@@ -186,7 +189,7 @@ class ReqSemaphore(Blocking):
         self._semaphore._getq.push(self._priority, task, req=self)
 
     def _do_nonblock(self):
-        self._semaphore._cnt -= 1
+        self._semaphore._get()
 
     @override
     def _do_all_resume(self, task: Task[Any]):
