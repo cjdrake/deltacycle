@@ -4,6 +4,7 @@ import pytest
 
 from deltacycle import (
     Event,
+    Kernel,
     create_task,
     get_kernel,
     get_running_kernel,
@@ -108,3 +109,14 @@ def test_ambiguous_kernel():
     # Use *same* Event object with different kernel
     with pytest.raises(RuntimeError):
         run(main())
+
+
+def test_keyboard_interrupt_exits():
+    async def main():
+        raise KeyboardInterrupt()
+
+    with pytest.raises(KeyboardInterrupt):
+        run(main())
+    kernel = get_kernel()
+    assert kernel is not None
+    assert kernel.state() is Kernel.State.EXITED
