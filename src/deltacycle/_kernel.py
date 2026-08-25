@@ -21,15 +21,15 @@ class _ForkTable(SupportsDropTask):
         del self._items[task]
         task._unlink(tq=self)
 
-    def set(self, task: Task[Any], *bs: Blocking):
+    def set(self, task: Task[Any], *blockers: Blocking):
         task._link(tq=self)
-        self._items[task] = set(bs)
+        self._items[task] = set(blockers)
 
-    def clr(self, task: Task[Any], *bs: Blocking):
+    def clr(self, task: Task[Any], *blockers: Blocking):
         items = self._items[task]
 
         # Unblocked: Remove from table
-        for b in bs:
+        for b in blockers:
             items.remove(b)
 
         # Still blocking: Renege from queues
