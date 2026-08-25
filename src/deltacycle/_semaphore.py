@@ -93,6 +93,9 @@ class Semaphore(KernelIf):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
+    def _empty(self) -> bool:
+        return (self._cnt - 1) < 0
+
     def _full(self) -> bool:
         return self._has_capacity and (self._cnt + len(self._rsvns) + 1) > self._capacity
 
@@ -180,7 +183,7 @@ class ReqSemaphore(Blocking):
 
     # Blocking
     def _is_blocking(self) -> bool:
-        return self._semaphore._cnt == 0
+        return self._semaphore._empty()
 
     def _unblock(self, task: Task[Any]):
         self._semaphore._getq.drop(task)

@@ -98,6 +98,9 @@ class CreditPool(KernelIf):
     def capacity(self) -> int | None:
         return self._capacity if self._has_capacity else None
 
+    def _empty(self, n: int) -> bool:
+        return (self._cnt - n) < 0
+
     def _full(self, n: int) -> bool:
         return self._has_capacity and (self._cnt + len(self._rsvns) + n) > self._capacity
 
@@ -198,7 +201,7 @@ class ReqCredit(Blocking):
 
     # Blocking
     def _is_blocking(self) -> bool:
-        return self._credits._cnt < self._n
+        return self._credits._empty(self._n)
 
     def _unblock(self, task: Task[Any]):
         self._credits._getq.drop(task)
