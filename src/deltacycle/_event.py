@@ -82,17 +82,8 @@ class Event(KernelIf, Blocking):
     def _is_blocking(self) -> bool:
         return not self._flag
 
-    def _do_block(self, task: Task[Any]):
-        self._waitq.push(task, event=self)
-
-    def _do_nonblock(self):
-        pass
-
     def _unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
-    def _do_all_resume(self, task: Task[Any]):
-        pass
-
-    def _do_any_resume(self, task: Task[Any]):
-        pass
+    def _do_block(self, task: Task[Any]):
+        self._waitq.push(task, event=self)

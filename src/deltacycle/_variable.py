@@ -160,20 +160,11 @@ class PredVariable(KernelIf, Blocking):
     def _is_blocking(self) -> bool:
         return True
 
-    def _do_block(self, task: Task[Any]):
-        self._var._waitq.push(task, unblock=True, pv=self)
-
-    def _do_nonblock(self):
-        pass
-
     def _unblock(self, task: Task[Any]):
         self._var._waitq.remove(task, pv=self)
 
-    def _do_all_resume(self, task: Task[Any]):
-        pass
-
-    def _do_any_resume(self, task: Task[Any]):
-        pass
+    def _do_block(self, task: Task[Any]):
+        self._var._waitq.push(task, unblock=True, pv=self)
 
 
 class Value[T](ABC):

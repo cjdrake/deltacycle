@@ -40,27 +40,24 @@ class Blocking(ABC):
 
     @abstractmethod
     def _is_blocking(self) -> bool:
-        """TODO(cjdrake): Write docstring."""
-
-    @abstractmethod
-    def _do_block(self, task: Task[Any]):
-        """TODO(cjdrake): Write docstring."""
-
-    @abstractmethod
-    def _do_nonblock(self):
-        """TODO(cjdrake): Write docstring."""
+        """Return True if currently blocking task forward progress."""
 
     @abstractmethod
     def _unblock(self, task: Task[Any]) -> None:
         """Unblock task."""
 
     @abstractmethod
-    def _do_all_resume(self, task: Task[Any]):
-        """Resume callback."""
+    def _do_block(self, task: Task[Any]):
+        """Callback: nonblocking code prior to return."""
 
-    @abstractmethod
+    def _do_nonblock(self):
+        """Callback: blocking code prior to suspend."""
+
+    def _do_all_resume(self, task: Task[Any]):
+        """Callback: Resume from all suspend."""
+
     def _do_any_resume(self, task: Task[Any]):
-        """Resume callback."""
+        """Callback: Resume from any suspend."""
 
 
 class _SuspendResume:
@@ -478,20 +475,11 @@ class Task[ResultType](KernelIf, Blocking):
     def _is_blocking(self) -> bool:
         return not self.done()
 
-    def _do_block(self, task: Task[Any]):
-        self._waitq.push(task, join=self, send=self)
-
-    def _do_nonblock(self):
-        pass
-
     def _unblock(self, task: Task[Any]):
         self._waitq.drop(task)
 
-    def _do_all_resume(self, task: Task[Any]):
-        pass
-
-    def _do_any_resume(self, task: Task[Any]):
-        pass
+    def _do_block(self, task: Task[Any]):
+        self._waitq.push(task, join=self, send=self)
 
 
 class TaskGroup(KernelIf):

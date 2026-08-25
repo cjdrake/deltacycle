@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import heapq
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
@@ -179,19 +179,21 @@ class ReqSemaphore(Blocking):
     def _is_blocking(self) -> bool:
         return self._semaphore._cnt == 0
 
+    def _unblock(self, task: Task[Any]):
+        self._semaphore._getq.drop(task)
+
     def _do_block(self, task: Task[Any]):
         self._semaphore._getq.push(self._priority, task, req=self)
 
     def _do_nonblock(self):
         self._semaphore._cnt -= 1
 
-    def _unblock(self, task: Task[Any]):
-        self._semaphore._getq.drop(task)
-
+    @override
     def _do_all_resume(self, task: Task[Any]):
         self._semaphore._rsvns.pop(task)
         self._semaphore.put()
 
+    @override
     def _do_any_resume(self, task: Task[Any]):
         self._semaphore._rsvns.pop(task)
 

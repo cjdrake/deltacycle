@@ -11,8 +11,12 @@ For a complete history, see the Git commit log.
 Version 0.43.0
 ==============
 
-Remove ``__len__`` method from ```Semaphore`` and ``CreditPool``.
+Remove ``__len__`` method from ``Semaphore`` and ``CreditPool``.
 Python's ``asyncio.Semaphore`` does not implement ``__bool__`` or ``__len__``.
+
+Fixed bugs:
+
+* `Issue #18 <https://github.com/cjdrake/deltacycle/issues/18>`_
 
 
 Version 0.42.0

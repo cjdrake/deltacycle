@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import heapq
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, override
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
@@ -197,18 +197,20 @@ class ReqCredit(Blocking):
     def _is_blocking(self) -> bool:
         return self._credits._cnt < self._n
 
+    def _unblock(self, task: Task[Any]):
+        self._credits._getq.drop(task)
+
     def _do_block(self, task: Task[Any]):
         self._credits._getq.push(self._priority, task, req=self, n=self._n)
 
     def _do_nonblock(self):
         self._credits._cnt -= self._n
 
-    def _unblock(self, task: Task[Any]):
-        self._credits._getq.drop(task)
-
+    @override
     def _do_all_resume(self, task: Task[Any]):
         self._credits._rsvns.pop(task)
         self._credits.put(self._n)
 
+    @override
     def _do_any_resume(self, task: Task[Any]):
         self._credits._rsvns.pop(task)
