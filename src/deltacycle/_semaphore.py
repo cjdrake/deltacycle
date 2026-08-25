@@ -191,6 +191,7 @@ class ReqSemaphore(Blocking):
     def _do_block(self, task: Task[Any]):
         self._semaphore._getq.push(self._priority, task, req=self)
 
+    @override
     def _do_nonblock(self):
         self._semaphore._get()
 

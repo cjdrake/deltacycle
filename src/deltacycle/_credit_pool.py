@@ -209,6 +209,7 @@ class ReqCredit(Blocking):
     def _do_block(self, task: Task[Any]):
         self._credits._getq.push(self._priority, task, req=self, n=self._n)
 
+    @override
     def _do_nonblock(self):
         self._credits._get(self._n)
 
