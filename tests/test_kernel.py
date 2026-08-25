@@ -71,6 +71,11 @@ def test_limits(captrace: Trace):
     run(kernel=kernel, ticks=102, until=401)
     assert kernel.time() == 400
 
+    with pytest.raises(ValueError):
+        run(kernel=kernel, ticks=-1)
+    with pytest.raises(ValueError):
+        run(kernel=kernel, ticks=0, until=-1)
+
 
 def test_nocoro():
     with pytest.raises(ValueError):

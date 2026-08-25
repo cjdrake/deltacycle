@@ -251,9 +251,13 @@ class Kernel[MainResultType](ABC):
             # Run until absolute limit, or no tasks left
             limit = until if until is not None else None
         else:
+            if ticks < 0:
+                raise ValueError(f"Expected ticks ≥ 0, got {ticks}")
             # Run until relative limit
             limit = max(self.start_time, self._time) + ticks
             if until is not None:
+                if until < 0:
+                    raise ValueError(f"Expected until ≥ 0, got {until}")
                 # Both relative & absolute given; clamp to soonest
                 limit = min(limit, until)
 
