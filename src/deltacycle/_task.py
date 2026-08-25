@@ -601,5 +601,5 @@ class TaskGroup(KernelIf):
             self._todo.add(child)
             return child
 
-        # TODO(cjdrake): Handle this scenario
-        assert False  # pragma: no cover
+        s = "Cannot invoke TaskGroup.create_task outside of with block"
+        raise RuntimeError(s)
