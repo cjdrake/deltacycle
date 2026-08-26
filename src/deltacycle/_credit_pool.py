@@ -56,9 +56,6 @@ class _Reservations(SupportsDropTask):
         self._parent = parent
         self._tasks: dict[Task[Any], int] = {}
 
-    def __len__(self) -> int:
-        return len(self._tasks)
-
     def drop(self, task: Task[Any]):
         # Suspend => Schedule => Interrupt[Put]
         n = self._tasks[task]
@@ -73,6 +70,9 @@ class _Reservations(SupportsDropTask):
     def pop(self, task: Task[Any]):
         del self._tasks[task]
         task._unlink(tq=self)
+
+    def cnt(self) -> int:
+        return sum(self._tasks.values())
 
 
 class CreditPool(KernelIf):
@@ -102,7 +102,7 @@ class CreditPool(KernelIf):
         return (self._cnt - n) < 0
 
     def _full(self, n: int) -> bool:
-        return self._has_capacity and (self._cnt + len(self._rsvns) + n) > self._capacity
+        return self._has_capacity and (self._cnt + self._rsvns.cnt() + n) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0
