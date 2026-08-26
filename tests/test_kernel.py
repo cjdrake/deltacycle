@@ -75,6 +75,8 @@ def test_limits(captrace: Trace):
         run(kernel=kernel, ticks=-1)
     with pytest.raises(ValueError):
         run(kernel=kernel, ticks=0, until=-1)
+    with pytest.raises(ValueError):
+        run(kernel=kernel, until=-1)
 
 
 def test_nocoro():

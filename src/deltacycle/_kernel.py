@@ -249,7 +249,12 @@ class Kernel[MainResultType](ABC):
         # Determine the run limit
         if ticks is None:
             # Run until absolute limit, or no tasks left
-            limit = until if until is not None else None
+            if until is not None:
+                if until < 0:
+                    raise ValueError(f"Expected until ≥ 0, got {until}")
+                limit = until
+            else:
+                limit = None
         else:
             if ticks < 0:
                 raise ValueError(f"Expected ticks ≥ 0, got {ticks}")
