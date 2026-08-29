@@ -409,9 +409,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                     task._do_run(args)
                 except StopIteration as exc:
                     task._do_result(exc)
-                except Exception as exc:
-                    task._do_except(exc)
-                except Kill as exc:
+                except (Exception, Kill) as exc:
                     task._do_except(exc)
                 except KernelExit:
                     self._exit()
@@ -451,9 +449,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
                     task._do_run(args)
                 except StopIteration as exc:
                     task._do_result(exc)
-                except Exception as exc:
-                    task._do_except(exc)
-                except Kill as exc:
+                except (Exception, Kill) as exc:
                     task._do_except(exc)
                 except KernelExit:
                     self._exit()
