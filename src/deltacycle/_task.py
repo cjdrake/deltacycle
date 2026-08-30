@@ -101,7 +101,7 @@ class AllOf(_Condition):
             for blocker in blocking:
                 blocker._do_block(task)
             self._kernel._forks.set(task, *blocking)
-            b = yield from task._switch_gen()
+            b = cast(Blocking, val=(yield from task._switch_gen()))
 
             # Resume
             b._do_all_resume(task)
@@ -123,7 +123,7 @@ class AnyOf(_Condition):
         for blocker in self._blockers:
             blocker._do_block(task)
         self._kernel._forks.set(task, *self._blockers)
-        b = yield from task._switch_gen()
+        b = cast(Blocking, val=(yield from task._switch_gen()))
 
         # Resume
         b._do_any_resume(task)
@@ -306,7 +306,7 @@ class Task[ResultType](KernelIf, Blocking):
         # Resume
         return value
 
-    def _switch_gen(self) -> Generator[None, Blocking, Blocking]:
+    def _switch_gen(self) -> Generator[None, Blocking | None, Blocking | None]:
         self._set_state(self.State.PENDING)
 
         # Suspend
@@ -460,7 +460,7 @@ class Task[ResultType](KernelIf, Blocking):
         # Success
         return True
 
-    def __await__(self) -> Generator[None, Self, ResultType]:
+    def __await__(self) -> Generator[None, None, ResultType]:
         """Await task done."""
         if self._is_blocking():
             task = self._kernel._check_task()

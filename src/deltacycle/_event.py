@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator
-from typing import Any, Self
+from typing import Any
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
@@ -70,7 +70,7 @@ class Event(KernelIf, Blocking):
         """Clear the flag. Start blocking waiting tasks."""
         self._flag = False
 
-    def __await__(self) -> Generator[None, Self, None]:
+    def __await__(self) -> Generator[None, None, None]:
         """Await event set."""
         if self._is_blocking():
             task = self._kernel._check_task()

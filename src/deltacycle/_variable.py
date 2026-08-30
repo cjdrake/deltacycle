@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Generator, Hashable
-from typing import Any, Iterator, Self
+from typing import Any, Iterator
 
 from ._kernel_if import KernelIf
 from ._task import Blocking, SupportsDropTask, Task
@@ -142,7 +142,7 @@ class PredVariable(KernelIf, Blocking):
     def __bool__(self) -> bool:
         return self._p()
 
-    def __await__(self) -> Generator[None, Self, None]:
+    def __await__(self) -> Generator[None, None, None]:
         """Await variable change:
 
         For variable ``v``, and predicate function ``p``:
