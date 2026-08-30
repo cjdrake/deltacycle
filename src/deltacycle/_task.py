@@ -187,8 +187,6 @@ class Task[ResultType](KernelIf, Blocking):
         # Done: raised an exception
         EXCEPTED = 0b101
 
-    _done = State.RETURNED & State.EXCEPTED
-
     _state_transitions: ClassVar = {
         State.INIT: {
             State.RUNNING,
@@ -360,7 +358,7 @@ class Task[ResultType](KernelIf, Blocking):
         * Completed normally, or
         * Raised an exception.
         """
-        return bool(self._state & self._done)
+        return self._state in {self.State.RETURNED, self.State.EXCEPTED}
 
     def result(self) -> ResultType:
         """Return the task's result, or raise an exception.

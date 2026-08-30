@@ -85,8 +85,6 @@ class Kernel[MainResultType](ABC):
         # KernelExit raised
         EXITED = 0b101
 
-    _done = State.COMPLETED & State.EXITED
-
     _state_transitions: ClassVar = {
         State.INIT: {
             State.RUNNING,
@@ -162,7 +160,7 @@ class Kernel[MainResultType](ABC):
         * Exhausted all tasks (COMPLETED), or
         * Raised ``KernelExit`` (EXITED)
         """
-        return bool(self._state & self._done)
+        return self._state in {self.State.COMPLETED, self.State.EXITED}
 
     # Scheduling methods
     @abstractmethod
