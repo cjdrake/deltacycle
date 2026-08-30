@@ -98,7 +98,6 @@ class Kernel[MainResultType](ABC):
     init_time = -1
     start_time = 0
 
-    main_id = 0
     main_name = "main"
 
     def __init__(self, coro: TaskCoro[MainResultType]):
@@ -113,7 +112,7 @@ class Kernel[MainResultType](ABC):
 
         # Main task
         main_id = self._get_task_id()
-        assert main_id == self.main_id
+        assert main_id == 0
         self._main: Task[MainResultType] = Task(coro, id=main_id, name=self.main_name)
 
         # Forked Tasks
