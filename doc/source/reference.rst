@@ -57,7 +57,7 @@ Tasks
 
     .. automethod:: __await__
     .. autoproperty:: coro
-    .. autoproperty:: index
+    .. autoproperty:: id
     .. autoproperty:: name
     .. autoproperty:: group
     .. automethod:: state

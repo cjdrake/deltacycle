@@ -65,7 +65,7 @@ class Kernel[MainResultType](ABC):
     To run a simulation, use the ``run`` and ``step`` functions.
     """
 
-    _index = 0
+    _id = 0
 
     class State(IntEnum):
         """
@@ -102,11 +102,11 @@ class Kernel[MainResultType](ABC):
     init_time = -1
     start_time = 0
 
-    main_index = 0
+    main_id = 0
     main_name = "main"
 
     def __init__(self, coro: TaskCoro[MainResultType]):
-        self._name = f"Kernel-{self._get_index()}"
+        self._name = f"Kernel-{self._get_id()}"
 
         self._state = self.State.INIT
 
@@ -115,12 +115,12 @@ class Kernel[MainResultType](ABC):
 
         # Currently executing task
         self._task: Task[Any] | None = None
-        self._task_index = 0
+        self._task_id = 0
 
         # Main task
-        main_index = self._get_task_index()
-        assert main_index == self.main_index
-        self._main: Task[MainResultType] = Task(coro, index=main_index, name=self.main_name)
+        main_id = self._get_task_id()
+        assert main_id == self.main_id
+        self._main: Task[MainResultType] = Task(coro, id=main_id, name=self.main_name)
 
         # Forked Tasks
         self._forks = _ForkTable()
@@ -129,15 +129,15 @@ class Kernel[MainResultType](ABC):
         self._dirty_vars: set[Variable] = set()
 
     @classmethod
-    def _get_index(cls) -> int:
-        index = cls._index
-        cls._index += 1
-        return index
+    def _get_id(cls) -> int:
+        id = cls._id
+        cls._id += 1
+        return id
 
-    def _get_task_index(self) -> int:
-        index = self._task_index
-        self._task_index += 1
-        return index
+    def _get_task_id(self) -> int:
+        id = self._task_id
+        self._task_id += 1
+        return id
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]
@@ -193,10 +193,10 @@ class Kernel[MainResultType](ABC):
         name: str | None = None,
     ) -> Task[ResultType]:
         assert self._time >= self.start_time
-        index = self._get_task_index()
+        id = self._get_task_id()
         if name is None:
-            name = f"Task-{index}"
-        return Task(coro, index, name)
+            name = f"Task-{id}"
+        return Task(coro, id, name)
 
     @abstractmethod
     def create_task[ResultType](

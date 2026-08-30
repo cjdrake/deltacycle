@@ -206,14 +206,14 @@ class Task[ResultType](KernelIf, Blocking):
     def __init__(
         self,
         coro: TaskCoro[ResultType],
-        index: int,
+        id: int,
         name: str,
     ):
         self._state = self.State.INIT
 
         # Attributes
         self._coro = coro
-        self._index = index
+        self._id = id
         self._name = name
 
         # Set if created within a group
@@ -241,8 +241,8 @@ class Task[ResultType](KernelIf, Blocking):
         return self._coro
 
     @property
-    def index(self) -> int:
-        return self._index
+    def id(self) -> int:
+        return self._id
 
     @property
     def name(self) -> str:
@@ -253,8 +253,8 @@ class Task[ResultType](KernelIf, Blocking):
         Give tasks unique and recognizable names to help identify them.
 
         If not provided to the create_task function,
-        a default name of ``Task-{index}`` will be assigned,
-        where ``index`` is a monotonically increasing integer value,
+        a default name of ``Task-{id}`` will be assigned,
+        where ``id`` is a monotonically increasing integer value,
         starting from 0.
         """
         return self._name
