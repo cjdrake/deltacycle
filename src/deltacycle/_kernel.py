@@ -65,8 +65,6 @@ class Kernel[MainResultType](ABC):
     To run a simulation, use the ``run`` and ``step`` functions.
     """
 
-    _id = 0
-
     class State(IntEnum):
         """
         Transitions::
@@ -106,8 +104,6 @@ class Kernel[MainResultType](ABC):
     main_name = "main"
 
     def __init__(self, coro: TaskCoro[MainResultType]):
-        self._name = f"Kernel-{self._get_id()}"
-
         self._state = self.State.INIT
 
         # Simulation time
@@ -127,12 +123,6 @@ class Kernel[MainResultType](ABC):
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
-
-    @classmethod
-    def _get_id(cls) -> int:
-        id = cls._id
-        cls._id += 1
-        return id
 
     def _get_task_id(self) -> int:
         id = self._task_id
