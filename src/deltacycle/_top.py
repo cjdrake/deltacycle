@@ -213,15 +213,14 @@ async def sleep(delay: int):
     assert y is None
 
 
-async def all_of(fst: Blocking, *rst: Blocking):
+async def all_of(*bs: Blocking):
     """Block forward progress until all items are nonblocking.
 
     Args:
-        fst, rst: Sequence of blocking items.
+        bs: Sequence of blocking items.
     """
     # Uniquify
-    args = (fst, *rst)
-    blockers = list(dict.fromkeys(args))
+    blockers = list(dict.fromkeys(bs))
 
     kernel, task = _get_kt()
 

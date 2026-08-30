@@ -80,14 +80,11 @@ class _SuspendResume:
         return value
 
 
-class _Condition(KernelIf):
-    def __init__(self, fst: Blocking, *rst: Blocking):
+class AllOf(KernelIf):
+    def __init__(self, *bs: Blocking):
         # Uniquify
-        args = (fst, *rst)
-        self._blockers = list(dict.fromkeys(args))
+        self._blockers = list(dict.fromkeys(bs))
 
-
-class AllOf(_Condition):
     def __await__(self) -> Generator[None, Blocking, None]:
         task = self._kernel._check_task()
 
@@ -110,7 +107,12 @@ class AllOf(_Condition):
             blocker._do_nonblock()
 
 
-class AnyOf(_Condition):
+class AnyOf(KernelIf):
+    def __init__(self, fst: Blocking, *rst: Blocking):
+        args = (fst, *rst)
+        # Uniquify
+        self._blockers = list(dict.fromkeys(args))
+
     def __await__(self) -> Generator[None, Blocking, Blocking]:
         for blocker in self._blockers:
             if not blocker._is_blocking():
