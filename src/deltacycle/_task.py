@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import Counter
+from collections import Counter, deque
 from collections.abc import Coroutine, Generator
 from enum import IntEnum
 from types import TracebackType
@@ -425,7 +425,7 @@ class TaskGroup(KernelIf):
         self._parent = task
 
         # Tasks started in the with block
-        self._setup_tasks: list[Task[Any]] = []
+        self._setup_tasks: deque[Task[Any]] = deque()
 
         # Tasks in running/pending/killing state
         self._todo: set[Task[Any]] = set()
@@ -452,7 +452,7 @@ class TaskGroup(KernelIf):
         done: list[Task[Any]] = []
 
         while self._setup_tasks:
-            child = self._setup_tasks.pop()
+            child = self._setup_tasks.popleft()
             if child.done():
                 done.append(child)
             else:
