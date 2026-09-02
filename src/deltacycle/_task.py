@@ -315,22 +315,6 @@ class Task[ResultType](KernelIf, Blocking):
         # Resume
         return value
 
-    def _do_run(self, args: TaskArgs):
-        self._set_state(self.State.RUNNING)
-
-        match args:
-            case (self.Command.START,):
-                self._coro.send(None)
-            case (self.Command.RESUME,):
-                self._coro.send(None)
-            case (self.Command.RESUME, Blocking() as x):
-                self._coro.send(x)
-            case (self.Command.SIGNAL, BaseException() as x):
-                self._signal = False
-                self._coro.throw(x)
-            case _:  # pragma: no cover
-                raise TypeError(f"Invalid task command: {args}")
-
     def _set(self):
         for task, join, send in self._waitq.pop():
             if join is not None:
@@ -339,18 +323,6 @@ class Task[ResultType](KernelIf, Blocking):
                 self._kernel.call_soon(task, args=(self.Command.RESUME, send))
             else:
                 self._kernel.call_soon(task, args=(self.Command.RESUME,))
-
-    def _do_result(self, exc: StopIteration):
-        self._result = exc.value
-        self._set_state(self.State.RETURNED)
-        self._set()
-        assert self._refcnts.total() == 0
-
-    def _do_except(self, exc: BaseException):
-        self._exception = exc
-        self._set_state(self.State.EXCEPTED)
-        self._set()
-        assert self._refcnts.total() == 0
 
     def done(self) -> bool:
         """Return True if the task is done.

@@ -198,6 +198,39 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
+    def _task_run(self, args: TaskArgs):
+        task = self._check_task()
+        task._set_state(Task.State.RUNNING)
+
+        match args:
+            case (Task.Command.START,):
+                task._coro.send(None)
+            case (Task.Command.RESUME,):
+                task._coro.send(None)
+            case (Task.Command.RESUME, Blocking() as x):
+                task._coro.send(x)
+            case (Task.Command.SIGNAL, BaseException() as x):
+                task._signal = False
+                task._coro.throw(x)
+            case _:  # pragma: no cover
+                raise TypeError(f"Invalid task command: {args}")
+
+    def _task_result(self, exc: StopIteration):
+        task = self._check_task()
+        task._set_state(Task.State.RETURNED)
+
+        task._result = exc.value
+        task._set()
+        assert task._refcnts.total() == 0
+
+    def _task_except(self, exc: BaseException):
+        task = self._check_task()
+        task._set_state(Task.State.EXCEPTED)
+
+        task._exception = exc
+        task._set()
+        assert task._refcnts.total() == 0
+
     def _touch_var(self, v: Variable):
         self._dirty_vars.add(v)
 
@@ -393,11 +426,11 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
             for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(args)
+                    self._task_run(args)
                 except StopIteration as exc:
-                    task._do_result(exc)
+                    self._task_result(exc)
                 except (Exception, Kill) as exc:
-                    task._do_except(exc)
+                    self._task_except(exc)
                 except KernelExit:
                     self._exit()
                     return
@@ -433,11 +466,11 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
             for task, args in self._iter_time_slot(time):
                 self._task = task
                 try:
-                    task._do_run(args)
+                    self._task_run(args)
                 except StopIteration as exc:
-                    task._do_result(exc)
+                    self._task_result(exc)
                 except (Exception, Kill) as exc:
-                    task._do_except(exc)
+                    self._task_except(exc)
                 except KernelExit:
                     self._exit()
                     return
