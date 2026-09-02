@@ -271,6 +271,69 @@ class Kernel[MainResultType](ABC):
         task._set()
         assert task._refcnts.total() == 0
 
+    # Fork / Join
+    async def _wait_all(self, *bs: Blocking):
+        """Block forward progress until all items are nonblocking.
+
+        Args:
+            bs: Sequence of blocking items.
+        """
+        task = self._check_task()
+
+        # Uniquify
+        blockers = list(dict.fromkeys(bs))
+
+        while True:
+            blocking = [b for b in blockers if b._is_blocking()]
+
+            if not blocking:
+                break
+
+            # Suspend
+            for blocker in blocking:
+                blocker._do_block(task)
+            self._forks.set(task, *blocking)
+            b = await self._switch_coro()
+
+            # Resume
+            assert b is not None
+            b._do_all_resume(task)
+
+        for blocker in blockers:
+            blocker._do_nonblock()
+
+    async def _wait_any(self, fst: Blocking, *rst: Blocking) -> Blocking:
+        """Block forward progress until at least one item is nonblocking.
+
+        Args:
+            fst, rst: Sequence of blocking items.
+
+        Returns:
+            Item that unblocked first.
+        """
+        task = self._check_task()
+
+        # Uniquify
+        args = (fst, *rst)
+        blockers = list(dict.fromkeys(args))
+
+        for blocker in blockers:
+            if not blocker._is_blocking():
+                blocker._do_nonblock()
+                return blocker
+
+        # Suspend
+        for blocker in blockers:
+            blocker._do_block(task)
+        self._forks.set(task, *blockers)
+        b = await self._switch_coro()
+
+        # Resume
+        assert b is not None
+        b._do_any_resume(task)
+        return b
+
+    # Variables
     def _touch_var(self, v: Variable):
         self._dirty_vars.add(v)
 
@@ -279,6 +342,7 @@ class Kernel[MainResultType](ABC):
             v = self._dirty_vars.pop()
             v.update()
 
+    # __call__ / __iter__
     def _start(self):
         if self._state is self.State.INIT:
             self.call_at(

@@ -62,54 +62,21 @@ class Blocking(ABC):
 
 class AllOf(KernelIf):
     def __init__(self, *bs: Blocking):
-        # Uniquify
-        self._blockers = list(dict.fromkeys(bs))
+        self._bs = bs
 
-    def __await__(self) -> Generator[None, Blocking, None]:
-        task = self._kernel._check_task()
-
-        while True:
-            blocking = [b for b in self._blockers if b._is_blocking()]
-
-            if not blocking:
-                break
-
-            # Suspend
-            for blocker in blocking:
-                blocker._do_block(task)
-            self._kernel._forks.set(task, *blocking)
-            b = cast(Blocking, val=(yield from self._kernel._switch_gen()))
-
-            # Resume
-            b._do_all_resume(task)
-
-        for blocker in self._blockers:
-            blocker._do_nonblock()
+    def __await__(self) -> Generator[None, Any, None]:
+        coro = self._kernel._wait_all(*self._bs)
+        yield from coro.__await__()
 
 
 class AnyOf(KernelIf):
     def __init__(self, fst: Blocking, *rst: Blocking):
-        args = (fst, *rst)
-        # Uniquify
-        self._blockers = list(dict.fromkeys(args))
+        self._fst = fst
+        self._rst = rst
 
-    def __await__(self) -> Generator[None, Blocking, Blocking]:
-        for blocker in self._blockers:
-            if not blocker._is_blocking():
-                blocker._do_nonblock()
-                return blocker
-
-        task = self._kernel._check_task()
-
-        # Suspend
-        for blocker in self._blockers:
-            blocker._do_block(task)
-        self._kernel._forks.set(task, *self._blockers)
-        b = cast(Blocking, val=(yield from self._kernel._switch_gen()))
-
-        # Resume
-        b._do_any_resume(task)
-        return b
+    def __await__(self) -> Generator[None, Any, Blocking]:
+        coro = self._kernel._wait_any(self._fst, *self._rst)
+        return (yield from coro.__await__())
 
 
 class _WaitQ(SupportsDropTask):

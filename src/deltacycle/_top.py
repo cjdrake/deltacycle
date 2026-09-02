@@ -219,29 +219,8 @@ async def all_of(*bs: Blocking):
     Args:
         bs: Sequence of blocking items.
     """
-    # Uniquify
-    blockers = list(dict.fromkeys(bs))
-
-    kernel, task = _get_kt()
-
-    while True:
-        blocking = [b for b in blockers if b._is_blocking()]
-
-        if not blocking:
-            break
-
-        # Suspend
-        for blocker in blocking:
-            blocker._do_block(task)
-        kernel._forks.set(task, *blocking)
-        b = await kernel._switch_coro()
-
-        # Resume
-        assert b is not None
-        b._do_all_resume(task)
-
-    for blocker in blockers:
-        blocker._do_nonblock()
+    kernel = get_running_kernel()
+    await kernel._wait_all(*bs)
 
 
 async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
@@ -253,24 +232,5 @@ async def any_of(fst: Blocking, *rst: Blocking) -> Blocking:
     Returns:
         Item that unblocked first.
     """
-    # Uniquify
-    args = (fst, *rst)
-    blockers = list(dict.fromkeys(args))
-
-    for blocker in blockers:
-        if not blocker._is_blocking():
-            blocker._do_nonblock()
-            return blocker
-
-    kernel, task = _get_kt()
-
-    # Suspend
-    for blocker in blockers:
-        blocker._do_block(task)
-    kernel._forks.set(task, *blockers)
-    b = await kernel._switch_coro()
-
-    # Resume
-    assert b is not None
-    b._do_any_resume(task)
-    return b
+    kernel = get_running_kernel()
+    return await kernel._wait_any(fst, *rst)
