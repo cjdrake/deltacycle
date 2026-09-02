@@ -149,37 +149,29 @@ class Task[ResultType](KernelIf, Blocking):
         """
         Transitions::
 
-                    PENDING
-                       |
-            INIT -> RUNNING -> RETURNED
-                            -> EXCEPTED
+            PENDING <-> RUNNING -> RETURNED
+                                -> EXCEPTED
         """
 
-        # Initialized
-        INIT = 0b001
+        # Suspended
+        PENDING = 0b00
 
         # Currently running
-        RUNNING = 0b010
-
-        # Suspended
-        PENDING = 0b011
+        RUNNING = 0b01
 
         # Done: returned a result
-        RETURNED = 0b100
+        RETURNED = 0b10
         # Done: raised an exception
-        EXCEPTED = 0b101
+        EXCEPTED = 0b11
 
     _state_transitions: ClassVar = {
-        State.INIT: {
+        State.PENDING: {
             State.RUNNING,
         },
         State.RUNNING: {
             State.PENDING,
             State.RETURNED,
             State.EXCEPTED,
-        },
-        State.PENDING: {
-            State.RUNNING,
         },
     }
 
@@ -189,7 +181,7 @@ class Task[ResultType](KernelIf, Blocking):
         id: int,
         name: str,
     ):
-        self._state = self.State.INIT
+        self._state = self.State.PENDING
 
         # Attributes
         self._coro = coro
