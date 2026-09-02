@@ -153,7 +153,7 @@ class PredVariable(KernelIf, Blocking):
         """
         task = self._kernel._check_task()
         self._var._waitq.push(task, unblock=False, pv=self)
-        y = yield from task._switch_gen()
+        y = yield from self._kernel._switch_gen()
         assert y is None
 
     # Blocking

@@ -60,26 +60,6 @@ class Blocking(ABC):
         """Callback: Resume from any suspend."""
 
 
-class _SuspendResume:
-    """Suspend/Resume current task.
-
-    Use case:
-    1. Current task A suspends itself: RUNNING => WAITING
-    2. Kernel chooses PENDING tasks ..., T
-    3. ... Task T wakes up task A with value X: WAITING => PENDING
-    4. Kernel chooses PENDING tasks ..., A: PENDING => RUNNING
-    5. Task A resumes with value X
-
-    The value X can be used to pass information to the task.
-    """
-
-    def __await__(self) -> Generator[None, Blocking | None, Blocking | None]:
-        # Suspend
-        value = yield
-        # Resume
-        return value
-
-
 class AllOf(KernelIf):
     def __init__(self, *bs: Blocking):
         # Uniquify
@@ -98,7 +78,7 @@ class AllOf(KernelIf):
             for blocker in blocking:
                 blocker._do_block(task)
             self._kernel._forks.set(task, *blocking)
-            b = cast(Blocking, val=(yield from task._switch_gen()))
+            b = cast(Blocking, val=(yield from self._kernel._switch_gen()))
 
             # Resume
             b._do_all_resume(task)
@@ -125,7 +105,7 @@ class AnyOf(KernelIf):
         for blocker in self._blockers:
             blocker._do_block(task)
         self._kernel._forks.set(task, *self._blockers)
-        b = cast(Blocking, val=(yield from task._switch_gen()))
+        b = cast(Blocking, val=(yield from self._kernel._switch_gen()))
 
         # Resume
         b._do_any_resume(task)
@@ -297,24 +277,6 @@ class Task[ResultType](KernelIf, Blocking):
                 tq.drop(task=self)
             del self._refcnts[tq]
 
-    async def _switch_coro(self) -> Blocking | None:
-        self._set_state(Task.State.PENDING)
-
-        # Suspend
-        value = await _SuspendResume()
-
-        # Resume
-        return value
-
-    def _switch_gen(self) -> Generator[None, Blocking | None, Blocking | None]:
-        self._set_state(self.State.PENDING)
-
-        # Suspend
-        value = yield
-
-        # Resume
-        return value
-
     def _set(self):
         for task, join, send in self._waitq.pop():
             if join is not None:
@@ -437,7 +399,7 @@ class Task[ResultType](KernelIf, Blocking):
         if self._is_blocking():
             task = self._kernel._check_task()
             self._waitq.push(task, join=None, send=None)
-            y = yield from task._switch_gen()
+            y = yield from self._kernel._switch_gen()
             assert y is None
 
         # NOTE: This propagates exceptions to parent task
@@ -480,7 +442,7 @@ class TaskGroup(KernelIf):
         for child in self._todo:
             child._kill()
         while self._todo:
-            child = cast(typ=Task[Any], val=(await self._parent._switch_coro()))
+            child = cast(typ=Task[Any], val=(await self._kernel._switch_coro()))
             self._todo.remove(child)
 
     async def __aenter__(self) -> Self:
@@ -537,7 +499,7 @@ class TaskGroup(KernelIf):
         # Await NOT DONE / NEW children; collect exceptions
         killed: set[Task[Any]] = set()
         while self._todo:
-            child = cast(typ=Task[Any], val=(await self._parent._switch_coro()))
+            child = cast(typ=Task[Any], val=(await self._kernel._switch_coro()))
             self._todo.remove(child)
             if child in killed:
                 continue

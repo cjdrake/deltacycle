@@ -75,7 +75,7 @@ class Event(KernelIf, Blocking):
         if self._is_blocking():
             task = self._kernel._check_task()
             self._waitq.push(task, event=None)
-            y = yield from task._switch_gen()
+            y = yield from self._kernel._switch_gen()
             assert y is None
 
     # Blocking

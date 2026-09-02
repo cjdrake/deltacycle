@@ -153,7 +153,7 @@ class Semaphore(KernelIf):
             # No available credit: Suspend
             task = self._kernel._check_task()
             self._getq.push(priority, task, req=None)
-            y = await task._switch_coro()
+            y = await self._kernel._switch_coro()
 
             # Suspend => Schedule => Resume[Get]
             assert y is None

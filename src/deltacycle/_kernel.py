@@ -2,13 +2,33 @@
 
 import heapq
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from enum import IntEnum
 from typing import Any, ClassVar, Never
 from weakref import WeakKeyDictionary
 
 from ._task import Blocking, Kill, SupportsDropTask, Task, TaskArgs, TaskCoro
 from ._variable import Variable
+
+
+class _SuspendResume:
+    """Suspend/Resume current task.
+
+    Use case:
+    1. Current task A suspends itself: RUNNING => WAITING
+    2. Kernel chooses PENDING tasks ..., T
+    3. ... Task T wakes up task A with value X: WAITING => PENDING
+    4. Kernel chooses PENDING tasks ..., A: PENDING => RUNNING
+    5. Task A resumes with value X
+
+    The value X can be used to pass information to the task.
+    """
+
+    def __await__(self) -> Generator[None, Blocking | None, Blocking | None]:
+        # Suspend
+        value = yield
+        # Resume
+        return value
 
 
 class _ForkTable(SupportsDropTask):
@@ -197,6 +217,26 @@ class Kernel[MainResultType](ABC):
         Returns:
             Handle to the created task
         """
+
+    async def _switch_coro(self) -> Blocking | None:
+        task = self._check_task()
+        task._set_state(Task.State.PENDING)
+
+        # Suspend
+        value = await _SuspendResume()
+
+        # Resume
+        return value
+
+    def _switch_gen(self) -> Generator[None, Blocking | None, Blocking | None]:
+        task = self._check_task()
+        task._set_state(Task.State.PENDING)
+
+        # Suspend
+        value = yield
+
+        # Resume
+        return value
 
     def _task_run(self, args: TaskArgs):
         task = self._check_task()
