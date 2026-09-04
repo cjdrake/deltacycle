@@ -228,16 +228,6 @@ class Kernel[MainResultType](ABC):
         # Resume
         return value
 
-    def _switch_gen(self) -> Generator[None, Blocking | None, Blocking | None]:
-        task = self._check_task()
-        task._set_state(Task.State.PENDING)
-
-        # Suspend
-        value = yield
-
-        # Resume
-        return value
-
     def _task_run(self, args: TaskArgs):
         task = self._check_task()
         task._set_state(Task.State.RUNNING)

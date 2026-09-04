@@ -358,7 +358,7 @@ class Task[ResultType](KernelIf, Blocking):
         if self._is_blocking():
             task = self._kernel._check_task()
             self._waitq.push(task, join=None, send=None)
-            y = yield from self._kernel._switch_gen()
+            y = yield from self._kernel._switch_coro().__await__()
             assert y is None
 
         # NOTE: This propagates exceptions to parent task
