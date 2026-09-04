@@ -38,7 +38,7 @@ class _WaitQ(SupportsDropTask):
             assert unblock == self._items[task]
         self._pvs[task].add(pv)
 
-    def pop(self) -> Iterator[tuple[Task[Any], bool, set[PredVariable], PredVariable]]:
+    def pop(self) -> Iterator[tuple[Task[Any], set[PredVariable], PredVariable | None]]:
         items: list[tuple[Task[Any], bool, set[PredVariable], PredVariable]] = []
 
         for task, unblock in self._items.items():
@@ -50,7 +50,7 @@ class _WaitQ(SupportsDropTask):
 
         for task, unblock, pvs, pv in items:
             self.drop(task)
-            yield (task, unblock, pvs, pv)
+            yield (task, pvs, pv if unblock else None)
 
 
 class Variable(KernelIf):
@@ -81,8 +81,8 @@ class Variable(KernelIf):
         self._waitq = _WaitQ()
 
     def _set(self):
-        for task, unblock, pvs, pv in self._waitq.pop():
-            if unblock:
+        for task, pvs, pv in self._waitq.pop():
+            if pv is not None:
                 self._kernel._forks.clr(task, *pvs)
                 self._kernel.call_soon(task, args=(Task.Command.RESUME, pv))
             else:
