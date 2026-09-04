@@ -153,7 +153,7 @@ class PredVariable(KernelIf, Blocking):
         """
         task = self._kernel._check_task()
         self._var._waitq.push(task, unblock=False, pv=self)
-        y = yield from self._kernel._switch_coro().__await__()
+        y = yield from self._kernel._suspend().__await__()
         assert y is None
 
     # Blocking

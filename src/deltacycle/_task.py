@@ -358,7 +358,7 @@ class Task[ResultType](KernelIf, Blocking):
         if self._is_blocking():
             task = self._kernel._check_task()
             self._waitq.push(task, join=None, send=None)
-            y = yield from self._kernel._switch_coro().__await__()
+            y = yield from self._kernel._suspend().__await__()
             assert y is None
 
         # NOTE: This propagates exceptions to parent task
@@ -401,7 +401,7 @@ class TaskGroup(KernelIf):
         for child in self._todo:
             child._kill()
         while self._todo:
-            child = cast(typ=Task[Any], val=(await self._kernel._switch_coro()))
+            child = cast(typ=Task[Any], val=(await self._kernel._suspend()))
             self._todo.remove(child)
 
     async def __aenter__(self) -> Self:
@@ -458,7 +458,7 @@ class TaskGroup(KernelIf):
         # Await NOT DONE / NEW children; collect exceptions
         killed: set[Task[Any]] = set()
         while self._todo:
-            child = cast(typ=Task[Any], val=(await self._kernel._switch_coro()))
+            child = cast(typ=Task[Any], val=(await self._kernel._suspend()))
             self._todo.remove(child)
             if child in killed:
                 continue

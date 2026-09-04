@@ -218,7 +218,7 @@ class Kernel[MainResultType](ABC):
             Handle to the created task
         """
 
-    async def _switch_coro(self) -> Blocking | None:
+    async def _suspend(self) -> Blocking | None:
         task = self._check_task()
         task._set_state(Task.State.PENDING)
 
@@ -283,7 +283,7 @@ class Kernel[MainResultType](ABC):
             for blocker in blocking:
                 blocker._do_block(task)
             self._forks.set(task, *blocking)
-            b = await self._switch_coro()
+            b = await self._suspend()
 
             # Resume
             assert b is not None
@@ -316,7 +316,7 @@ class Kernel[MainResultType](ABC):
         for blocker in blockers:
             blocker._do_block(task)
         self._forks.set(task, *blockers)
-        b = await self._switch_coro()
+        b = await self._suspend()
 
         # Resume
         assert b is not None

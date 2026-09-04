@@ -209,7 +209,7 @@ async def sleep(delay: int):
         raise ValueError(f"Expected delay ≥ 0, got {delay}")
     kernel, task = _get_kt()
     kernel.call_later(delay, task, args=(Task.Command.RESUME,))
-    y = await kernel._switch_coro()
+    y = await kernel._suspend()
     assert y is None
 
 
