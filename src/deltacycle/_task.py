@@ -14,8 +14,7 @@ from ._kernel_if import KernelIf
 type TaskCoro[ResultType] = Coroutine[None, Blocking | None, ResultType]
 
 type TaskArgs = (
-    tuple[Literal[Task.Command.START]]
-    | tuple[Literal[Task.Command.RESUME]]
+    tuple[Literal[Task.Command.RESUME]]
     | tuple[Literal[Task.Command.RESUME], Blocking]
     | tuple[Literal[Task.Command.SIGNAL], BaseException]
 )
@@ -150,9 +149,8 @@ class Task[ResultType](KernelIf, Blocking):
     """
 
     class Command(IntEnum):
-        START = 0b00
-        RESUME = 0b01
-        SIGNAL = 0b10
+        RESUME = 0
+        SIGNAL = 1
 
     class State(IntEnum):
         """

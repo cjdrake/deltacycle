@@ -235,8 +235,6 @@ class Kernel[MainResultType](ABC):
         task._set_state(Task.State.RUNNING)
 
         match args:
-            case (Task.Command.START,):
-                task._coro.send(None)
             case (Task.Command.RESUME,):
                 task._coro.send(None)
             case (Task.Command.RESUME, Blocking() as x):
@@ -340,7 +338,7 @@ class Kernel[MainResultType](ABC):
             self.call_at(
                 when=self.start_time,
                 task=self._main,
-                args=(Task.Command.START,),
+                args=(Task.Command.RESUME,),
             )
             self._set_state(self.State.RUNNING)
         elif self._state is not self.State.RUNNING:
@@ -487,7 +485,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
     ) -> Task[ResultType]:
         task = super()._create_task(coro, name, group)
         self._priorities[task] = kwargs.get("priority", self.task_priority)
-        self.call_soon(task, args=(Task.Command.START,))
+        self.call_soon(task, args=(Task.Command.RESUME,))
         return task
 
     def _iter_time_slot(self, time: int) -> Iterator[tuple[Task[Any], TaskArgs]]:
