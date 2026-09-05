@@ -187,6 +187,7 @@ class Task[ResultType](KernelIf, Blocking):
         coro: TaskCoro[ResultType],
         id: int,
         name: str,
+        parent: Task[Any] | None,
         group: TaskGroup | None,
     ):
         self._state = self.State.PENDING
@@ -195,6 +196,9 @@ class Task[ResultType](KernelIf, Blocking):
         self._coro = coro
         self._id = id
         self._name = name
+
+        # Task that invoked create_task
+        self._parent = parent
 
         # Set if created within a group
         self._group = group
@@ -240,6 +244,10 @@ class Task[ResultType](KernelIf, Blocking):
         starting from 0.
         """
         return self._name
+
+    @property
+    def parent(self) -> Task[Any] | None:
+        return self._parent
 
     @property
     def group(self) -> TaskGroup | None:

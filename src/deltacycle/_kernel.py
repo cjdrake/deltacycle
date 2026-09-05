@@ -118,8 +118,6 @@ class Kernel[MainResultType](ABC):
     init_time = -1
     start_time = 0
 
-    main_name = "main"
-
     def __init__(self, coro: TaskCoro[MainResultType]):
         self._state = self.State.INIT
 
@@ -131,9 +129,7 @@ class Kernel[MainResultType](ABC):
         self._task_id = 0
 
         # Main task
-        main_id = self._get_task_id()
-        assert main_id == 0
-        self._main: Task[MainResultType] = Task(coro, id=main_id, name=self.main_name, group=None)
+        self._main: Task[MainResultType] = self._create_main(coro)
 
         # Forked Tasks
         self._forks = _ForkTable()
@@ -194,6 +190,13 @@ class Kernel[MainResultType](ABC):
     def call_at(self, when: int, task: Task[Any], args: TaskArgs) -> None:
         """Schedule task to run at specified time: ``when``."""
 
+    def _create_main(self, coro: TaskCoro[MainResultType]):
+        assert self._time == self.init_time
+        id = self._get_task_id()
+        assert id == 0
+        main: Task[MainResultType] = Task(coro, id, name="main", parent=None, group=None)
+        return main
+
     def _create_task[ResultType](
         self,
         coro: TaskCoro[ResultType],
@@ -202,9 +205,11 @@ class Kernel[MainResultType](ABC):
     ) -> Task[ResultType]:
         assert self._time >= self.start_time
         id = self._get_task_id()
+        assert id > 0
         if name is None:
             name = f"Task-{id}"
-        return Task(coro, id, name, group)
+        parent = self._check_task()
+        return Task(coro, id, name, parent, group)
 
     @abstractmethod
     def create_task[ResultType](
