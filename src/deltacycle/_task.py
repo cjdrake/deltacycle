@@ -430,6 +430,7 @@ class TaskGroup(KernelIf):
     def __init__(self):
         self._state = self.State.INIT
 
+        # Group leader task
         self._gtask = self._kernel._check_task()
 
         # Tasks started in the with block
