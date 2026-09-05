@@ -54,15 +54,15 @@ class _Reservations(SupportsDropTask):
 
     def drop(self, task: Task[Any]):
         # Suspend => Schedule => Interrupt[Put]
-        self.pop(task)
+        self.delitem(task)
         self._parent.put()
 
-    def push(self, task: Task[Any]):
+    def setitem(self, task: Task[Any]):
         assert task not in self._tasks
         task._link(tq=self)
         self._tasks.add(task)
 
-    def pop(self, task: Task[Any]):
+    def delitem(self, task: Task[Any]):
         self._tasks.remove(task)
         task._unlink(tq=self)
 
@@ -110,7 +110,7 @@ class Semaphore(KernelIf):
         task, req = self._getq.pop()
 
         # Suspend => Schedule => Resume[Get] | Interrupt[Put]
-        self._rsvns.push(task)
+        self._rsvns.setitem(task)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
@@ -157,7 +157,7 @@ class Semaphore(KernelIf):
 
             # Suspend => Schedule => Resume[Get]
             assert y is None
-            self._rsvns.pop(task)
+            self._rsvns.delitem(task)
 
 
 class ReqSemaphore(Blocking):
@@ -197,12 +197,12 @@ class ReqSemaphore(Blocking):
 
     @override
     def _do_all_resume(self, task: Task[Any]):
-        self._semaphore._rsvns.pop(task)
+        self._semaphore._rsvns.delitem(task)
         self._semaphore.put()
 
     @override
     def _do_any_resume(self, task: Task[Any]):
-        self._semaphore._rsvns.pop(task)
+        self._semaphore._rsvns.delitem(task)
 
 
 class Lock(Semaphore):

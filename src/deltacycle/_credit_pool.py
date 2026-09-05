@@ -59,15 +59,15 @@ class _Reservations(SupportsDropTask):
     def drop(self, task: Task[Any]):
         # Suspend => Schedule => Interrupt[Put]
         n = self._tasks[task]
-        self.pop(task)
+        self.delitem(task)
         self._parent.put(n)
 
-    def push(self, task: Task[Any], n: int):
+    def setitem(self, task: Task[Any], n: int):
         assert task not in self._tasks
         task._link(tq=self)
         self._tasks[task] = n
 
-    def pop(self, task: Task[Any]):
+    def delitem(self, task: Task[Any]):
         del self._tasks[task]
         task._unlink(tq=self)
 
@@ -122,7 +122,7 @@ class CreditPool(KernelIf):
         task, req, n = self._getq.pop()
 
         # Suspend => Schedule => Resume[Get] | Interrupt[Put]
-        self._rsvns.push(task, n)
+        self._rsvns.setitem(task, n)
         if req is not None:
             self._kernel._forks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
@@ -174,7 +174,7 @@ class CreditPool(KernelIf):
 
             # Suspend => Schedule => Resume[Get]
             assert y is None
-            self._rsvns.pop(task)
+            self._rsvns.delitem(task)
 
 
 class ReqCredit(Blocking):
@@ -215,9 +215,9 @@ class ReqCredit(Blocking):
 
     @override
     def _do_all_resume(self, task: Task[Any]):
-        self._credits._rsvns.pop(task)
+        self._credits._rsvns.delitem(task)
         self._credits.put(self._n)
 
     @override
     def _do_any_resume(self, task: Task[Any]):
-        self._credits._rsvns.pop(task)
+        self._credits._rsvns.delitem(task)
