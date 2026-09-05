@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Any, ClassVar, Never
 from weakref import WeakKeyDictionary
 
-from ._task import Blocking, Kill, SupportsDropTask, Task, TaskArgs, TaskCoro
+from ._task import Blocking, Kill, SupportsDropTask, Task, TaskArgs, TaskCoro, TaskGroup
 from ._variable import Variable
 
 
@@ -133,7 +133,7 @@ class Kernel[MainResultType](ABC):
         # Main task
         main_id = self._get_task_id()
         assert main_id == 0
-        self._main: Task[MainResultType] = Task(coro, id=main_id, name=self.main_name)
+        self._main: Task[MainResultType] = Task(coro, id=main_id, name=self.main_name, group=None)
 
         # Forked Tasks
         self._forks = _ForkTable()
@@ -197,19 +197,21 @@ class Kernel[MainResultType](ABC):
     def _create_task[ResultType](
         self,
         coro: TaskCoro[ResultType],
-        name: str | None = None,
+        name: str | None,
+        group: TaskGroup | None,
     ) -> Task[ResultType]:
         assert self._time >= self.start_time
         id = self._get_task_id()
         if name is None:
             name = f"Task-{id}"
-        return Task(coro, id, name)
+        return Task(coro, id, name, group)
 
     @abstractmethod
     def create_task[ResultType](
         self,
         coro: TaskCoro[ResultType],
         name: str | None = None,
+        group: TaskGroup | None = None,
         **kwargs: Any,
     ) -> Task[ResultType]:
         """Create child task, and schedule it soon.
@@ -480,9 +482,10 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         self,
         coro: TaskCoro[ResultType],
         name: str | None = None,
+        group: TaskGroup | None = None,
         **kwargs: Any,
     ) -> Task[ResultType]:
-        task = super()._create_task(coro, name)
+        task = super()._create_task(coro, name, group)
         self._priorities[task] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.START,))
         return task

@@ -189,6 +189,7 @@ class Task[ResultType](KernelIf, Blocking):
         coro: TaskCoro[ResultType],
         id: int,
         name: str,
+        group: TaskGroup | None,
     ):
         self._state = self.State.PENDING
 
@@ -198,7 +199,7 @@ class Task[ResultType](KernelIf, Blocking):
         self._name = name
 
         # Set if created within a group
-        self._group: TaskGroup | None = None
+        self._group = group
 
         # Keep track of all queues containing this task
         self._refcnts: Counter[SupportsDropTask] = Counter()
@@ -242,18 +243,9 @@ class Task[ResultType](KernelIf, Blocking):
         """
         return self._name
 
-    def _get_group(self) -> TaskGroup | None:
-        """Return TaskGroup, or None.
-
-        If the task was started by a TaskGroup's create_task method,
-        it will assign this property to point to the TaskGroup instance.
-        """
+    @property
+    def group(self) -> TaskGroup | None:
         return self._group
-
-    def _set_group(self, group: TaskGroup):
-        self._group = group
-
-    group = property(fget=_get_group, fset=_set_group)
 
     def _set_state(self, state: State):
         assert state in self._state_transitions[self._state]
@@ -526,14 +518,12 @@ class TaskGroup(KernelIf):
         **kwargs: Any,
     ) -> Task[ResultType]:
         if self._state is self.State.ENTERED:
-            child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
-            child.group = self
+            child: Task[ResultType] = self._kernel.create_task(coro, name, group=self, **kwargs)
             self._setup_tasks.append(child)
             return child
 
         if self._state is self.State.EXITED:
-            child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
-            child.group = self
+            child: Task[ResultType] = self._kernel.create_task(coro, name, group=self, **kwargs)
             child._groupq.push(ptask=self._parent, ctask=child)
             self._todo.add(child)
             return child
