@@ -66,7 +66,7 @@ class _Reservations(SupportsDropTask):
         self._tasks.remove(task)
         task._unlink(tq=self)
 
-    def cnt(self) -> int:
+    def total(self) -> int:
         return len(self._tasks)
 
 
@@ -97,7 +97,7 @@ class Semaphore(KernelIf):
         return (self._cnt - 1) < 0
 
     def _full(self) -> bool:
-        return self._has_capacity and (self._cnt + self._rsvns.cnt() + 1) > self._capacity
+        return self._has_capacity and (self._cnt + self._rsvns.total() + 1) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0

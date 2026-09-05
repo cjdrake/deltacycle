@@ -71,7 +71,7 @@ class _Reservations(SupportsDropTask):
         del self._tasks[task]
         task._unlink(tq=self)
 
-    def cnt(self) -> int:
+    def total(self) -> int:
         return sum(self._tasks.values())
 
 
@@ -102,7 +102,7 @@ class CreditPool(KernelIf):
         return (self._cnt - n) < 0
 
     def _full(self, n: int) -> bool:
-        return self._has_capacity and (self._cnt + self._rsvns.cnt() + n) > self._capacity
+        return self._has_capacity and (self._cnt + self._rsvns.total() + n) > self._capacity
 
     def _check_cnt(self):
         assert self._cnt >= 0
