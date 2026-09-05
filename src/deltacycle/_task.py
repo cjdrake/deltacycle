@@ -130,15 +130,15 @@ class _GroupQ(SupportsDropTask):
         del self._items[task]
         task._unlink(tq=self)
 
-    def push(self, ptask: Task[Any], ctask: Task[Any]):
-        ptask._link(tq=self)
-        self._items[ptask] = ctask
+    def push(self, gtask: Task[Any], ctask: Task[Any]):
+        gtask._link(tq=self)
+        self._items[gtask] = ctask
 
     def pop(self) -> Iterator[tuple[Task[Any], Task[Any]]]:
         items = list(self._items.items())
-        for ptask, ctask in items:
-            self.drop(ptask)
-            yield ptask, ctask
+        for gtask, ctask in items:
+            self.drop(gtask)
+            yield gtask, ctask
 
 
 class Task[ResultType](KernelIf, Blocking):
@@ -284,8 +284,8 @@ class Task[ResultType](KernelIf, Blocking):
         for task, btask in self._blockq.pop():
             self._kernel._forks.clr(task, btask)
             self._kernel.call_soon(task, args=(self.Command.RESUME, btask))
-        for ptask, ctask in self._groupq.pop():
-            self._kernel.call_soon(ptask, args=(self.Command.RESUME, ctask))
+        for gtask, ctask in self._groupq.pop():
+            self._kernel.call_soon(gtask, args=(self.Command.RESUME, ctask))
 
     def done(self) -> bool:
         """Return True if the task is done.
@@ -430,8 +430,7 @@ class TaskGroup(KernelIf):
     def __init__(self):
         self._state = self.State.INIT
 
-        task = self._kernel._check_task()
-        self._parent = task
+        self._gtask = self._kernel._check_task()
 
         # Tasks started in the with block
         self._setup_tasks: deque[Task[Any]] = deque()
@@ -465,7 +464,7 @@ class TaskGroup(KernelIf):
             if child.done():
                 done.append(child)
             else:
-                child._groupq.push(ptask=self._parent, ctask=child)
+                child._groupq.push(gtask=self._gtask, ctask=child)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -530,7 +529,7 @@ class TaskGroup(KernelIf):
 
         if self._state is self.State.EXITED:
             child: Task[ResultType] = self._kernel.create_task(coro, name, group=self, **kwargs)
-            child._groupq.push(ptask=self._parent, ctask=child)
+            child._groupq.push(gtask=self._gtask, ctask=child)
             self._todo.add(child)
             return child
 
