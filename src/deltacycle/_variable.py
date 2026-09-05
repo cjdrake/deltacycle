@@ -17,7 +17,7 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for variable touch."""
 
     def __init__(self):
-        self._items: dict[Task[Any], bool] = {}
+        self._items: dict[Task[Any], None] = {}
         self._pvs: defaultdict[Task[Any], set[PredVariable]] = defaultdict(set)
 
     def drop(self, task: Task[Any]):
@@ -30,27 +30,63 @@ class _WaitQ(SupportsDropTask):
         if not self._pvs[task]:
             self.drop(task)
 
-    def push(self, task: Task[Any], unblock: bool, pv: PredVariable):
+    def push(self, task: Task[Any], pv: PredVariable):
         if task not in self._items:
             task._link(tq=self)
-            self._items[task] = unblock
-        else:
-            assert unblock == self._items[task]
+            self._items[task] = None
         self._pvs[task].add(pv)
 
-    def pop(self) -> Iterator[tuple[Task[Any], set[PredVariable], PredVariable | None]]:
-        items: list[tuple[Task[Any], bool, set[PredVariable], PredVariable]] = []
+    def pop(self) -> Iterator[Task[Any]]:
+        tasks: list[Task[Any]] = []
 
-        for task, unblock in self._items.items():
+        for task in self._items:
             pvs = self._pvs[task]
             for pv in pvs:
                 if pv:
-                    items.append((task, unblock, pvs, pv))
+                    tasks.append(task)
                     break
 
-        for task, unblock, pvs, pv in items:
+        for task in tasks:
             self.drop(task)
-            yield (task, pvs, pv if unblock else None)
+            yield task
+
+
+class _BlockQ(SupportsDropTask):
+    """Tasks wait for variable touch."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], None] = {}
+        self._pvs: defaultdict[Task[Any], set[PredVariable]] = defaultdict(set)
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        del self._pvs[task]
+        task._unlink(tq=self)
+
+    def remove(self, task: Task[Any], blk_pv: PredVariable):
+        self._pvs[task].remove(blk_pv)
+        if not self._pvs[task]:
+            self.drop(task)
+
+    def push(self, task: Task[Any], blk_pv: PredVariable):
+        if task not in self._items:
+            task._link(tq=self)
+            self._items[task] = None
+        self._pvs[task].add(blk_pv)
+
+    def pop(self) -> Iterator[tuple[Task[Any], set[PredVariable], PredVariable]]:
+        items: list[tuple[Task[Any], set[PredVariable], PredVariable]] = []
+
+        for task in self._items:
+            pvs = self._pvs[task]
+            for pv in pvs:
+                if pv:
+                    items.append((task, pvs, pv))
+                    break
+
+        for task, blk_pvs, blk_pv in items:
+            self.drop(task)
+            yield (task, blk_pvs, blk_pv)
 
 
 class Variable(KernelIf):
@@ -79,14 +115,14 @@ class Variable(KernelIf):
 
     def __init__(self):
         self._waitq = _WaitQ()
+        self._blockq = _BlockQ()
 
     def _set(self):
-        for task, pvs, pv in self._waitq.pop():
-            if pv is not None:
-                self._kernel._forks.clr(task, *pvs)
-                self._kernel.call_soon(task, args=(Task.Command.RESUME, pv))
-            else:
-                self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        for task in self._waitq.pop():
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        for task, blk_pvs, blk_pv in self._blockq.pop():
+            self._kernel._forks.clr(task, *blk_pvs)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, blk_pv))
 
         # Add variable to update set
         self._kernel._touch_var(self)
@@ -152,7 +188,7 @@ class PredVariable(KernelIf, Blocking):
            to ``True``, unblock all tasks waiting for that event.
         """
         task = self._kernel._check_task()
-        self._var._waitq.push(task, unblock=False, pv=self)
+        self._var._waitq.push(task, pv=self)
         y = yield from self._kernel._suspend().__await__()
         assert y is None
 
@@ -161,10 +197,10 @@ class PredVariable(KernelIf, Blocking):
         return True
 
     def _unblock(self, task: Task[Any]):
-        self._var._waitq.remove(task, pv=self)
+        self._var._blockq.remove(task, blk_pv=self)
 
     def _do_block(self, task: Task[Any]):
-        self._var._waitq.push(task, unblock=True, pv=self)
+        self._var._blockq.push(task, blk_pv=self)
 
 
 class Value[T](ABC):

@@ -83,21 +83,63 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._items: dict[Task[Any], tuple[Task[Any] | None, Task[Any] | None]] = {}
+        self._items: dict[Task[Any], None] = {}
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         task._unlink(tq=self)
 
-    def push(self, task: Task[Any], join: Task[Any] | None, send: Task[Any] | None):
+    def push(self, task: Task[Any]):
         task._link(tq=self)
-        self._items[task] = (join, send)
+        self._items[task] = None
 
-    def pop(self) -> Iterator[tuple[Task[Any], Task[Any] | None, Task[Any] | None]]:
-        items = list(self._items.items())
-        for task, (join, send) in items:
+    def pop(self) -> Iterator[Task[Any]]:
+        tasks = list(self._items)
+        for task in tasks:
             self.drop(task)
-            yield task, join, send
+            yield task
+
+
+class _BlockQ(SupportsDropTask):
+    """Tasks wait for event trigger."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], Task[Any]] = {}
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        task._unlink(tq=self)
+
+    def push(self, task: Task[Any], btask: Task[Any]):
+        task._link(tq=self)
+        self._items[task] = btask
+
+    def pop(self) -> Iterator[tuple[Task[Any], Task[Any]]]:
+        items = list(self._items.items())
+        for task, btask in items:
+            self.drop(task)
+            yield task, btask
+
+
+class _GroupQ(SupportsDropTask):
+    """Tasks wait for event trigger."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], Task[Any]] = {}
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        task._unlink(tq=self)
+
+    def push(self, ptask: Task[Any], ctask: Task[Any]):
+        ptask._link(tq=self)
+        self._items[ptask] = ctask
+
+    def pop(self) -> Iterator[tuple[Task[Any], Task[Any]]]:
+        items = list(self._items.items())
+        for ptask, ctask in items:
+            self.drop(ptask)
+            yield ptask, ctask
 
 
 class Task[ResultType](KernelIf, Blocking):
@@ -163,6 +205,8 @@ class Task[ResultType](KernelIf, Blocking):
 
         # Other tasks waiting for this task to complete
         self._waitq = _WaitQ()
+        self._blockq = _BlockQ()
+        self._groupq = _GroupQ()
 
         # Flag to avoid multiple signals
         self._signal = False
@@ -237,13 +281,13 @@ class Task[ResultType](KernelIf, Blocking):
             del self._refcnts[tq]
 
     def _set(self):
-        for task, join, send in self._waitq.pop():
-            if join is not None:
-                self._kernel._forks.clr(task, join)
-            if send is not None:
-                self._kernel.call_soon(task, args=(self.Command.RESUME, send))
-            else:
-                self._kernel.call_soon(task, args=(self.Command.RESUME,))
+        for task in self._waitq.pop():
+            self._kernel.call_soon(task, args=(self.Command.RESUME,))
+        for task, btask in self._blockq.pop():
+            self._kernel._forks.clr(task, btask)
+            self._kernel.call_soon(task, args=(self.Command.RESUME, btask))
+        for ptask, ctask in self._groupq.pop():
+            self._kernel.call_soon(ptask, args=(self.Command.RESUME, ctask))
 
     def done(self) -> bool:
         """Return True if the task is done.
@@ -357,7 +401,7 @@ class Task[ResultType](KernelIf, Blocking):
         """Await task done."""
         if self._is_blocking():
             task = self._kernel._check_task()
-            self._waitq.push(task, join=None, send=None)
+            self._waitq.push(task)
             y = yield from self._kernel._suspend().__await__()
             assert y is None
 
@@ -369,10 +413,10 @@ class Task[ResultType](KernelIf, Blocking):
         return not self.done()
 
     def _unblock(self, task: Task[Any]):
-        self._waitq.drop(task)
+        self._blockq.drop(task)
 
     def _do_block(self, task: Task[Any]):
-        self._waitq.push(task, join=self, send=self)
+        self._blockq.push(task, btask=self)
 
 
 class TaskGroup(KernelIf):
@@ -423,7 +467,7 @@ class TaskGroup(KernelIf):
             if child.done():
                 done.append(child)
             else:
-                child._waitq.push(self._parent, join=None, send=child)
+                child._groupq.push(ptask=self._parent, ctask=child)
                 self._todo.add(child)
 
         # Parent raised an exception:
@@ -490,7 +534,7 @@ class TaskGroup(KernelIf):
         if self._state is self.State.EXITED:
             child: Task[ResultType] = self._kernel.create_task(coro, name, **kwargs)
             child.group = self
-            child._waitq.push(self._parent, join=None, send=child)
+            child._groupq.push(ptask=self._parent, ctask=child)
             self._todo.add(child)
             return child
 

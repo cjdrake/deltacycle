@@ -13,21 +13,42 @@ class _WaitQ(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
-        self._items: dict[Task[Any], Event | None] = {}
+        self._items: dict[Task[Any], None] = {}
 
     def drop(self, task: Task[Any]):
         del self._items[task]
         task._unlink(tq=self)
 
-    def push(self, task: Task[Any], event: Event | None):
+    def push(self, task: Task[Any]):
         task._link(tq=self)
-        self._items[task] = event
+        self._items[task] = None
 
-    def pop(self) -> Iterator[tuple[Task[Any], Event | None]]:
-        items = list(self._items.items())
-        for task, event in items:
+    def pop(self) -> Iterator[Task[Any]]:
+        tasks = list(self._items)
+        for task in tasks:
             self.drop(task)
-            yield task, event
+            yield task
+
+
+class _BlockQ(SupportsDropTask):
+    """Tasks wait for event trigger."""
+
+    def __init__(self):
+        self._items: dict[Task[Any], Event] = {}
+
+    def drop(self, task: Task[Any]):
+        del self._items[task]
+        task._unlink(tq=self)
+
+    def push(self, task: Task[Any], blk_event: Event):
+        task._link(tq=self)
+        self._items[task] = blk_event
+
+    def pop(self) -> Iterator[tuple[Task[Any], Event]]:
+        items = list(self._items.items())
+        for task, blk_event in items:
+            self.drop(task)
+            yield task, blk_event
 
 
 class Event(KernelIf, Blocking):
@@ -50,6 +71,7 @@ class Event(KernelIf, Blocking):
     def __init__(self):
         self._flag = False
         self._waitq = _WaitQ()
+        self._blockq = _BlockQ()
 
     def __bool__(self) -> bool:
         """Return flag state."""
@@ -59,12 +81,11 @@ class Event(KernelIf, Blocking):
         """Set the flag. Stop blocking waiting tasks."""
         self._flag = True
 
-        for task, event in self._waitq.pop():
-            if event is not None:
-                self._kernel._forks.clr(task, event)
-                self._kernel.call_soon(task, args=(Task.Command.RESUME, event))
-            else:
-                self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        for task in self._waitq.pop():
+            self._kernel.call_soon(task, args=(Task.Command.RESUME,))
+        for task, blk_event in self._blockq.pop():
+            self._kernel._forks.clr(task, blk_event)
+            self._kernel.call_soon(task, args=(Task.Command.RESUME, blk_event))
 
     def clear(self):
         """Clear the flag. Start blocking waiting tasks."""
@@ -74,7 +95,7 @@ class Event(KernelIf, Blocking):
         """Await event set."""
         if self._is_blocking():
             task = self._kernel._check_task()
-            self._waitq.push(task, event=None)
+            self._waitq.push(task)
             y = yield from self._kernel._suspend().__await__()
             assert y is None
 
@@ -83,7 +104,7 @@ class Event(KernelIf, Blocking):
         return not self._flag
 
     def _unblock(self, task: Task[Any]):
-        self._waitq.drop(task)
+        self._blockq.drop(task)
 
     def _do_block(self, task: Task[Any]):
-        self._waitq.push(task, event=self)
+        self._blockq.push(task, blk_event=self)
