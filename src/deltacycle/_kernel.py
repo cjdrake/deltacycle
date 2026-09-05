@@ -281,7 +281,7 @@ class Kernel[MainResultType](ABC):
 
             # Suspend
             for blocker in blocking:
-                blocker._do_block(task)
+                blocker._block(task)
             self._forks.set(task, *blocking)
             b = await self._suspend()
 
@@ -314,7 +314,7 @@ class Kernel[MainResultType](ABC):
 
         # Suspend
         for blocker in blockers:
-            blocker._do_block(task)
+            blocker._block(task)
         self._forks.set(task, *blockers)
         b = await self._suspend()
 

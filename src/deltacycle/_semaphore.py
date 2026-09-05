@@ -185,11 +185,11 @@ class ReqSemaphore(Blocking):
     def _is_blocking(self) -> bool:
         return self._semaphore._empty()
 
+    def _block(self, task: Task[Any]):
+        self._semaphore._getq.push(self._priority, task, req=self)
+
     def _unblock(self, task: Task[Any]):
         self._semaphore._getq.drop(task)
-
-    def _do_block(self, task: Task[Any]):
-        self._semaphore._getq.push(self._priority, task, req=self)
 
     @override
     def _do_nonblock(self):

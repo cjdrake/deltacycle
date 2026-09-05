@@ -196,11 +196,11 @@ class PredVariable(KernelIf, Blocking):
     def _is_blocking(self) -> bool:
         return True
 
+    def _block(self, task: Task[Any]):
+        self._var._blockq.push(task, blk_pv=self)
+
     def _unblock(self, task: Task[Any]):
         self._var._blockq.remove(task, blk_pv=self)
-
-    def _do_block(self, task: Task[Any]):
-        self._var._blockq.push(task, blk_pv=self)
 
 
 class Value[T](ABC):

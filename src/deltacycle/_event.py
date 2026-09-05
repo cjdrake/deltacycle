@@ -103,8 +103,8 @@ class Event(KernelIf, Blocking):
     def _is_blocking(self) -> bool:
         return not self._flag
 
+    def _block(self, task: Task[Any]):
+        self._blockq.push(task, blk_event=self)
+
     def _unblock(self, task: Task[Any]):
         self._blockq.drop(task)
-
-    def _do_block(self, task: Task[Any]):
-        self._blockq.push(task, blk_event=self)

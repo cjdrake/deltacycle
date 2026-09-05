@@ -43,12 +43,12 @@ class Blocking(ABC):
         """Return True if currently blocking task forward progress."""
 
     @abstractmethod
-    def _unblock(self, task: Task[Any]) -> None:
-        """Unblock task."""
+    def _block(self, task: Task[Any]):
+        """Block task."""
 
     @abstractmethod
-    def _do_block(self, task: Task[Any]):
-        """Callback: nonblocking code prior to return."""
+    def _unblock(self, task: Task[Any]) -> None:
+        """Unblock task."""
 
     def _do_nonblock(self):
         """Callback: blocking code prior to suspend."""
@@ -412,11 +412,11 @@ class Task[ResultType](KernelIf, Blocking):
     def _is_blocking(self) -> bool:
         return not self.done()
 
+    def _block(self, task: Task[Any]):
+        self._blockq.push(task, btask=self)
+
     def _unblock(self, task: Task[Any]):
         self._blockq.drop(task)
-
-    def _do_block(self, task: Task[Any]):
-        self._blockq.push(task, btask=self)
 
 
 class TaskGroup(KernelIf):
