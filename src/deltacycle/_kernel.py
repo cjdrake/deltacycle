@@ -31,7 +31,7 @@ class _SuspendResume:
         return value
 
 
-class _ForkTable(SupportsDropTask):
+class _BlockTable(SupportsDropTask):
     """Tasks wait for event trigger."""
 
     def __init__(self):
@@ -57,7 +57,7 @@ class _ForkTable(SupportsDropTask):
             b = items.pop()
             b._unblock(task)
 
-        # Drop reference to ForkTable
+        # Drop reference to BlockTable
         self.drop(task)
 
 
@@ -131,8 +131,8 @@ class Kernel[MainResultType](ABC):
         # Main task
         self._main: Task[MainResultType] = self._create_main(coro)
 
-        # Forked Tasks
-        self._forks = _ForkTable()
+        # Blocked Tasks
+        self._blocks = _BlockTable()
 
         # Model variables
         self._dirty_vars: set[Variable] = set()
@@ -266,7 +266,7 @@ class Kernel[MainResultType](ABC):
         task._set()
         assert task._refcnts.total() == 0
 
-    # Fork / Join
+    # Blocking
     async def _wait_all(self, *bs: Blocking):
         """Block forward progress until all items are nonblocking.
 
@@ -287,7 +287,7 @@ class Kernel[MainResultType](ABC):
             # Suspend
             for blocker in blocking:
                 blocker._block(task)
-            self._forks.set(task, *blocking)
+            self._blocks.set(task, *blocking)
             b = await self._suspend()
 
             # Resume
@@ -320,7 +320,7 @@ class Kernel[MainResultType](ABC):
         # Suspend
         for blocker in blockers:
             blocker._block(task)
-        self._forks.set(task, *blockers)
+        self._blocks.set(task, *blockers)
         b = await self._suspend()
 
         # Resume

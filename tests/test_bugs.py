@@ -189,11 +189,11 @@ def test_15():
 
         await sleep(10)
         # forker should appear in fork table
-        assert kernel._forks._items
+        assert kernel._blocks._items
 
         t.interrupt()
         # forker should NOT appear in fork table
-        assert not kernel._forks._items
+        assert not kernel._blocks._items
 
     run(main())
 

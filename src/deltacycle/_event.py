@@ -84,7 +84,7 @@ class Event(KernelIf, Blocking):
         for task in self._waitq.pop():
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         for task, blk_event in self._blockq.pop():
-            self._kernel._forks.clr(task, blk_event)
+            self._kernel._blocks.clr(task, blk_event)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, blk_event))
 
     def clear(self):

@@ -282,7 +282,7 @@ class Task[ResultType](KernelIf, Blocking):
         for task in self._waitq.pop():
             self._kernel.call_soon(task, args=(self.Command.RESUME,))
         for task, btask in self._blockq.pop():
-            self._kernel._forks.clr(task, btask)
+            self._kernel._blocks.clr(task, btask)
             self._kernel.call_soon(task, args=(self.Command.RESUME, btask))
         for gtask, ctask in self._groupq.pop():
             self._kernel.call_soon(gtask, args=(self.Command.RESUME, ctask))

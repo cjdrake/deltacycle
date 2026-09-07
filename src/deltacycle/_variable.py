@@ -121,7 +121,7 @@ class Variable(KernelIf):
         for task in self._waitq.pop():
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
         for task, blk_pvs, blk_pv in self._blockq.pop():
-            self._kernel._forks.clr(task, *blk_pvs)
+            self._kernel._blocks.clr(task, *blk_pvs)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, blk_pv))
 
         # Add variable to update set

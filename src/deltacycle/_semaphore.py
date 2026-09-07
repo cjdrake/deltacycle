@@ -112,7 +112,7 @@ class Semaphore(KernelIf):
         # Suspend => Schedule => Resume[Get] | Interrupt[Put]
         self._rsvns.setitem(task)
         if req is not None:
-            self._kernel._forks.clr(task, req)
+            self._kernel._blocks.clr(task, req)
             self._kernel.call_soon(task, args=(Task.Command.RESUME, req))
         else:
             self._kernel.call_soon(task, args=(Task.Command.RESUME,))
