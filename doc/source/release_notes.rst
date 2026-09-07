@@ -8,6 +8,13 @@ This chapter lists new features, API changes, and bug fixes.
 For a complete history, see the Git commit log.
 
 
+Version 0.44.0
+==============
+
+Changed ``Task.index`` to ``Task.id``.
+Several internal simplifications.
+
+
 Version 0.43.0
 ==============
 
