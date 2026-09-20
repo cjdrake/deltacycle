@@ -9,8 +9,8 @@ from deltacycle import (
     Queue,
     ReqSemaphore,
     Semaphore,
+    Singular,
     TaskGroup,
-    Variable,
     any_of,
     create_task,
     finish,
@@ -199,7 +199,7 @@ def test_15():
 
 
 def test_16():
-    v = Variable()
+    v = Singular(0)
     e = Event()
 
     async def main():
