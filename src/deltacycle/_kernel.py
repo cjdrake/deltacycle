@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterator
 from enum import IntEnum
 from typing import Any, ClassVar, Never
-from weakref import WeakKeyDictionary
 
 from ._task import Blocking, Kill, SupportsDropTask, Task, TaskArgs, TaskCoro, TaskGroup
 from ._variable import Variable
@@ -465,21 +464,16 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         # Task queue
         self._queue = _PendQ()
 
-        # Task priorities
-        self._priorities: WeakKeyDictionary[Task[Any], int] = WeakKeyDictionary()
-        self._priorities[self._main] = self.main_priority
+        self._main.attrs["priority"] = self.main_priority
 
     def call_soon(self, task: Task[Any], args: TaskArgs):
-        priority = self._priorities[task]
-        self._queue.push(self._time, priority, task, args)
+        self._queue.push(self._time, task.attrs["priority"], task, args)
 
     def call_later(self, delay: int, task: Task[Any], args: TaskArgs):
-        priority = self._priorities[task]
-        self._queue.push(self._time + delay, priority, task, args)
+        self._queue.push(self._time + delay, task.attrs["priority"], task, args)
 
     def call_at(self, when: int, task: Task[Any], args: TaskArgs):
-        priority = self._priorities[task]
-        self._queue.push(when, priority, task, args)
+        self._queue.push(when, task.attrs["priority"], task, args)
 
     def create_task[ResultType](
         self,
@@ -489,7 +483,7 @@ class DefaultKernel[MainResultType](Kernel[MainResultType]):
         **kwargs: Any,
     ) -> Task[ResultType]:
         task = super()._create_task(coro, name, group)
-        self._priorities[task] = kwargs.get("priority", self.task_priority)
+        task.attrs["priority"] = kwargs.get("priority", self.task_priority)
         self.call_soon(task, args=(Task.Command.RESUME,))
         return task
 

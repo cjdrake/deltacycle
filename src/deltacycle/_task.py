@@ -203,6 +203,8 @@ class Task[ResultType](KernelIf, Blocking):
         # Set if created within a group
         self._group = group
 
+        self.attrs: dict[str, Any] = {}
+
         # Keep track of all queues containing this task
         self._refcnts: Counter[SupportsDropTask] = Counter()
 
