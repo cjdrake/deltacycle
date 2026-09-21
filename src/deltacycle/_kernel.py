@@ -189,12 +189,16 @@ class Kernel[MainResultType](ABC):
     def call_at(self, when: int, task: Task[Any], args: TaskArgs) -> None:
         """Schedule task to run at specified time: ``when``."""
 
+    def _task_new[T](self, coro: TaskCoro[T], name: str, group: TaskGroup | None) -> Task[T]:
+        id = self._get_task_id()
+        parent = self.task()
+        return Task(coro, id, name, parent, group)
+
     def _create_main(self, coro: TaskCoro[MainResultType]):
         assert self._time == self.init_time
-        id = self._get_task_id()
-        assert id == 0
-        main: Task[MainResultType] = Task(coro, id, name="main", parent=None, group=None)
-        return main
+        task = self._task_new(coro, name="main", group=None)
+        assert task.id == 0
+        return task
 
     def _create_task[ResultType](
         self,
@@ -203,12 +207,11 @@ class Kernel[MainResultType](ABC):
         group: TaskGroup | None,
     ) -> Task[ResultType]:
         assert self._time >= self.start_time
-        id = self._get_task_id()
-        assert id > 0
         if name is None:
             name = f"Task-{id}"
-        parent = self._check_task()
-        return Task(coro, id, name, parent, group)
+        task = self._task_new(coro, name, group)
+        assert task.id > 0
+        return task
 
     @abstractmethod
     def create_task[ResultType](
