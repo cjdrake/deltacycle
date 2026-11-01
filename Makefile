@@ -19,6 +19,7 @@ test_all:
 	@$(UV) run --python=3.12 pytest --doctest-modules
 	@$(UV) run --python=3.13 pytest --doctest-modules
 	@$(UV) run --python=3.14 pytest --doctest-modules
+	@$(UV) run --python=3.15 pytest --doctest-modules
 
 .PHONY: prof
 prof:
